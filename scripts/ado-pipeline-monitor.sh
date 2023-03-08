@@ -16,7 +16,7 @@ RESULT=$(curl -u :$ADO_TOKEN "https://dev.azure.com/hmcts/$ADO_PROJECT/_apis/bui
 COUNT=$(jq -r .count <<< "${RESULT}")
 
 if [ "$COUNT" != 1 ]; then
-  echo "> :red: $PIPELINE_MESSAGE didn't have a successful run in last $TIME_FOR_RED." >> slack-message.txt
+  echo "> :red_circle: $PIPELINE_MESSAGE didn't have a successful run in last $TIME_FOR_RED." >> slack-message.txt
   exit 0
 fi
 
@@ -30,5 +30,5 @@ if [ "$COUNT" != 1 ]; then
   exit 0
 fi
 
-echo "> :green: $PIPELINE_MESSAGE had a successful run in last $TIME_FOR_AMBER." >> slack-message.txt
+echo "> :green_circle: $PIPELINE_MESSAGE had a successful run in last $TIME_FOR_AMBER." >> slack-message.txt
 
