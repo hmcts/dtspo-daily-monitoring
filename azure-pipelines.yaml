@@ -23,12 +23,18 @@ jobs:
         inputs:
           azureSubscription:  "DTS-CFTPTL-INTSVC"
           keyVaultName:   "cftptl-intsvc"
-          secretsFilter: 'slack-webhook-url'
+          secretsFilter: 'slack-webhook-url,azure-devops-token'
       - task: Bash@3
         displayName: 'Create a slack message file'
         inputs:
           targetType: 'inline'
-          script: touch slack-message.txt  && echo "this is test message" >> slack-message.txt
+          script: touch slack-message.txt >> slack-message.txt
+      - task: Bash@3
+        displayName: 'Checking azure pipeline status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/ado-pipeline-monitor.sh
+          arguments: $(azure-devops-token) cnp 37 24 48
       - task: Bash@3
         displayName: 'Send slack message'
         inputs:
