@@ -1,0 +1,21 @@
+---
+name: Daily monitoring for platform operations
+trigger:
+  - master
+pr:
+  - master
+schedules:
+  - cron: '0 9 * * Mon-Fri'
+    displayName: Runs 9 AM Mon-Fri
+    branches:
+      include:
+        - master
+    always: 'true'
+
+jobs:
+  - job: dailychecks
+    timeoutInMinutes: 10
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+      - bash: echo "Hello world"
