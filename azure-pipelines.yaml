@@ -81,7 +81,7 @@ jobs:
           script: touch slack-message.txt >> slack-message.txt
       - ${{ each ado_pipeline in parameters.ado_pipelines }}:
         - task: Bash@3
-          displayName: 'Checking azure pipeline status'
+          displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
           inputs:
             targetType: filePath
             filePath: scripts/ado-pipeline-monitor.sh
