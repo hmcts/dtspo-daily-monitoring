@@ -31,7 +31,27 @@ parameters:
         definitionId: '449'
         timeForAmber: '7 days'
         timeForRed: '14 days'
-        pipelineName: "ACR hmctspublic Cleanup"
+        pipelineName: "Github offboarding"
+      - project: 'PlatformOperations'
+        definitionId: '460'
+        timeForAmber: '3 days'
+        timeForRed: '5 days'
+        pipelineName: "Github offboarding reconciliation"
+      - project: 'cnp'
+        definitionId: '463'
+        timeForAmber: '14 days'
+        timeForRed: '28 days'
+        pipelineName: "Launch Darkly cleanup"
+      - project: 'PlatformOperations'
+        definitionId: '472'
+        timeForAmber: '3 days'
+        timeForRed: '7 days'
+        pipelineName: "Azure AAD group cleanup"
+      - project: 'cnp'
+        definitionId: '545'
+        timeForAmber: '3 days'
+        timeForRed: '7 days'
+        pipelineName: "OWASP DB update"
 jobs:
   - job: dailychecks
     timeoutInMinutes: 10
