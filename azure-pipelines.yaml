@@ -39,9 +39,8 @@ jobs:
     displayName: Daily Monitoring tasks
     dependsOn: key_vault_secrets
     variables:
-      secret_var: 
-        - $[ dependencies.key_vault_secrets.outputs['secrets.webhook_url'] ]
-        - $[ dependencies.key_vault_secrets.outputs['secrets.devops_token'] ]
+      webhook_url: $[ dependencies.key_vault_secrets.outputs['secrets.webhook_url'] ]
+      devops_token: $[ dependencies.key_vault_secrets.outputs['secrets.devops_token'] ]
     timeoutInMinutes: 10
     pool:
       vmImage: 'ubuntu-latest'
