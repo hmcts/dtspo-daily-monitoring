@@ -63,7 +63,7 @@ parameters:
         timeForRed: '5 days'
         pipelineName: "Preview scheduled cleanup"
 jobs:
-  - job: Daily Monitoring tasks
+  - job: DailyMonitoring
     timeoutInMinutes: 10
     pool:
       vmImage: 'ubuntu-latest'
@@ -78,7 +78,9 @@ jobs:
         displayName: 'Create a slack message file'
         inputs:
           targetType: 'inline'
-          script: touch slack-message.txt >> slack-message.txt
+          script: |
+           echo "*Daily Monitoring summary* \n \n">> slack-message.txt
+           echo "_:azure: Scheduled Pipelines status_ \n">> slack-message.txt
       - ${{ each ado_pipeline in parameters.ado_pipelines }}:
         - task: Bash@3
           displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
