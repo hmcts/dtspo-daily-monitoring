@@ -13,8 +13,35 @@ schedules:
     always: 'true'
 
 jobs:
+  - job: key_vault_secrets
+    displayName: Get Key Vault Secrets
+    steps:
+    - task: AzureKeyVault@1
+      displayName: 'Get webhook from Keyvault'
+      inputs:
+        azureSubscription:  "DTS-CFTPTL-INTSVC"
+        keyVaultName:   "cftptl-intsvc"
+        secretsFilter: 'slack-webhook-url,azure-devops-token'
+    - powershell: |
+        $webhookURL = '$(slack-webhook-url)'
+        $devopsToken = '$(azure-devops-token)'
+        echo '##vso[task.setvariable variable=webhook_url;isOutput=true;isSecret=true;]$webhookURL'
+        echo '##vso[task.setvariable variable=devops_token;isOutput=true;isSecret=true;]$devopsToken'
+      name: secrets
+  - job: slack_message
+    displayName: 'Create a slack message file'
+    steps:
+      - task: Bash@3
+        inputs:
+          targetType: 'inline'
+          script: touch slack-message.txt >> slack-message.txt
   - job: daily_monitoring_tasks
     displayName: Daily Monitoring tasks
+    dependsOn: key_vault_secrets
+    variables:
+      secret_var: 
+        - $[ dependencies.key_vault_secrets.outputs['secrets.webhook_url'] ]
+        - $[ dependencies.key_vault_secrets.outputs['secrets.devops_token'] ]
     timeoutInMinutes: 10
     pool:
       vmImage: 'ubuntu-latest'
