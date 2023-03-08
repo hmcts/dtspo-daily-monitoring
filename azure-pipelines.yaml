@@ -18,4 +18,20 @@ jobs:
     pool:
       vmImage: 'ubuntu-latest'
     steps:
-      - bash: echo "Hello world"
+      - task: AzureKeyVault@1
+        displayName: 'Get webhook from Keyvault'
+        inputs:
+          azureSubscription:  "DTS-CFTPTL-INTSVC"
+          keyVaultName:   "cftptl-intsvc"
+          secretsFilter: 'slack-webhook-url'
+      - task: Bash@3
+        displayName: 'Create a slack message file'
+        inputs:
+          targetType: 'inline'
+          script: touch slack-message.txt  && echo "this is test message" >> slack-message.txt
+      - task: Bash@3
+        displayName: 'Send slack message'
+        inputs:
+          targetType: filePath
+          filePath: scripts/send-slack-message.sh
+          arguments: $(slack-webhook-url) dtspo-daily-monitoring-test
