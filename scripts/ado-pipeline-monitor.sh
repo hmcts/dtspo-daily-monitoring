@@ -7,7 +7,7 @@ HOURS_FOR_AMBER=$4
 HOURS_FOR_RED=$5
 
 
-MIN_TIME_RED=$(date -d "-${HOURS_FOR_RED}H" +"%Y-%m-%dT%H:%M:%SZ" )
+MIN_TIME_RED=$(date -d "-${HOURS_FOR_RED} Hours" +"%Y-%m-%dT%H:%M:%SZ" )
 RESULT=$(curl -u :$ADO_TOKEN "https://dev.azure.com/hmcts/$ADO_PROJECT/_apis/build/builds?api-version=7.0&definitions=$ADO_DEFINITION_ID&resultFilter=succeeded&\$top=1&minTime=$MIN_TIME_RED")
 COUNT=$(jq -r .count <<< "${RESULT}")
 
@@ -16,7 +16,7 @@ if [ "$COUNT" != 1 ]; then
   exit 0
 fi
 
-MIN_TIME_AMBER=$(date -d "-${HOURS_FOR_AMBER}H" +"%Y-%m-%dT%H:%M:%SZ" )
+MIN_TIME_AMBER=$(date -d "-${HOURS_FOR_AMBER} Hours" +"%Y-%m-%dT%H:%M:%SZ" )
 RESULT=$(curl -u :$ADO_TOKEN "https://dev.azure.com/hmcts/$ADO_PROJECT/_apis/build/builds?api-version=7.0&definitions=$ADO_DEFINITION_ID&resultFilter=succeeded&\$top=1&minTime=$MIN_TIME_AMBER")
 COUNT=$(jq -r .count <<< "${RESULT}")
 
