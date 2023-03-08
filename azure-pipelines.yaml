@@ -19,14 +19,18 @@ parameters:
     default:
       - project: 'cnp'
         definitionId: '37'
-        hoursForAmber: '24'
-        hoursForRed: '48'
+        timeForAmber: '1 day'
+        timeForRed: '2 days'
         pipelineName: "Preview PR cleanup"
-
       - project: 'cnp'
         definitionId: '276'
-        hoursForAmber: '24'
-        hoursForRed: '72'
+        timeForAmber: '1 day'
+        timeForRed: '3 days'
+        pipelineName: "ACR hmctspublic Cleanup"
+      - project: 'PlatformOperations'
+        definitionId: '449'
+        timeForAmber: '7 days'
+        timeForRed: '14 days'
         pipelineName: "ACR hmctspublic Cleanup"
 jobs:
   - job: dailychecks
@@ -51,7 +55,7 @@ jobs:
           inputs:
             targetType: filePath
             filePath: scripts/ado-pipeline-monitor.sh
-            arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  ${{ado_pipeline.hoursForAmber}}  ${{ado_pipeline.hoursForRed}}  "${{ado_pipeline.pipelineName}}"
+            arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  "${{ado_pipeline.timeForAmber}}"  "${{ado_pipeline.timeForRed}}"  "${{ado_pipeline.pipelineName}}"
 
       - task: Bash@3
         displayName: 'Send slack message'
