@@ -45,7 +45,7 @@ parameters:
       - project: 'PlatformOperations'
         definitionId: '472'
         timeForAmber: '3 days'
-        timeForRed: '7 days'
+        timeForRed: '10 days'
         pipelineName: "Azure AAD group cleanup"
       - project: 'cnp'
         definitionId: '545'
