@@ -21,13 +21,13 @@ parameters:
         definitionId: '37'
         hoursForAmber: '24'
         hoursForRed: '48'
-        pipelineName: 'Preview PR cleanup'
+        pipelineName: "Preview PR cleanup"
 
       - project: 'cnp'
         definitionId: '276'
         hoursForAmber: '24'
         hoursForRed: '72'
-        pipelineName: 'hmctspublic registry cleanup'
+        pipelineName: "ACR hmctspublic Cleanup"
 jobs:
   - job: dailychecks
     timeoutInMinutes: 10
