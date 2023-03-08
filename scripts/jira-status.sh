@@ -45,9 +45,9 @@ printf "\n\n:jira: <https://bit.ly/3Zzv8c7|_*BAU tickets status*_> \n\n" >> slac
 echo "> ${UNASSIGNED_STATUS}  *${OPEN_ISSUES_COUNT}* Open issues" >> slack-message.txt
 echo "> $OPEN_ISSUES_STATUS  *$UNASSIGNED_ISSUES_COUNT* unassigned issues" >> slack-message.txt
 
-echo ">\n>\n>:tada:  *$CLOSED_ISSUES_COUNT issues closed yesterday:*>\n" >> slack-message.txt
+echo ">\n>\n>:tada:  *$CLOSED_ISSUES_COUNT issues closed yesterday:* \n" >> slack-message.txt
 echo "${CLOSED_ISSUES_USER}" | column -t -s $'\t'>> slack-message.txt
 
 
-printf ">\n>*:fire: Current Assigned tickets:* \n" >> slack-message.txt
+printf ">\n>\n>:fire: *Current Assigned tickets:* \n" >> slack-message.txt
 echo "${ASSIGNED_ISSUES_RESULT}" | column -t -s $'\t'>> slack-message.txt
