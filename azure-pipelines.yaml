@@ -19,7 +19,7 @@ parameters:
     default:
       - project: 'cnp'
         definitionId: '37'
-        timeForAmber: '3 day'
+        timeForAmber: '3 days'
         timeForRed: '5 days'
         pipelineName: "Preview PR cleanup"
       - project: 'cnp'
