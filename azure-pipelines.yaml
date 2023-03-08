@@ -79,14 +79,14 @@ jobs:
         inputs:
           targetType: 'inline'
           script: touch slack-message.txt >> slack-message.txt
-      - task: Bash@3
-        displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
-        inputs:
-          targetType: 'inline'
-          script: |
-            - ${{ each ado_pipeline in parameters.ado_pipelines }}:
-            ./scripts/ado-pipeline-monitor.sh $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  "${{ado_pipeline.timeForAmber}}"  "${{ado_pipeline.timeForRed}}"  "${{ado_pipeline.pipelineName}}"
-            - task: Bash@3
+      - ${{ each ado_pipeline in parameters.ado_pipelines }}:
+        - task: Bash@3
+          displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
+          inputs:
+            targetType: filePath
+            filePath: scripts/ado-pipeline-monitor.sh
+            arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  "${{ado_pipeline.timeForAmber}}"  "${{ado_pipeline.timeForRed}}"  "${{ado_pipeline.pipelineName}}"
+
       - task: Bash@3
         displayName: 'Send slack message'
         inputs:
