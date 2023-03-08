@@ -12,6 +12,22 @@ schedules:
         - master
     always: 'true'
 
+parameters:
+
+  - name: ado_pipelines
+    type: object
+    default:
+      - project: 'cnp'
+        definitionId: '37'
+        hoursForAmber: '24'
+        hoursForRed: '48'
+        pipelineName: 'Preview PR cleanup'
+
+      - project: 'cnp'
+        definitionId: '276'
+        hoursForAmber: '24'
+        hoursForRed: '72'
+        pipelineName: 'hmctspublic registry cleanup'
 jobs:
   - job: dailychecks
     timeoutInMinutes: 10
@@ -29,18 +45,14 @@ jobs:
         inputs:
           targetType: 'inline'
           script: touch slack-message.txt >> slack-message.txt
+  - ${{ each ado_pipeline in parameters.ado_pipelines }}:
       - task: Bash@3
         displayName: 'Checking azure pipeline status'
         inputs:
           targetType: filePath
           filePath: scripts/ado-pipeline-monitor.sh
-          arguments: $(azure-devops-token) cnp 37 24 48 "Preview PR cleanup"
-      - task: Bash@3
-        displayName: 'Checking azure pipeline status'
-        inputs:
-          targetType: filePath
-          filePath: scripts/ado-pipeline-monitor.sh
-          arguments: $(azure-devops-token) cnp 276 24 72 "hmctspublic registry cleanup"
+          arguments: $(azure-devops-token) ado_pipeline.project ado_pipeline.definitionId ado_pipeline.hoursForAmber ado_pipeline.hoursForRed ado_pipeline.pipelineName
+
       - task: Bash@3
         displayName: 'Send slack message'
         inputs:
