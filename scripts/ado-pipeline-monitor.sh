@@ -11,7 +11,7 @@ PIPELINE_NAME=$6
 PIPELINE_MESSAGE="<https://dev.azure.com/hmcts/$ADO_PROJECT/_build?definitionId=$ADO_DEFINITION_ID|$PIPELINE_NAME pipeline>"
 
 #MIN_TIME_RED=$(date -v "-${HOURS_FOR_RED}H" +"%Y-%m-%dT%H:%M:%SZ" )
-MIN_TIME_RED=$(date -v "-${HOURS_FOR_RED}H" +"%Y-%m-%dT%H:%M:%SZ" )
+MIN_TIME_RED=$(date -d "-${HOURS_FOR_RED} Hours" +"%Y-%m-%dT%H:%M:%SZ" )
 RESULT=$(curl -u :$ADO_TOKEN "https://dev.azure.com/hmcts/$ADO_PROJECT/_apis/build/builds?api-version=7.0&definitions=$ADO_DEFINITION_ID&resultFilter=succeeded&\$top=1&minTime=$MIN_TIME_RED")
 COUNT=$(jq -r .count <<< "${RESULT}")
 
