@@ -65,11 +65,11 @@ steps:
       displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
       inputs:
         targetType: filePath
-        filePath: ../scripts/ado-pipeline-monitor.sh
+        filePath: /scripts/ado-pipeline-monitor.sh
         arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  "${{ado_pipeline.timeForAmber}}"  "${{ado_pipeline.timeForRed}}"  "${{ado_pipeline.pipelineName}}"
   - task: Bash@3
     displayName: 'Send slack message'
     inputs:
       targetType: filePath
-      filePath: ../scripts/send-slack-message.sh
+      filePath: /scripts/send-slack-message.sh
       arguments: $(slack-webhook-url) dtspo-daily-monitoring-test
