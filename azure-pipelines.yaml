@@ -51,7 +51,7 @@ jobs:
           inputs:
             targetType: filePath
             filePath: scripts/ado-pipeline-monitor.sh
-            arguments: $(azure-devops-token) ${{ado_pipeline.project ado_pipeline.definitionId ado_pipeline.hoursForAmber ado_pipeline.hoursForRed ado_pipeline.pipelineName }}
+            arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  ${{ado_pipeline.hoursForAmber}}  ${{ado_pipeline.hoursForRed}}  ${{ado_pipeline.pipelineName}}
 
       - task: Bash@3
         displayName: 'Send slack message'
