@@ -17,7 +17,7 @@ jobs:
     timeoutInMinutes: 10
     pool:
       vmImage: 'ubuntu-latest'
-    tasks:
+    steps:
       - task: AzureKeyVault@1
         displayName: 'Get webhook from Keyvault'
         inputs:
