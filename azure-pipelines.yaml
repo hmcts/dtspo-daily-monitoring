@@ -73,14 +73,14 @@ jobs:
         inputs:
           azureSubscription:  "DTS-CFTPTL-INTSVC"
           keyVaultName:   "cftptl-intsvc"
-          secretsFilter: 'slack-webhook-url,azure-devops-token'
+          secretsFilter: 'slack-webhook-url,azure-devops-token,jira-password,jira-username'
       - task: Bash@3
         displayName: 'Create a slack message file'
         inputs:
           targetType: 'inline'
           script: |
            echo "*Daily Monitoring summary* \n \n">> slack-message.txt
-           echo "_:azure: Scheduled Pipelines status_ \n">> slack-message.txt
+           echo "_:azure: *Scheduled Pipelines status*_ \n">> slack-message.txt
       - ${{ each ado_pipeline in parameters.ado_pipelines }}:
         - task: Bash@3
           displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
@@ -88,7 +88,12 @@ jobs:
             targetType: filePath
             filePath: scripts/ado-pipeline-monitor.sh
             arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  "${{ado_pipeline.timeForAmber}}"  "${{ado_pipeline.timeForRed}}"  "${{ado_pipeline.pipelineName}}"
-
+      - task: Bash@3
+        displayName: 'Checking JIRA status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/jira-status.sh
+          arguments: $(jira-username) $(jira-password)
       - task: Bash@3
         displayName: 'Send slack message'
         inputs:
