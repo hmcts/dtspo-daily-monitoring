@@ -52,6 +52,16 @@ parameters:
         timeForAmber: '3 days'
         timeForRed: '7 days'
         pipelineName: "OWASP DB update"
+      - project: 'cnp'
+        definitionId: '175'
+        timeForAmber: '3 days'
+        timeForRed: '7 days'
+        pipelineName: "ACR Base importer"
+      - project: 'Platform%20Engineering'
+        definitionId: '224'
+        timeForAmber: '1 day'
+        timeForRed: '3 days'
+        pipelineName: "Preview scheduled cleanup"
 jobs:
   - job: dailychecks
     timeoutInMinutes: 10
