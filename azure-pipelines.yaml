@@ -63,7 +63,7 @@ parameters:
         timeForRed: '5 days'
         pipelineName: "Preview scheduled cleanup"
 jobs:
-  - job: dailychecks
+  - job: Daily Monitoring tasks
     timeoutInMinutes: 10
     pool:
       vmImage: 'ubuntu-latest'
