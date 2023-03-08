@@ -69,7 +69,7 @@ jobs:
       vmImage: 'ubuntu-latest'
     steps:
       - task: AzureKeyVault@1
-        displayName: 'Get webhook from Keyvault'
+        displayName: 'Get secrets from Keyvault'
         inputs:
           azureSubscription:  "DTS-CFTPTL-INTSVC"
           keyVaultName:   "cftptl-intsvc"
