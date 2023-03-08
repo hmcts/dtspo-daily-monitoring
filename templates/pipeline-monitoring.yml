@@ -1,0 +1,75 @@
+parameters:
+  - name: ado_pipelines
+    type: object
+    default:
+      - project: 'cnp'
+        definitionId: '37'
+        timeForAmber: '3 day'
+        timeForRed: '5 days'
+        pipelineName: "Preview PR cleanup"
+      - project: 'cnp'
+        definitionId: '276'
+        timeForAmber: '3 days'
+        timeForRed: '7 days'
+        pipelineName: "ACR hmctspublic Cleanup"
+      - project: 'PlatformOperations'
+        definitionId: '449'
+        timeForAmber: '7 days'
+        timeForRed: '14 days'
+        pipelineName: "Github offboarding"
+      - project: 'PlatformOperations'
+        definitionId: '460'
+        timeForAmber: '3 days'
+        timeForRed: '7 days'
+        pipelineName: "Github offboarding reconciliation"
+      - project: 'cnp'
+        definitionId: '463'
+        timeForAmber: '14 days'
+        timeForRed: '28 days'
+        pipelineName: "Launch Darkly cleanup"
+      - project: 'PlatformOperations'
+        definitionId: '472'
+        timeForAmber: '3 days'
+        timeForRed: '7 days'
+        pipelineName: "Azure AAD group cleanup"
+      - project: 'cnp'
+        definitionId: '545'
+        timeForAmber: '3 days'
+        timeForRed: '7 days'
+        pipelineName: "OWASP DB update"
+      - project: 'cnp'
+        definitionId: '175'
+        timeForAmber: '3 days'
+        timeForRed: '7 days'
+        pipelineName: "ACR Base importer"
+      - project: 'Platform%20Engineering'
+        definitionId: '224'
+        timeForAmber: '3 days'
+        timeForRed: '5 days'
+        pipelineName: "Preview scheduled cleanup"
+
+steps:
+  - task: AzureKeyVault@1
+    displayName: 'Get webhook from Keyvault'
+    inputs:
+      azureSubscription:  "DTS-CFTPTL-INTSVC"
+      keyVaultName:   "cftptl-intsvc"
+      secretsFilter: 'slack-webhook-url,azure-devops-token'
+  - task: Bash@3
+    displayName: 'Create a slack message file'
+    inputs:
+      targetType: 'inline'
+      script: touch slack-message.txt >> slack-message.txt
+  - ${{ each ado_pipeline in parameters.ado_pipelines }}:
+    - task: Bash@3
+      displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
+      inputs:
+        targetType: filePath
+        filePath: ../scripts/ado-pipeline-monitor.sh
+        arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  "${{ado_pipeline.timeForAmber}}"  "${{ado_pipeline.timeForRed}}"  "${{ado_pipeline.pipelineName}}"
+  - task: Bash@3
+    displayName: 'Send slack message'
+    inputs:
+      targetType: filePath
+      filePath: ../scripts/send-slack-message.sh
+      arguments: $(slack-webhook-url) dtspo-daily-monitoring-test
