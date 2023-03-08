@@ -26,17 +26,17 @@ CLOSED_ISSUES_COUNT=$(jq -r .total <<< "${CLOSED_ISSUES_RESULT}")
 CLOSED_ISSUES_USER=$(jq -r '[.issues[] | select(.fields.assignee!=null)]| [group_by (.fields.assignee.displayName)[] | {user: .[0].fields.assignee.displayName, count: length}] | sort_by(.count) | reverse[]| [ ">_"+.user+"_", .count|tostring ] | join(": ")' <<< "${CLOSED_ISSUES_RESULT}")
 
 
-UNASSIGNED_STATUS=":green_circle:"
-if (( "$UNASSIGNED_ISSUES_COUNT" >= 15 )); then
-  UNASSIGNED_STATUS=":red_circle:"
-elif ((  "$UNASSIGNED_ISSUES_COUNT" >= 10 )); then
+UNASSIGNED_STATUS=":red_circle:"
+if (( "$UNASSIGNED_ISSUES_COUNT" <= 10 )); then
+  UNASSIGNED_STATUS=":green_circle:"
+elif ((  "$UNASSIGNED_ISSUES_COUNT" <= 15 )); then
   UNASSIGNED_STATUS=":yellow_circle:"
 fi
 
-OPEN_ISSUES_STATUS=":green_circle:"
-if (( "$OPEN_ISSUES_COUNT" >= 60 )); then
-  OPEN_ISSUES_STATUS=":red_circle:"
-elif (( "$OPEN_ISSUES_COUNT" >= 50 )); then
+OPEN_ISSUES_STATUS=":red_circle:"
+if (( "$OPEN_ISSUES_COUNT" <= 40 )); then
+  OPEN_ISSUES_STATUS=":green_circle:"
+elif (( "$OPEN_ISSUES_COUNT" <= 55 )); then
   OPEN_ISSUES_STATUS=":yellow_circle:"
 fi
 
