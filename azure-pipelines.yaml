@@ -13,7 +13,8 @@ schedules:
     always: 'true'
 
 jobs:
-  - job: Daily Monitoring tasks
+  - job: daily_monitoring_tasks
+    displayName: Daily Monitoring tasks
     timeoutInMinutes: 10
     pool:
       vmImage: 'ubuntu-latest'
