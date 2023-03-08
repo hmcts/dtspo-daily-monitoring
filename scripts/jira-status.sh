@@ -40,7 +40,7 @@ elif (( "$OPEN_ISSUES_COUNT" <= 55 )); then
   OPEN_ISSUES_STATUS=":yellow_circle:"
 fi
 
-printf "\n\n:jira: <https://bit.ly/3Zzv8c7|_*BAU tickets status*_> \n\n" >>
+printf "\n\n:jira: <https://bit.ly/3Zzv8c7|_*BAU tickets status*_> \n\n" >> slack-message.txt
 
 printf ">  %s *%s* Open issues" "$UNASSIGNED_STATUS" "$OPEN_ISSUES_COUNT" >> slack-message.txt
 printf "> %s *%s* unassigned issues" "$OPEN_ISSUES_STATUS" "$UNASSIGNED_ISSUES_COUNT" >> slack-message.txt
