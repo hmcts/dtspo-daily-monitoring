@@ -34,7 +34,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/ado-pipeline-monitor.sh
-          arguments: $(azure-devops-token) cnp 37 24 48
+          arguments: $(azure-devops-token) cnp 37 24 48 "Preview PR cleanup pipeline"
       - task: Bash@3
         displayName: 'Send slack message'
         inputs:
