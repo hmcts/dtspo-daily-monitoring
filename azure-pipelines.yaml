@@ -109,6 +109,12 @@ jobs:
           targetType: filePath
           filePath: scripts/servicenow-status.sh
           arguments: $(service-now-username)  $(service-now-password)
+      - task: Bash@3
+        displayName: 'Checking Jenkins status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/jenkins-status.sh
+          arguments: $(jenkins-api-user) $(jenkins-api-token) "http://jenkins.jenkins:8080/"
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'Get AKS Cluster Status'
@@ -117,12 +123,6 @@ jobs:
             scriptPath: scripts/aks-node-count.sh
             azureSubscription: ${{ cluster.subscription }}
             arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
-      - task: Bash@3
-        displayName: 'Checking Jenkins status'
-        inputs:
-          targetType: filePath
-          filePath: scripts/jenkins-status.sh
-          arguments: $(jenkins-api-user) $(jenkins-api-token) "http://jenkins.jenkins:8080/"
       - task: Bash@3
         displayName: 'Checking JIRA status'
         inputs:
