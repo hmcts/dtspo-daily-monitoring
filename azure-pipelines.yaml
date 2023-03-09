@@ -73,7 +73,7 @@ jobs:
         inputs:
           azureSubscription:  "DTS-CFTPTL-INTSVC"
           keyVaultName:   "cftptl-intsvc"
-          secretsFilter: 'slack-webhook-url,azure-devops-token,jira-password,jira-username'
+          secretsFilter: 'slack-webhook-url,azure-devops-token,jira-password,jira-username,github-management-api-token'
       - task: Bash@3
         displayName: 'Create a slack message file'
         inputs:
@@ -88,6 +88,12 @@ jobs:
             targetType: filePath
             filePath: scripts/ado-pipeline-monitor.sh
             arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  "${{ado_pipeline.timeForAmber}}"  "${{ado_pipeline.timeForRed}}"  "${{ado_pipeline.pipelineName}}"
+      - task: Bash@3
+        displayName: 'Checking Github Licenses'
+        inputs:
+          targetType: filePath
+          filePath: scripts/github-licenses.sh
+          arguments: $(github-management-api-token)
       - task: Bash@3
         displayName: 'Checking JIRA status'
         inputs:
