@@ -46,8 +46,8 @@ printf "> %s *%s* Open issues\n" "$UNASSIGNED_STATUS" "$OPEN_ISSUES_COUNT" >> sl
 printf "> %s *%s* unassigned issues\n" "$OPEN_ISSUES_STATUS" "$UNASSIGNED_ISSUES_COUNT" >> slack-message.txt
 
 printf ">\n>\n>:tada:  *%s issues closed yesterday:* \n" "$CLOSED_ISSUES_COUNT" >> slack-message.txt
-echo "${CLOSED_ISSUES_USER}" | column -t -s $'\t'>> slack-message.txt
+echo "${CLOSED_ISSUES_USER}">> slack-message.txt
 
 
 printf ">\n>\n>:fire: *Current Assigned tickets:* \n" >> slack-message.txt
-echo "${ASSIGNED_ISSUES_RESULT}" | column -t -s $'\t'>> slack-message.txt
+echo "${ASSIGNED_ISSUES_RESULT}">> slack-message.txt
