@@ -14,9 +14,9 @@ elif (( "$BUILD_QUEUE_COUNT" <= 125 )); then
   BUILD_QUEUE_STATUS=":yellow_circle:"
 fi
 
-printf ">_%s Build Queue :_ *%s* :sign-queue: \n" "$BUILD_QUEUE_STATUS" "$BUILD_QUEUE_COUNT" >> slack-message.txt
+printf ">_%s  Build Queue :_ *%s* :sign-queue: \n" "$BUILD_QUEUE_STATUS" "$BUILD_QUEUE_COUNT" >> slack-message.txt
 
-printf ">\n> _Dashboard Status:_  \n" >> slack-message.txt
+printf ">\n> _Dashboard Status:_  \n>\n" >> slack-message.txt
 
 DASHBOARD_RESULT=$( curl -u $JENKINS_USERNAME:$JENKINS_API_TOKEN "$JENKINS_URL/view/Platform/api/json?depth=1")
 
