@@ -62,6 +62,15 @@ parameters:
         timeForAmber: '3 days'
         timeForRed: '5 days'
         pipelineName: "Preview scheduled cleanup"
+  - name: aks_clusters
+    type: object
+    default:
+      - resourceGroup: 'cft-preview-00-rg'
+        clusterName: 'cft-preview-00-aks'
+        subscription: 'DCD-CFTAPPS-DEV'
+      - resourceGroup: 'cft-preview-01-rg'
+        clusterName: 'cft-preview-01-aks'
+        subscription: 'DCD-CFTAPPS-DEV'
 jobs:
   - job: DailyMonitoring
     timeoutInMinutes: 10
@@ -79,8 +88,8 @@ jobs:
         inputs:
           targetType: 'inline'
           script: |
-           echo "*Daily Monitoring summary* \n \n">> slack-message.txt
-           echo "_:azure: *Scheduled Pipelines status*_ \n">> slack-message.txt
+           echo "*Daily Monitoring Summary* \n \n">> slack-message.txt
+           echo "_:azure: *Scheduled Pipelines Status*_ \n">> slack-message.txt
       - ${{ each ado_pipeline in parameters.ado_pipelines }}:
         - task: Bash@3
           displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
@@ -94,6 +103,14 @@ jobs:
           targetType: filePath
           filePath: scripts/github-licenses.sh
           arguments: $(github-management-api-token)
+      - ${{ each cluster in parameters.aks_clusters }}:
+        - task: AzureCLI@2
+          displayName: 'Get AKS Cluster Status'
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/aks-node-count.sh
+            azureSubscription: ${{ cluster.subscription }}
+            arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
       - task: Bash@3
         displayName: 'Checking JIRA status'
         inputs:
