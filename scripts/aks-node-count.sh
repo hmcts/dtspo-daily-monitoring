@@ -26,7 +26,7 @@ PERCENTAGE=$((100*$NODE_COUNT/$MAX_COUNT))
 
 CLUSTER_URL="https://portal.azure.com/#@HMCTS.NET/resource/subscriptions/8b6ea922-0862-443e-af15-6056e1c9b9a4/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerService/managedClusters/$CLUSTER_NAME/overview"
 
-printf "\n\n:aks: Cluster <$CLUSTER_URL|_*$CLUSTER_NAME Status*_>  \n\n" >> slack-message.txt
+printf "\n\n:aks: <Cluster $CLUSTER_URL|_*$CLUSTER_NAME Status*_>  \n\n" >> slack-message.txt
 if [ $PERCENTAGE -gt 95 ]; then
     echo "> :red_circle: _*$CLUSTER_NAME*_ is running above 95% capacity at *$PERCENTAGE%*" >> slack-message.txt
 elif [ $PERCENTAGE -gt 80 ]; then
