@@ -14,5 +14,5 @@ elif ((  "$LICENSES_LEFT" >= 10 )); then
   LICENSE_STATUS=":yellow_circle:"
 fi
 
-printf "\n\n:github: <https://github.com/orgs/hmcts/people|_*GITHUB License Status*_> \n\n" >> slack-message.txt
+printf "\n:github: <https://github.com/orgs/hmcts/people|_*GitHub License Status*_> \n\n" >> slack-message.txt
 printf "> %s *%s* out of *%s* licenses left \n" "$LICENSE_STATUS" "$LICENSES_LEFT" "$TOTAL_LICENSES" >> slack-message.txt

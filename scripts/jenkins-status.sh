@@ -2,7 +2,7 @@ JENKINS_USERNAME=$1
 JENKINS_API_TOKEN=$2
 JENKINS_URL=$3
 
-printf "\n\n:jenkins: <https://build.platform.hmcts.net/|_*Jenkins Status*_> \n\n" >> slack-message.txt
+printf "\n:jenkins: <https://build.platform.hmcts.net/|_*Jenkins Status*_> \n\n" >> slack-message.txt
 
 DASHBOARD_RESULT=$( curl -u $JENKINS_USERNAME:$JENKINS_API_TOKEN "$JENKINS_URL/view/Platform/api/json?depth=1")
 
