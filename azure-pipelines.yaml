@@ -82,7 +82,7 @@ jobs:
         inputs:
           azureSubscription:  "DTS-CFTPTL-INTSVC"
           keyVaultName:   "cftptl-intsvc"
-          secretsFilter: 'slack-webhook-url,azure-devops-token,jira-password,jira-username,github-management-api-token,jenkins-api-user,jenkins-api-token'
+          secretsFilter: 'slack-webhook-url,azure-devops-token,jira-password,jira-username,github-management-api-token,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password'
       - task: Bash@3
         displayName: 'Create a slack message file'
         inputs:
@@ -103,6 +103,12 @@ jobs:
           targetType: filePath
           filePath: scripts/github-licenses.sh
           arguments: $(github-management-api-token)
+      - task: Bash@3
+        displayName: 'Checking servicenow status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/servicenow-status.sh
+          arguments: $(service-now-username)  $(service-now-password)
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'Get AKS Cluster Status'
