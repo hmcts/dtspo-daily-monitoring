@@ -88,8 +88,8 @@ jobs:
         inputs:
           targetType: 'inline'
           script: |
-           echo "*Daily Monitoring summary* \n \n">> slack-message.txt
-           echo "_:azure: *Scheduled Pipelines status*_ \n">> slack-message.txt
+           echo "*Daily Monitoring Summary* \n \n">> slack-message.txt
+           echo "_:azure: *Scheduled Pipelines Status*_ \n">> slack-message.txt
       - ${{ each ado_pipeline in parameters.ado_pipelines }}:
         - task: Bash@3
           displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
