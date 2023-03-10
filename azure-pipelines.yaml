@@ -107,7 +107,7 @@ jobs:
         displayName: 'Checking Launchdarkly Licenses'
         inputs:
           targetType: filePath
-          filePath: scripts/ld-licenses.sh
+          filePath: scripts/ld-license.sh
           arguments: $(launchdarkly-access-token)
       - task: Bash@3
         displayName: 'Checking servicenow status'
