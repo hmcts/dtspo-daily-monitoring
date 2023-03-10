@@ -3,7 +3,7 @@ set -ex
 
 RESULT=$(curl -X GET https://app.launchdarkly.com/api/v2/members -H "Authorization: ${TOKEN}")
 CONSUMED_LICENSES=$(jq -r .totalCount <<< "${RESULT}")
-TOTAL_LICENSES=150
+TOTAL_LICENSES=150 #None of the public APIs seem to return the number of licenses we have.
  
 LICENSES_LEFT=$((TOTAL_LICENSES-CONSUMED_LICENSES))
 
