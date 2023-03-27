@@ -5,7 +5,7 @@ name: Daily monitoring for platform operations
 #pr:
 #  - master
 schedules:
-  - cron: '0 9 * * Mon-Fri'
+  - cron: '0 8 * * Mon-Fri'
     displayName: Runs 9 AM Mon-Fri
     branches:
       include:
