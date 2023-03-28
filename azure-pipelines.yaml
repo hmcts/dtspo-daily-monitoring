@@ -135,7 +135,7 @@ jobs:
             azureSubscription: ${{ cluster.subscription }}
             arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
       - task: AzureCLI@2
-        displayName: 'Get AKS Cluster Status'
+        displayName: 'Service Principal Check'
         inputs:
           scriptType: bash
           scriptPath: scripts/service-principals.sh
