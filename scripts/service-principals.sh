@@ -2,9 +2,9 @@ set -ex
 
 CHECK_DAYS=$1
 
-TODAY_DATE=$(gdate +%Y-%m-%d)
+TODAY_DATE=$(date +%Y-%m-%d)
 
-CHECK_DATE=$(gdate -d "+${CHECK_DAYS} days" +%Y-%m-%d)
+CHECK_DATE=$(date -d "+${CHECK_DAYS} days" +%Y-%m-%d)
 
 
 AZ_APP_RESULT=$( az ad app list --all --query "[?passwordCredentials[?endDateTime > '${TODAY_DATE}' && endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime > '${TODAY_DATE}' && endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
@@ -25,8 +25,8 @@ echo "$AZ_APP_RESULT" | jq -c -r '.[]'  | while read i; do
     appId=$(jq -r '.appId' <<< "$i")
     endDateTime=$(jq -r '.passwordCredentials[].endDateTime' <<< "$i")
     
-    convert_date=$(gdate -d "$endDateTime" +%Y-%m-%d)
-    date_diff=$(( ($(gdate -d "$convert_date UTC" +%s) - $(gdate -d "2023-03-28 UTC" +%s) )/(60*60*24) ))
+    convert_date=$(date -d "$endDateTime" +%Y-%m-%d)
+    date_diff=$(( ($(date -d "$convert_date UTC" +%s) - $(date -d "2023-03-28 UTC" +%s) )/(60*60*24) ))
     
 
     APP_URL="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Credentials/appId/$appId"
