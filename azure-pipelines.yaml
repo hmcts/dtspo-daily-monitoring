@@ -75,7 +75,8 @@ parameters:
 variables:
   - name: SPSecretNumDays
     value: 14
-
+  - name: service_connection
+    value: dts-management-prod-intsvc
 jobs:
   - job: DailyMonitoring
     timeoutInMinutes: 10
@@ -139,7 +140,7 @@ jobs:
         inputs:
           scriptType: bash
           scriptPath: scripts/service-principals.sh
-          azureSubscription: ${{ cluster.subscription }}
+          azureSubscription: ${{ variables.service_connection }}
           arguments: ${{ variables.SPSecretNumDays }}
       - task: Bash@3
         displayName: 'Checking JIRA status'
