@@ -26,7 +26,7 @@ echo "$AZ_APP_RESULT" | jq -c -r '.[]'  | while read i; do
     endDateTime=$(jq -r '.passwordCredentials[].endDateTime' <<< "$i")
     
     convert_date=$(date -d "$endDateTime" +%Y-%m-%d)
-    date_diff=$(( ($(date -d "$convert_date UTC" +%s) - $(date -d "2023-03-28 UTC" +%s) )/(60*60*24) ))
+    date_diff=$(( ($(date -d "$convert_date UTC" +%s) - $(date -d "UTC" +%s) )/(60*60*24) ))
     
 
     APP_URL="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Credentials/appId/$appId"
