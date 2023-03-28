@@ -71,6 +71,11 @@ parameters:
       - resourceGroup: 'cft-preview-01-rg'
         clusterName: 'cft-preview-01-aks'
         subscription: 'DCD-CFTAPPS-DEV'
+
+variables:
+  - name: SPSecretNumDays
+    value: 14
+
 jobs:
   - job: DailyMonitoring
     timeoutInMinutes: 10
@@ -129,6 +134,12 @@ jobs:
             scriptPath: scripts/aks-node-count.sh
             azureSubscription: ${{ cluster.subscription }}
             arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
+      - task: Bash@3
+        displayName: 'Checking Service Principals'
+        inputs:
+          targetType: filePath
+          filePath: scripts/service-principals.sh
+          arguments: ${{ variables.SPSecretNumDays }}
       - task: Bash@3
         displayName: 'Checking JIRA status'
         inputs:
