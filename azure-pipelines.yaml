@@ -134,11 +134,12 @@ jobs:
             scriptPath: scripts/aks-node-count.sh
             azureSubscription: ${{ cluster.subscription }}
             arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
-      - task: Bash@3
-        displayName: 'Checking Service Principals'
+      - task: AzureCLI@2
+        displayName: 'Get AKS Cluster Status'
         inputs:
-          targetType: filePath
-          filePath: scripts/service-principals.sh
+          scriptType: bash
+          scriptPath: scripts/service-principals.sh
+          azureSubscription: ${{ cluster.subscription }}
           arguments: ${{ variables.SPSecretNumDays }}
       - task: Bash@3
         displayName: 'Checking JIRA status'
