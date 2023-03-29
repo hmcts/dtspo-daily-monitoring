@@ -13,12 +13,14 @@ AZ_APP_RESULT=$( az ad app list --all --query "[?passwordCredentials[?endDateTim
 
 AZ_APP_COUNT=$(jq -r '. | length' <<< "${AZ_APP_RESULT}")
 
+printf "\n:azure-826: <https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status*_> \n" >> slack-message.txt
+
 if [[ $AZ_APP_COUNT == 0 ]]; then
     printf "\n:green_circle: None Service Principals Secrets are expiring in $CHECK_DAYS days \n\n" >> slack-message.txt
     exit 0
 fi
 
-printf "\n:azure-826: <https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status*_> \n" >> slack-message.txt
+
 
 echo "$AZ_APP_RESULT" | jq -c -r '.[]'  | while read i; do
     displayName=$(jq -r '.displayName' <<< "$i")
