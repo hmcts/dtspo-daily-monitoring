@@ -40,4 +40,4 @@ echo "$AZ_APP_RESULT" | jq -c -r '.[]'  | while read i; do
     fi
 
 done
-
+printf "\n\n"
