@@ -32,11 +32,11 @@ echo "$AZ_APP_RESULT" | jq -c -r '.[]'  | while read i; do
 
     APP_URL="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Credentials/appId/$appId"
     if [ $((date_diff)) -lt 0 ]; then
-        printf ">\n:red_circle: <$APP_URL|_* $displayName*_> has expired" >> slack-message.txt
+        printf "\n>:red_circle: <$APP_URL|_* $displayName*_> has expired" >> slack-message.txt
     elif [[ $((date_diff)) -gt 7 ]]; then
-        printf ">\n:yellow_circle: <$APP_URL|_* $displayName*_> expires in $date_diff days" >> slack-message.txt
+        printf "\n>:yellow_circle: <$APP_URL|_* $displayName*_> expires in $date_diff days" >> slack-message.txt
     else
-        printf ">\n:red_circle: <$APP_URL|_* $displayName*_> expires in $date_diff days" >> slack-message.txt
+        printf "\n>:red_circle: <$APP_URL|_* $displayName*_> expires in $date_diff days" >> slack-message.txt
     fi
 
 done
