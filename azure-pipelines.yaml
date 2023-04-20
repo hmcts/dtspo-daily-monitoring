@@ -52,6 +52,11 @@ parameters:
         timeForAmber: '3 days'
         timeForRed: '5 days'
         pipelineName: "Preview scheduled cleanup"
+      - project: 'PlatformOperations'
+        definitionId: '635'
+        timeForAmber: '1 days'
+        timeForRed: '3 days'
+        pipelineName: "hmcts.azure-enterprise"
   - name: aks_clusters
     type: object
     default:
