@@ -57,6 +57,16 @@ parameters:
         timeForAmber: '1 days'
         timeForRed: '3 days'
         pipelineName: "hmcts.azure-enterprise"
+      - project: 'PlatformOperations'
+        definitionId: '543'
+        timeForAmber: '1 days'
+        timeForRed: '3 days'
+        pipelineName: "sds-azure-platform"
+      - project: 'cnp'
+        definitionId: '235'
+        timeForAmber: '1 days'
+        timeForRed: '3 days'
+        pipelineName: "azure-platform-terraform"
   - name: aks_clusters
     type: object
     default:
