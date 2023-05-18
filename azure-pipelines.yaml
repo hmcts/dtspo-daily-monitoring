@@ -12,8 +12,10 @@ schedules:
         - master
     always: 'true'
 
-parameters:
+variables:
+  isMaster: $[eq(variables['Build.SourceBranch'], 'refs/heads/master')]
 
+parameters:
   - name: ado_pipelines
     type: object
     default:
@@ -159,3 +161,22 @@ jobs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
           arguments: $(slack-webhook-url) dtspo-bau
+  - job: OrphanResourceCleanup
+    # Only run on master branch
+    condition: eq(variables.isMaster, true)
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - task: AzureKeyVault@1
+        displayName: 'Get secrets from Keyvault'
+        inputs:
+          azureSubscription:  "DTS-CFTPTL-INTSVC"
+          keyVaultName:   "cftptl-intsvc"
+          secretsFilter: 'orphaned-resources-slack-webhook'
+      - task: Bash@3
+        displayName: 'Deleting orphaned resources in Azure'
+        inputs:
+          targetType: filePath
+          filePath: scripts/orphan-cleanup.sh
+          arguments: $(orphaned-resources-slack-webhook) dtspo-orphaned-resource-cleanup
+
