@@ -1,11 +1,11 @@
 ---
 name: Daily monitoring for platform operations
-trigger:
-  - master
-pr:
-  - master
+#trigger:
+#  - master
+#pr:
+#  - master
 schedules:
-  - cron: '0 9 * * Mon-Fri'
+  - cron: '0 8 * * Mon-Fri'
     displayName: Runs 9 AM Mon-Fri
     branches:
       include:
@@ -27,16 +27,6 @@ parameters:
         timeForAmber: '3 days'
         timeForRed: '7 days'
         pipelineName: "ACR hmctspublic Cleanup"
-      - project: 'PlatformOperations'
-        definitionId: '449'
-        timeForAmber: '7 days'
-        timeForRed: '14 days'
-        pipelineName: "Github offboarding"
-      - project: 'PlatformOperations'
-        definitionId: '460'
-        timeForAmber: '3 days'
-        timeForRed: '7 days'
-        pipelineName: "Github offboarding reconciliation"
       - project: 'cnp'
         definitionId: '463'
         timeForAmber: '14 days'
@@ -62,6 +52,21 @@ parameters:
         timeForAmber: '3 days'
         timeForRed: '5 days'
         pipelineName: "Preview scheduled cleanup"
+      - project: 'PlatformOperations'
+        definitionId: '635'
+        timeForAmber: '1 days'
+        timeForRed: '3 days'
+        pipelineName: "hmcts.azure-enterprise"
+      - project: 'PlatformOperations'
+        definitionId: '543'
+        timeForAmber: '1 days'
+        timeForRed: '3 days'
+        pipelineName: "sds-azure-platform"
+      - project: 'cnp'
+        definitionId: '235'
+        timeForAmber: '1 days'
+        timeForRed: '3 days'
+        pipelineName: "azure-platform-terraform"
   - name: aks_clusters
     type: object
     default:
@@ -71,6 +76,12 @@ parameters:
       - resourceGroup: 'cft-preview-01-rg'
         clusterName: 'cft-preview-01-aks'
         subscription: 'DCD-CFTAPPS-DEV'
+
+variables:
+  - name: SPSecretNumDays
+    value: 14
+  - name: service_connection
+    value: dts-management-prod-intsvc
 jobs:
   - job: DailyMonitoring
     timeoutInMinutes: 10
@@ -82,7 +93,7 @@ jobs:
         inputs:
           azureSubscription:  "DTS-CFTPTL-INTSVC"
           keyVaultName:   "cftptl-intsvc"
-          secretsFilter: 'slack-webhook-url,azure-devops-token,jira-password,jira-username,github-management-api-token'
+          secretsFilter: 'slack-webhook-url,azure-devops-token,jira-password,jira-username,github-management-api-token,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token'
       - task: Bash@3
         displayName: 'Create a slack message file'
         inputs:
@@ -104,6 +115,24 @@ jobs:
           targetType: filePath
           filePath: scripts/github-licenses.sh
           arguments: $(github-management-api-token)
+      - task: Bash@3
+        displayName: 'Checking Launchdarkly Licenses'
+        inputs:
+          targetType: filePath
+          filePath: scripts/ld-license.sh
+          arguments: $(launchdarkly-access-token)
+      - task: Bash@3
+        displayName: 'Checking servicenow status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/servicenow-status.sh
+          arguments: $(service-now-username)  $(service-now-password)
+      - task: Bash@3
+        displayName: 'Checking Jenkins status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/jenkins-status.sh
+          arguments: $(jenkins-api-user) $(jenkins-api-token) "http://jenkins.jenkins:8080/"
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'Get AKS Cluster Status'
@@ -112,6 +141,13 @@ jobs:
             scriptPath: scripts/aks-node-count.sh
             azureSubscription: ${{ cluster.subscription }}
             arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
+      - task: AzureCLI@2
+        displayName: 'Service Principal Check'
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/service-principals.sh
+          azureSubscription: ${{ variables.service_connection }}
+          arguments: ${{ variables.SPSecretNumDays }}
       - task: Bash@3
         displayName: 'Checking JIRA status'
         inputs:
@@ -123,4 +159,4 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
-          arguments: $(slack-webhook-url) dtspo-daily-monitoring-test
+          arguments: $(slack-webhook-url) dtspo-bau

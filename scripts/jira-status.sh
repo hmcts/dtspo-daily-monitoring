@@ -40,14 +40,14 @@ elif (( "$OPEN_ISSUES_COUNT" <= 55 )); then
   OPEN_ISSUES_STATUS=":yellow_circle:"
 fi
 
-printf "\n\n:jira: <https://bit.ly/3Zzv8c7|_*BAU Tickets Status*_> \n\n" >> slack-message.txt
+printf "\n:jira: <https://bit.ly/3mzE5DL|_*BAU Tickets Status*_> \n\n" >> slack-message.txt
 
-printf "> %s *%s* Open issues\n" "$UNASSIGNED_STATUS" "$OPEN_ISSUES_COUNT" >> slack-message.txt
-printf "> %s *%s* unassigned issues\n" "$OPEN_ISSUES_STATUS" "$UNASSIGNED_ISSUES_COUNT" >> slack-message.txt
+printf "> %s *%s* Open issues\n" "$OPEN_ISSUES_STATUS" "$OPEN_ISSUES_COUNT" >> slack-message.txt
+printf "> %s *%s* unassigned issues\n" "$UNASSIGNED_STATUS" "$UNASSIGNED_ISSUES_COUNT" >> slack-message.txt
 
-printf ">\n>\n>:tada:  *%s issues closed yesterday:* \n" "$CLOSED_ISSUES_COUNT" >> slack-message.txt
+printf ">\n>\n>:tada:  *%s issues closed yesterday:* \n>\n" "$CLOSED_ISSUES_COUNT" >> slack-message.txt
 echo "${CLOSED_ISSUES_USER}">> slack-message.txt
 
 
-printf ">\n>\n>:fire: *Current Assigned tickets:* \n" >> slack-message.txt
+printf ">\n>\n>:fire: *Current Assigned tickets:* \n>\n" >> slack-message.txt
 echo "${ASSIGNED_ISSUES_RESULT}">> slack-message.txt
