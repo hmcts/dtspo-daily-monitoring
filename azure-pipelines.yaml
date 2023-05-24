@@ -64,7 +64,7 @@ parameters:
         timeForAmber: '1 days'
         timeForRed: '3 days'
         pipelineName: "hmcts.azure-enterprise"
-        branchName: "refs/heads/master"
+        branchName: "refs/heads/main"
       - project: 'PlatformOperations'
         definitionId: '543'
         timeForAmber: '1 days'
