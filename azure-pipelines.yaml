@@ -22,51 +22,61 @@ parameters:
         timeForAmber: '3 days'
         timeForRed: '5 days'
         pipelineName: "Preview PR cleanup"
+        branchName: "refs/heads/master"
       - project: 'cnp'
         definitionId: '276'
         timeForAmber: '3 days'
         timeForRed: '7 days'
         pipelineName: "ACR hmctspublic Cleanup"
+        branchName: "refs/heads/master"
       - project: 'cnp'
         definitionId: '463'
         timeForAmber: '14 days'
         timeForRed: '28 days'
         pipelineName: "Launch Darkly cleanup"
+        branchName: "refs/heads/master"
       - project: 'PlatformOperations'
         definitionId: '472'
         timeForAmber: '3 days'
         timeForRed: '7 days'
         pipelineName: "Azure AAD group cleanup"
+        branchName: "refs/heads/master"
       - project: 'cnp'
         definitionId: '545'
         timeForAmber: '3 days'
         timeForRed: '7 days'
         pipelineName: "OWASP DB update"
+        branchName: "refs/heads/master"
       - project: 'cnp'
         definitionId: '175'
         timeForAmber: '3 days'
         timeForRed: '7 days'
         pipelineName: "ACR Base importer"
+        branchName: "refs/heads/master"
       - project: 'Platform%20Engineering'
         definitionId: '224'
         timeForAmber: '3 days'
         timeForRed: '5 days'
         pipelineName: "Preview scheduled cleanup"
+        branchName: "refs/heads/master"
       - project: 'PlatformOperations'
         definitionId: '635'
         timeForAmber: '1 days'
         timeForRed: '3 days'
         pipelineName: "hmcts.azure-enterprise"
+        branchName: "refs/heads/main"
       - project: 'PlatformOperations'
         definitionId: '543'
         timeForAmber: '1 days'
         timeForRed: '3 days'
         pipelineName: "sds-azure-platform"
+        branchName: "refs/heads/master"
       - project: 'cnp'
         definitionId: '235'
         timeForAmber: '1 days'
         timeForRed: '3 days'
         pipelineName: "azure-platform-terraform"
+        branchName: "refs/heads/master"
   - name: aks_clusters
     type: object
     default:
@@ -107,7 +117,7 @@ jobs:
           inputs:
             targetType: filePath
             filePath: scripts/ado-pipeline-monitor.sh
-            arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  "${{ado_pipeline.timeForAmber}}"  "${{ado_pipeline.timeForRed}}"  "${{ado_pipeline.pipelineName}}"
+            arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  "${{ado_pipeline.timeForAmber}}"  "${{ado_pipeline.timeForRed}}"  "${{ado_pipeline.pipelineName}}" "${{ado_pipeline.branchName}}"
       - task: Bash@3
         displayName: 'Checking Github Licenses'
         inputs:
