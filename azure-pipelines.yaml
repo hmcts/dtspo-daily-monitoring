@@ -21,7 +21,7 @@ parameters:
         definitionId: '802'
         timeForAmber: '3 days'
         timeForRed: '5 days'
-        pipelineName: "AKS Preview Helm Release Cleanup"
+        pipelineName: "Preview Helm release cleanup - scheduled"
         branchName: "refs/heads/master"
       - project: 'PlatformOperations'
         definitionId: '768'
@@ -57,7 +57,7 @@ parameters:
         definitionId: '759'
         timeForAmber: '3 days'
         timeForRed: '5 days'
-        pipelineName: "AKS Cleanup NONPROD"
+        pipelineName: "Preview Helm release cleanup - PR close"
         branchName: "refs/heads/master"
       - project: 'PlatformOperations'
         definitionId: '635'
