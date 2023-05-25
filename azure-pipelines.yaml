@@ -53,11 +53,11 @@ parameters:
         timeForRed: '7 days'
         pipelineName: "ACR Base importer"
         branchName: "refs/heads/master"
-      - project: 'Platform%20Engineering'
-        definitionId: '756'
+      - project: 'PlatformOperations'
+        definitionId: '759'
         timeForAmber: '3 days'
         timeForRed: '5 days'
-        pipelineName: "AKS Preview Helm Release Cleanup job"
+        pipelineName: "AKS Cleanup NONPROD"
         branchName: "refs/heads/master"
       - project: 'PlatformOperations'
         definitionId: '635'
