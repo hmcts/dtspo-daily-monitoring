@@ -17,20 +17,20 @@ parameters:
   - name: ado_pipelines
     type: object
     default:
-      - project: 'cnp'
-        definitionId: '37'
+      - project: 'PlatformOperations'
+        definitionId: '802'
         timeForAmber: '3 days'
         timeForRed: '5 days'
-        pipelineName: "Preview PR cleanup"
+        pipelineName: "Preview Helm release cleanup - scheduled"
         branchName: "refs/heads/master"
-      - project: 'cnp'
-        definitionId: '276'
+      - project: 'PlatformOperations'
+        definitionId: '768'
         timeForAmber: '3 days'
         timeForRed: '7 days'
-        pipelineName: "ACR hmctspublic Cleanup"
+        pipelineName: "ACR Cleanup"
         branchName: "refs/heads/master"
-      - project: 'cnp'
-        definitionId: '463'
+      - project: 'PlatformOperations'
+        definitionId: '777'
         timeForAmber: '14 days'
         timeForRed: '28 days'
         pipelineName: "Launch Darkly cleanup"
@@ -41,23 +41,23 @@ parameters:
         timeForRed: '7 days'
         pipelineName: "Azure AAD group cleanup"
         branchName: "refs/heads/master"
-      - project: 'cnp'
-        definitionId: '545'
+      - project: 'PlatformOperations'
+        definitionId: '781'
         timeForAmber: '3 days'
         timeForRed: '7 days'
         pipelineName: "OWASP DB update"
         branchName: "refs/heads/master"
-      - project: 'cnp'
-        definitionId: '175'
+      - project: 'PlatformOperations'
+        definitionId: '772'
         timeForAmber: '3 days'
         timeForRed: '7 days'
         pipelineName: "ACR Base importer"
         branchName: "refs/heads/master"
-      - project: 'Platform%20Engineering'
-        definitionId: '224'
+      - project: 'PlatformOperations'
+        definitionId: '759'
         timeForAmber: '3 days'
         timeForRed: '5 days'
-        pipelineName: "Preview scheduled cleanup"
+        pipelineName: "Preview Helm release cleanup - PR close"
         branchName: "refs/heads/master"
       - project: 'PlatformOperations'
         definitionId: '635'
@@ -71,8 +71,8 @@ parameters:
         timeForRed: '3 days'
         pipelineName: "sds-azure-platform"
         branchName: "refs/heads/master"
-      - project: 'cnp'
-        definitionId: '235'
+      - project: 'PlatformOperations'
+        definitionId: '765'
         timeForAmber: '1 days'
         timeForRed: '3 days'
         pipelineName: "azure-platform-terraform"
