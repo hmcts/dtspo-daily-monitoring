@@ -94,7 +94,7 @@ parameters:
         clusterName: 'ss-prod-00-aks'
         slackChannel: 'sds-monitoring-prod'
       - subscription: 'DTS-SHAREDSERVICES-DEV'
-        resourceGroup: 'ss-dev-00-rg'
+        resourceGroup: 'ss-dev-01-rg'
         clusterName: 'ss-dev-01-aks'
         slackChannel: 'sds-monitoring-prod'
 
