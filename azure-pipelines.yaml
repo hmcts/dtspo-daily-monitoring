@@ -185,7 +185,7 @@ jobs:
         inputs:
           targetType: 'inline'
           script: |
-           echo "*Failed Deployments Monitoring Summary* \n \n">> failed-delpoyments-slack.txt
+           echo "*Failed Deployments Monitoring Summary* \n \n">> failed-delpoyments.txt
       - ${{ each cluster in parameters.failed_deployments }}:
         - task: AzureCLI@2
           displayName: 'Install kubectl'
