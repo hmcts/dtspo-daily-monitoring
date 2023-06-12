@@ -86,6 +86,13 @@ parameters:
       - resourceGroup: 'cft-preview-01-rg'
         clusterName: 'cft-preview-01-aks'
         subscription: 'DCD-CFTAPPS-DEV'
+  - name: failed_deployments
+    type: object
+    default: 
+      - subscription: 'DTS-SHAREDSERVICES-PROD'
+        resourceGroup: 'ss-prod-00-rg'
+        clusterName: 'ss-prod-00-aks'
+        slackChannel: 'sds-monitoring-prod'
 
 variables:
   - name: SPSecretNumDays
@@ -104,68 +111,76 @@ jobs:
           azureSubscription:  "DTS-CFTPTL-INTSVC"
           keyVaultName:   "cftptl-intsvc"
           secretsFilter: 'slack-webhook-url,azure-devops-token,jira-password,jira-username,github-management-api-token,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token'
-      - task: Bash@3
-        displayName: 'Create a slack message file'
-        inputs:
-          targetType: 'inline'
-          script: |
-           echo "*Daily Monitoring Summary* \n \n">> slack-message.txt
-           echo "_:azure: *Scheduled Pipelines Status*_ \n">> slack-message.txt
-      - ${{ each ado_pipeline in parameters.ado_pipelines }}:
-        - task: Bash@3
-          displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
-          inputs:
-            targetType: filePath
-            filePath: scripts/ado-pipeline-monitor.sh
-            arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  "${{ado_pipeline.timeForAmber}}"  "${{ado_pipeline.timeForRed}}"  "${{ado_pipeline.pipelineName}}" "${{ado_pipeline.branchName}}"
-      - task: Bash@3
-        displayName: 'Checking Github Licenses'
-        inputs:
-          targetType: filePath
-          filePath: scripts/github-licenses.sh
-          arguments: $(github-management-api-token)
-      - task: Bash@3
-        displayName: 'Checking Launchdarkly Licenses'
-        inputs:
-          targetType: filePath
-          filePath: scripts/ld-license.sh
-          arguments: $(launchdarkly-access-token)
-      - task: Bash@3
-        displayName: 'Checking servicenow status'
-        inputs:
-          targetType: filePath
-          filePath: scripts/servicenow-status.sh
-          arguments: $(service-now-username)  $(service-now-password)
-      - task: Bash@3
-        displayName: 'Checking Jenkins status'
-        inputs:
-          targetType: filePath
-          filePath: scripts/jenkins-status.sh
-          arguments: $(jenkins-api-user) $(jenkins-api-token) "http://jenkins.jenkins:8080/"
-      - ${{ each cluster in parameters.aks_clusters }}:
+      # - task: Bash@3
+      #   displayName: 'Create a slack message file'
+      #   inputs:
+      #     targetType: 'inline'
+      #     script: |
+      #      echo "*Daily Monitoring Summary* \n \n">> slack-message.txt
+      #      echo "_:azure: *Scheduled Pipelines Status*_ \n">> slack-message.txt
+      # - ${{ each ado_pipeline in parameters.ado_pipelines }}:
+      #   - task: Bash@3
+      #     displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
+      #     inputs:
+      #       targetType: filePath
+      #       filePath: scripts/ado-pipeline-monitor.sh
+      #       arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  "${{ado_pipeline.timeForAmber}}"  "${{ado_pipeline.timeForRed}}"  "${{ado_pipeline.pipelineName}}" "${{ado_pipeline.branchName}}"
+      # - task: Bash@3
+      #   displayName: 'Checking Github Licenses'
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/github-licenses.sh
+      #     arguments: $(github-management-api-token)
+      # - task: Bash@3
+      #   displayName: 'Checking Launchdarkly Licenses'
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/ld-license.sh
+      #     arguments: $(launchdarkly-access-token)
+      # - task: Bash@3
+      #   displayName: 'Checking servicenow status'
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/servicenow-status.sh
+      #     arguments: $(service-now-username)  $(service-now-password)
+      # - task: Bash@3
+      #   displayName: 'Checking Jenkins status'
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/jenkins-status.sh
+      #     arguments: $(jenkins-api-user) $(jenkins-api-token) "http://jenkins.jenkins:8080/"
+      # - ${{ each cluster in parameters.aks_clusters }}:
+      #   - task: AzureCLI@2
+      #     displayName: 'Get AKS Cluster Status'
+      #     inputs:
+      #       scriptType: bash
+      #       scriptPath: scripts/aks-node-count.sh
+      #       azureSubscription: ${{ cluster.subscription }}
+      #       arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
+      # - task: AzureCLI@2
+      #   displayName: 'Service Principal Check'
+      #   inputs:
+      #     scriptType: bash
+      #     scriptPath: scripts/service-principals.sh
+      #     azureSubscription: ${{ variables.service_connection }}
+      #     arguments: ${{ variables.SPSecretNumDays }}
+      # - task: Bash@3
+      #   displayName: 'Checking JIRA status'
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/jira-status.sh
+      #     arguments: $(jira-username) $(jira-password)
+      # - task: Bash@3
+      #   displayName: 'Send slack message'
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/send-slack-message.sh
+      #     arguments: $(slack-webhook-url) dtspo-bau
+     - ${{ each cluster in parameters.failed_deployments }}:
         - task: AzureCLI@2
-          displayName: 'Get AKS Cluster Status'
+          displayName: 'Get Failed Deployments'
           inputs:
             scriptType: bash
-            scriptPath: scripts/aks-node-count.sh
+            scriptPath: scripts/failed-deployments.sh
             azureSubscription: ${{ cluster.subscription }}
-            arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
-      - task: AzureCLI@2
-        displayName: 'Service Principal Check'
-        inputs:
-          scriptType: bash
-          scriptPath: scripts/service-principals.sh
-          azureSubscription: ${{ variables.service_connection }}
-          arguments: ${{ variables.SPSecretNumDays }}
-      - task: Bash@3
-        displayName: 'Checking JIRA status'
-        inputs:
-          targetType: filePath
-          filePath: scripts/jira-status.sh
-          arguments: $(jira-username) $(jira-password)
-      - task: Bash@3
-        displayName: 'Send slack message'
-        inputs:
-          targetType: filePath
-          filePath: scripts/send-slack-message.sh
-          arguments: $(slack-webhook-url) dtspo-bau
+            arguments: ${{cluster.subscription}} ${{cluster.resourceGroup}} ${{cluster.clusterName}} ${{cluster.slackChannel}} $(slack-webhook-url)
