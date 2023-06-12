@@ -37,7 +37,7 @@ do
     if [[ "$ready_replicas" != "$desired_replicas" ]]; then
       printf "Deployment %s in namespace %s on %s has failed\n" "$deployment_name" "$namespace" "$CLUSTERNAME" >> failed-deployments.txt
 
-      bash scripts/failed-deployments-slack.sh
+      bash scripts/failed-deployments-slack.sh "$WEBHOOK_URL" "$SLACKCHANNEL"
     fi
   done <<< "$deployments"
 
