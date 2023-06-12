@@ -93,6 +93,10 @@ parameters:
         resourceGroup: 'ss-prod-00-rg'
         clusterName: 'ss-prod-00-aks'
         slackChannel: 'sds-monitoring-prod'
+      - subscription: 'DTS-SHAREDSERVICES-DEV'
+        resourceGroup: 'ss-dev-00-rg'
+        clusterName: 'ss-dev-01-aks'
+        slackChannel: 'sds-monitoring-prod'
 
 variables:
   - name: SPSecretNumDays
