@@ -35,7 +35,7 @@ do
 
     # Check if the deployment has failed (ready replicas are less than desired replicas)
     if [[ "$ready_replicas" != "$desired_replicas" ]]; then
-      printf "Deployment `%s` in namespace `%s` on *%s* has failed\n" "$deployment_name" "$namespace" "$CLUSTER_NAME" >> failed-deployments.txt
+      printf "Deployment \`%s`\ in namespace \`%s`\ on *%s* has failed\n" "$deployment_name" "$namespace" "$CLUSTER_NAME" >> failed-deployments.txt
 
       bash scripts/failed-deployments-slack.sh "$WEBHOOK_URL" "$SLACKCHANNEL"
     fi
