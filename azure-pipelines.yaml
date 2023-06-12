@@ -177,10 +177,10 @@ jobs:
       #     filePath: scripts/send-slack-message.sh
       #     arguments: $(slack-webhook-url) dtspo-bau
      - ${{ each cluster in parameters.failed_deployments }}:
-        - task: AzureCLI@2
-          displayName: 'Get Failed Deployments'
-          inputs:
-            scriptType: bash
-            scriptPath: scripts/failed-deployments.sh
-            azureSubscription: ${{ cluster.subscription }}
-            arguments: ${{cluster.subscription}} ${{cluster.resourceGroup}} ${{cluster.clusterName}} ${{cluster.slackChannel}} $(slack-webhook-url)
+       - task: AzureCLI@2
+         displayName: 'Get Failed Deployments'
+         inputs:
+           scriptType: bash
+           scriptPath: scripts/failed-deployments.sh
+           azureSubscription: ${{ cluster.subscription }}
+           arguments: ${{cluster.subscription}} ${{cluster.resourceGroup}} ${{cluster.clusterName}} ${{cluster.slackChannel}} $(slack-webhook-url)
