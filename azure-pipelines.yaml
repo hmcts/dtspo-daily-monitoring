@@ -253,14 +253,14 @@ jobs:
       #     targetType: filePath
       #     filePath: scripts/send-slack-message.sh
       #     arguments: $(slack-webhook-url) dtspo-bau
-      - ${{ each cluster in parameters.failed_deployments }}:
-        - task: AzureCLI@2
-          displayName: 'Install kubectl'
-          inputs:
-            azureSubscription: ${{ cluster.subscription }}
-            scriptType: bash
-            scriptLocation: inlineScript
-            inlineScript: 'az aks install-cli'
+      # - ${{ each cluster in parameters.failed_deployments }}:
+      #   - task: AzureCLI@2
+      #     displayName: 'Install kubectl'
+      #     inputs:
+      #       azureSubscription: ${{ cluster.subscription }}
+      #       scriptType: bash
+      #       scriptLocation: inlineScript
+      #       inlineScript: 'az aks install-cli'
       - ${{ each cluster in parameters.failed_deployments }}:
         - task: AzureCLI@2
           displayName: 'Get Failed Deployments'
