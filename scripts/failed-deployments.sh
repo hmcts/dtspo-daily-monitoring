@@ -7,8 +7,6 @@ CLUSTER_NAME="${3}"
 SLACKCHANNEL="${4}"
 WEBHOOK_URL="${5}"
 
-az aks install-cli
-
 echo  "Get aks credentials "
 
 az account set --subscription ${SUBSCRIPTION}
