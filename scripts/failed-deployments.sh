@@ -57,6 +57,7 @@ do
 
       processed_deployments+=("$deployment_name")
 
+      fi
     fi
   done <<< "$deployments"
 
