@@ -29,6 +29,9 @@ touch "$output_file"
 # Get the list of all namespaces
 namespaces=$(kubectl get namespaces --no-headers=true | awk '{print $1}')
 
+# Keep track of checked deployments
+processed_deployments=()
+
 # Loop through each namespace
 for namespace in $namespaces
 do
@@ -45,9 +48,15 @@ do
 
     # Check if the deployment has failed (ready replicas are less than desired replicas)
     if [[ "$ready_replicas" != "$desired_replicas" ]]; then
+    # Check if the deployment has already been processed
+      if [[ " ${processed_deployments[*]} " != *"$deployment_name"* ]]; then
+
       printf "\n:flux: Deployment \`%s\` in namespace \`%s\` on *%s* has failed\n" "$deployment_name" "$namespace" "${CLUSTER_NAME^^}" >> "$output_file"
 
       bash scripts/failed-deployments-slack.sh "$WEBHOOK_URL" "$SLACKCHANNEL"
+
+      processed_deployments+=("$deployment_name")
+
     fi
   done <<< "$deployments"
 
