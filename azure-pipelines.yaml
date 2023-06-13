@@ -253,12 +253,6 @@ jobs:
       #     targetType: filePath
       #     filePath: scripts/send-slack-message.sh
       #     arguments: $(slack-webhook-url) dtspo-bau
-      - task: Bash@3
-        displayName: 'Create a slack message file for failed deployments'
-        inputs:
-          targetType: 'inline'
-          script: |
-           echo "*Failed Deployments Monitoring Summary* \n \n">> failed-delpoyments.txt
       - ${{ each cluster in parameters.failed_deployments }}:
         - task: AzureCLI@2
           displayName: 'Install kubectl'
