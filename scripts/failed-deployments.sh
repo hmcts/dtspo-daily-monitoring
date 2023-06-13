@@ -44,7 +44,8 @@ for namespace in $namespaces; do
 
         # Check if the deployment has failed (ready replicas are less than desired replicas)
         if [[ "$ready_replicas" != "$desired_replicas" ]]; then
-            printf "\n\n:flux: Deployment \`%s\` in namespace \`%s\` on *%s* has failed\n" "$deployment_name" "$namespace" "${CLUSTER_NAME^^}" >> "$output_file"
+            print "\n *Daily Monitoring for Failed Deployments on ${CLUSTER_NAME^^}*\n"
+            printf "\n\n:flux: Deployment \`%s\` in namespace \`%s\` has failed\n" "$deployment_name" "$namespace" >> "$output_file"
         fi
     done <<<"$deployments"
 
