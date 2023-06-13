@@ -34,9 +34,8 @@ do
     desired_replicas=$(echo "$line" | awk '{print $2}' | awk -F'/' '{print $2}')
 
     # Check if the deployment has failed (ready replicas are less than desired replicas)
-    printf "\n:flux: *Failed Delpoyments on ${CLUSTER_NAME^^}* \n\n" >> failed-deployments.txt
     if [[ "$ready_replicas" != "$desired_replicas" ]]; then
-      printf ":x: Deployment \`%s\` in namespace \`%s\` has failed\n" "$deployment_name" "$namespace" >> failed-deployments.txt
+      printf "\n:flux: Deployment \`%s\` in namespace \`%s\` on *%s^^* has failed\n" "$deployment_name" "$namespace" "$CLUSTER_NAME" >> failed-deployments.txt
 
       bash scripts/failed-deployments-slack.sh "$WEBHOOK_URL" "$SLACKCHANNEL"
     fi
