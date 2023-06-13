@@ -29,13 +29,13 @@ touch "$output_file"
 # Get the list of all namespaces
 namespaces=$(kubectl get namespaces --no-headers=true | awk '{print $1}')
 
-# Keep track of checked deployments
-processed_deployments=()
-
 # Loop through each namespace
 for namespace in $namespaces
 do
   echo "Checking deployments in namespace: $namespace"
+
+  # Keep track of checked deployments
+  processed_deployments=()
 
   # Get the list of deployments in the namespace
   deployments=$(kubectl get deployments -n "$namespace" --no-headers=true)
