@@ -51,7 +51,7 @@ parameters:
         definitionId: '808'
         timeForAmber: '3 days'
         timeForRed: '7 days'
-        pipelineName: "OWASP DB Update- Sandbox"
+        pipelineName: "OWASP DB Update - Sandbox"
         branchName: "refs/heads/master"
       - project: 'PlatformOperations'
         definitionId: '772'
