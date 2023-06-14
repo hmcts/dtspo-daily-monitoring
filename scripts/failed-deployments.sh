@@ -47,7 +47,7 @@ for namespace in $namespaces; do
 
         # Check if the deployment has failed (ready replicas are less than desired replicas)
         if [[ "$ready_replicas" != "$desired_replicas" ]]; then
-            printf ":red_circle: Deployment \`%s\` in namespace \`%s\` has failed\n" "$deployment_name" "$namespace" >> "$output_file"
+            printf "> :red_circle: Deployment \`%s\` in namespace \`%s\` has failed\n" "$deployment_name" "$namespace" >> "$output_file"
             has_failed_deployments=true
         fi
     done <<<"$deployments"
