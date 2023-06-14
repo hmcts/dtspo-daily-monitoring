@@ -26,6 +26,8 @@ fi
 # Create a new file
 touch "$output_file"
 
+printf "\n *Daily Monitoring for Failed Deployments on ${CLUSTER_NAME^^}*\n" >> "$output_file"
+
 # Get the list of all namespaces
 namespaces=$(kubectl get namespaces --no-headers=true | awk '{print $1}')
 
@@ -44,7 +46,6 @@ for namespace in $namespaces; do
 
         # Check if the deployment has failed (ready replicas are less than desired replicas)
         if [[ "$ready_replicas" != "$desired_replicas" ]]; then
-            printf "\n *Daily Monitoring for Failed Deployments on ${CLUSTER_NAME^^}*\n" >> "$output_file"
             printf "\n\n:flux: Deployment \`%s\` in namespace \`%s\` has failed\n" "$deployment_name" "$namespace" >> "$output_file"
         fi
     done <<<"$deployments"
