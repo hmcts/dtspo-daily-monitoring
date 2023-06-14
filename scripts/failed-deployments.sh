@@ -47,7 +47,7 @@ for namespace in $namespaces; do
 
         # Check if the deployment has failed (ready replicas are less than desired replicas)
         if [[ "$ready_replicas" != "$desired_replicas" ]]; then
-            printf "\n\n:flux: Deployment \`%s\` in namespace \`%s\` has failed\n" "$deployment_name" "$namespace" >> "$output_file"
+            printf ":flux: Deployment \`%s\` in namespace \`%s\` has failed\n" "$deployment_name" "$namespace" >> "$output_file"
             has_failed_deployments=true
         fi
     done <<<"$deployments"
@@ -57,6 +57,8 @@ done
 
 # Send the failed deployment message to Slack if there are any failures
 if [[ "$has_failed_deployments" == true ]]; then
-    printf "\n *Daily Monitoring for Failed Deployments on ${CLUSTER_NAME^^}*\n" >> "$output_file"
+    printf "\n *Daily Monitoring for Failed Deployments on ${CLUSTER_NAME^^}*\n" > "$output_file.temp"
+    cat "$output_file" >> "$output_file.temp"
+    mv "$output_file.temp" "$output_file"
     bash scripts/failed-deployments-slack.sh "$WEBHOOK_URL" "$SLACKCHANNEL" < "$output_file"
 fi
