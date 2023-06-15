@@ -86,7 +86,7 @@ parameters:
       - resourceGroup: 'cft-preview-01-rg'
         clusterName: 'cft-preview-01-aks'
         subscription: 'DCD-CFTAPPS-DEV'
-  - name: subscription
+  - name: subscriptions
     type: object
     default: 
       - name: 'DTS-SHAREDSERVICES-PROD'
@@ -265,7 +265,7 @@ jobs:
       #     targetType: filePath
       #     filePath: scripts/send-slack-message.sh
       #     arguments: $(slack-webhook-url) dtspo-bau
-      - ${{ each subscription in parameters.subscriptions_kubectl }}:
+      - ${{ each subscription in parameters.subscriptions }}:
         - task: AzureCLI@2
           displayName: 'Install kubectl ${{ subscription.name }}'
           inputs:
