@@ -267,7 +267,7 @@ jobs:
       #     arguments: $(slack-webhook-url) dtspo-bau
       - ${{ each subscription in parameters.subscriptions_kubectl }}:
         - task: AzureCLI@2
-          displayName: 'Install kubectl'
+          displayName: 'Install kubectl ${{ subscription.name }}'
           inputs:
             azureSubscription: ${{ subscription.name }}
             scriptType: bash
@@ -275,7 +275,7 @@ jobs:
             inlineScript: 'az aks install-cli'
       - ${{ each cluster in parameters.failed_deployments }}:
         - task: AzureCLI@2
-          displayName: 'Get Failed Deployments for ${{failed_deployments.clusterName}}'
+          displayName: 'Get Failed Deployments for ${{cluster.clusterName}}'
           inputs:
             scriptType: bash
             scriptPath: scripts/failed-deployments.sh
