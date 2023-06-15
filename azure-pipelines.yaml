@@ -86,19 +86,19 @@ parameters:
       - resourceGroup: 'cft-preview-01-rg'
         clusterName: 'cft-preview-01-aks'
         subscription: 'DCD-CFTAPPS-DEV'
-  - name: subscriptions_kubectl
+  - name: subscription
     type: object
     default: 
-      - subscription: 'DTS-SHAREDSERVICES-PROD'
-      - subscription: 'DTS-SHAREDSERVICES-STG'
-      - subscription: 'DTS-SHAREDSERVICES-TEST'
-      - subscription: 'DTS-SHAREDSERVICES-DEMO'
-      - subscription: 'DTS-SHAREDSERVICES-ITHC'
-      - subscription: 'DCD-CFTAPPS-PROD'
-      - subscription: 'DCD-CFTAPPS-STG'
-      - subscription: 'DCD-CFTAPPS-TEST'
-      - subscription: 'DCD-CFTAPPS-DEMO'
-      - subscription: 'DCD-CFTAPPS-ITHC'
+      - name: 'DTS-SHAREDSERVICES-PROD'
+      - name: 'DTS-SHAREDSERVICES-STG'
+      - name: 'DTS-SHAREDSERVICES-TEST'
+      - name: 'DTS-SHAREDSERVICES-DEMO'
+      - name: 'DTS-SHAREDSERVICES-ITHC'
+      - name: 'DCD-CFTAPPS-PROD'
+      - name: 'DCD-CFTAPPS-STG'
+      - name: 'DCD-CFTAPPS-TEST'
+      - name: 'DCD-CFTAPPS-DEMO'
+      - name: 'DCD-CFTAPPS-ITHC'
   - name: failed_deployments
     type: object
     default: 
@@ -269,7 +269,7 @@ jobs:
         - task: AzureCLI@2
           displayName: 'Install kubectl'
           inputs:
-            azureSubscription: ${{ cluster.subscription }}
+            azureSubscription: ${{ subscription.name }}
             scriptType: bash
             scriptLocation: inlineScript
             inlineScript: 'az aks install-cli'
