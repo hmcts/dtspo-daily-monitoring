@@ -267,7 +267,7 @@ jobs:
       #     arguments: $(slack-webhook-url) dtspo-bau
       - ${{ each subscription in parameters.subscriptions_kubectl }}:
         - task: AzureCLI@2
-          displayName: 'Install kubectl ${{subscriptions_kubectl.subscription}}'
+          displayName: 'Install kubectl'
           inputs:
             azureSubscription: ${{ cluster.subscription }}
             scriptType: bash
