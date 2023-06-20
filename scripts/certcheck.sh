@@ -1,5 +1,5 @@
 #!/bin/bash
-
+az extension add --name front-door --yes
 # Check platform
 platform=$(uname)
 
