@@ -176,11 +176,12 @@ jobs:
           filePath: scripts/jira-status.sh
           arguments: $(jira-username) $(jira-password)
       - ${{ each frontdoor in parameters.certificates }}:
-        - task: Bash@3
+        - task: AzureCLI@2
           displayName: 'Checking Certificate status'
           inputs:
-            targetType: filePath
-            filePath: scripts/certcheck.sh
+            scriptType: bash
+            scriptPath: scripts/certcheck.sh
+            azureSubscription: ${{ variables.service_connection }}
             arguments: ${{ frontdoor.subscription_id }} ${{ frontdoor.resource_group }} ${{ frontdoor.front_door_name}}
       - task: Bash@3
         displayName: 'Send slack message'
