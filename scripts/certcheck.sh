@@ -15,20 +15,14 @@ check_certificate_expiration() {
         days_left=$((seconds_left / 86400))
 
         if [[ $days_left -le 100 ]]; then
-            echo "Certificate for ${url} expires in ${days_left} days."
+            echo "Certificate for *${url}* expires in *${days_left}* days."
             has_results=true
-            #printf "\n:cert: <https://portal.azure.com/#@HMCTS.NET/resource/subscriptions/8cbc6f36-7c56-4963-9d36-739db5d00b27/resourceGroups/lz-prod-rg/providers/Microsoft.Network/frontdoors/hmcts-prod/config_*Expiry Certificate*_> \n\n" >> slack-message.txt
-            #printf "\n:yellow_circle: Certificates are Expiring in $days_left days \n\n" >> slack-message.txt
-            #exit 0
         fi
-    #else
-    #   echo "Unable to check the certificate for ${url}."
-    #   printf "\n:cert: <https://portal.azure.com/#@HMCTS.NET/resource/subscriptions/8cbc6f36-7c56-4963-9d36-739db5d00b27/resourceGroups/lz-prod-rg/providers/Microsoft.Network/frontdoors/hmcts-prod/config_*Expiry Certificate*_> \n\n" >> slack-message.txt
-    #   printf "\n:yellow_circle: Unable to check the certificate for ${url} \n\n" >> slack-message.txt
     fi
 }
+
 # Azure CLI command to populate URL list
-urls=$(az network front-door frontend-endpoint list --subscription "$subscription_id" --resource-group "$resource_group" --front-door-name "$front_door_name" --query "[].hostName" -o tsv)
+urls=$(az network front-door frontend-endpoint list --subscription 8cbc6f36-7c56-4963-9d36-739db5d00b27 --resource-group lz-prod-rg --front-door-name hmcts-prod --query "[].hostName" -o tsv)
 
 # Check certificate expiration for each URL
 has_results=false
