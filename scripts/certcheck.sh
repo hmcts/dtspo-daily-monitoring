@@ -28,7 +28,7 @@ check_certificate_expiration() {
         days_left=$((seconds_left / 86400))
 
         if [[ $days_left -le 100 ]]; then
-            echo "Certificate for *${url}* expires in *${days_left}* days."
+            echo ">Certificate for *${url}* expires in *${days_left}* days."
             has_results=true
         fi
     fi
@@ -45,7 +45,7 @@ done
 
 # Print header and results to output file if there are results
 if [[ $has_results == true ]]; then
-    printf ":cert: Expiring SSL Certificates\n\n" >> slack-message.txt
+    printf "\n:cert: _*Expiring SSL Certificates*_\n\n" >> slack-message.txt
     for url in $urls; do
         check_certificate_expiration "${url}" >> slack-message.txt
     done
