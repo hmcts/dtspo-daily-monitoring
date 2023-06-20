@@ -43,7 +43,7 @@ check_certificate_expiration() {
         seconds_left=$((expiration_timestamp - current_timestamp))
         days_left=$((seconds_left / 86400))
 
-        if [[ $days_left -le 200 ]]; then
+        if [[ $days_left -le 100 ]]; then
             echo "Certificate for *${url}* expires in *${days_left}* days."
             has_results=true
         fi
