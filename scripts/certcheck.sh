@@ -29,7 +29,7 @@ check_certificate_expiration() {
 
         if [[ $days_left -le 100 ]]; then
             echo ">Certificate for *${url}* expires in *${days_left}* days."
-            printf "\n>:red_circle: <$|_* $front_door_name*_> has expired" >> slack-message.txt
+            printf "\n>:red_circle: <_*$front_door_name*_> has expired" >> slack-message.txt
             Certificate_Expiration=":red_circle:"
             has_results=true
         fi
@@ -46,8 +46,8 @@ for url in $urls; do
 done
 
 #if (( $days_left -le 100 )); then
-  #      printf "\n>:red_circle: <$|_* $front_door_name*_> has expired" >> slack-message.txt
- # Certificate_Expiration=":red_circle:"
+#    printf "\n>:red_circle: <$|_* $front_door_name*_> has expired" >> slack-message.txt
+# Certificate_Expiration=":red_circle:"
 #elif (( $days_left -le 200 )); then
  # Certificate_Expiration=":yellow_circle:"
 #fi
