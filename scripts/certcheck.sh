@@ -29,12 +29,11 @@ check_certificate_expiration() {
 
         
         if [[ $days_left -le 100 ]]; then
-            echo ">Certificate for *${url}* expires in *${days_left}* days."            
+            echo ">Certificate for *${url}* expires in *${days_left}* days."
             has_results=true
-            if [[ $days_left -le 100 ]]; then
-                LICENSE_STATUS=":red_circle:"
-            fi
+            LICENSE_STATUS=":red_circle:"
         fi
+
     fi
 }
 
