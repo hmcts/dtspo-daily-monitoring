@@ -43,10 +43,10 @@ for url in $urls; do
     check_certificate_expiration "${url}"
 done
 
-if (( $LICENSES_LEFT -le 100 )); then
-  LICENSE_STATUS=":red_circle:"
-elif (( $LICENSES_LEFT -le 200 )); then
-  LICENSE_STATUS=":yellow_circle:"
+if (( $days_left -le 100 )); then
+  Certificate_Expiration=":red_circle:"
+elif (( $days_left -le 200 )); then
+  Certificate_Expiration=":yellow_circle:"
 fi
 
 # Print header and results to output file if there are results
