@@ -14,7 +14,7 @@ check_certificate_expiration() {
         seconds_left=$((expiration_timestamp - current_timestamp))
         days_left=$((seconds_left / 86400))
 
-        if [[ $days_left -le 100 ]]; then
+        if [[ $days_left -le 200 ]]; then
             echo "Certificate for *${url}* expires in *${days_left}* days."
             has_results=true
         fi
@@ -22,7 +22,7 @@ check_certificate_expiration() {
 }
 
 # Azure CLI command to populate URL list
-urls=$(az network front-door frontend-endpoint list --subscription 8cbc6f36-7c56-4963-9d36-739db5d00b27 --resource-group lz-prod-rg --front-door-name hmcts-prod --query "[].hostName" -o tsv)
+urls=$(az network front-door frontend-endpoint list --subscription "$subscription_id" --resource-group "$resource_group" --front-door-name "$front_door_name" --query "[].hostName" -o tsv)
 
 # Check certificate expiration for each URL
 has_results=false
