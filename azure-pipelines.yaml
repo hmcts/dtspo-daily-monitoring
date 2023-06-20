@@ -92,7 +92,7 @@ parameters:
       - resourceGroup: 'cft-preview-01-rg'
         clusterName: 'cft-preview-01-aks'
         subscription: 'DCD-CFTAPPS-DEV'
-  - name: cetificates
+  - name: certificates
     type: object
     default:
       - subscription_id: '8cbc6f36-7c56-4963-9d36-739db5d00b27'
@@ -175,16 +175,16 @@ jobs:
           targetType: filePath
           filePath: scripts/jira-status.sh
           arguments: $(jira-username) $(jira-password)
-      - task: Bash@3
-        displayName: 'Checking Certificate status'
-        inputs:
-          targetType: filePath
-          filePath: scripts/certcheck.sh
-          arguments: $(subscription_id) $(resource_group) $(front_door_name)
-      - ${{ each cluster in parameters.certificates }}:
+      - ${{ each frontdoor in parameters.certificates }}:
+        - task: Bash@3
+          displayName: 'Checking Certificate status'
+          inputs:
+            targetType: filePath
+            filePath: scripts/certcheck.sh
+            arguments: $(subscription_id) $(resource_group) $(front_door_name)
       - task: Bash@3
         displayName: 'Send slack message'
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
-          arguments: $(slack-webhook-url) dtspo-bau
+          arguments: $(slack-webhook-url) test-cert-expiry
