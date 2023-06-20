@@ -1,5 +1,31 @@
 #!/bin/bash
-az extension add --name front-door --yes
+
+# Check platform
+platform=$(uname)
+
+# Function to install missing packages using brew (macOS) or apt-get (Linux)
+install_missing_packages() {
+    if [[ $platform == "Darwin" ]]; then
+        brew install "$1"
+    elif [[ $platform == "Linux" ]]; then
+        sudo apt-get install -y "$1"
+    fi
+}
+
+# Check and install missing packages
+if [[ $platform == "Darwin" ]]; then
+    packages=("gawk" "gsed" "yj" "jq")
+elif [[ $platform == "Linux" ]]; then
+    packages=("awk" "sed" "yj" "jq")
+fi
+
+for package in "${packages[@]}"; do
+    installed=$(which "$package" | grep -o "$package" > /dev/null && echo 0 || echo 1)
+    if [[ $installed == 1 ]]; then
+        echo "$package is missing! Installing it..."
+        install_missing_packages "$package"
+    fi
+done
 
 # Azure CLI command to populate URL list
 subscription_id=$1
@@ -12,8 +38,8 @@ check_certificate_expiration() {
     expiration_date=$(echo | openssl s_client -servername "${url}" -connect "${url}:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep "notAfter" | cut -d "=" -f 2)
 
     if [[ -n $expiration_date ]]; then
-        expiration_timestamp=$(gdate -d "${expiration_date}" +%s)
-        current_timestamp=$(gdate +%s)
+        expiration_timestamp=$(date -d "${expiration_date}" +%s)
+        current_timestamp=$(date +%s)
         seconds_left=$((expiration_timestamp - current_timestamp))
         days_left=$((seconds_left / 86400))
 
