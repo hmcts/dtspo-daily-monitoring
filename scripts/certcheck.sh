@@ -16,17 +16,15 @@ check_certificate_expiration() {
 
         if [[ $days_left -le 100 ]]; then
             echo "Certificate for ${url} expires in ${days_left} days."
+            printf "\n:cert: *Expiry Certificate* \n\n" >> slack-message.txt
+            printf "\n:yellow_circle: Certificates are Expiring in $days_left days \n\n" >> slack-message.txt
+            exit 0
         fi
     else
         echo "Unable to check the certificate for ${url}."
-    fi
-    
         printf "\n:cert: *Expiry Certificate* \n\n" >> slack-message.txt
-
-        if [[ $days_left -le 100 ]]; then
-        printf "\n:yellow_circle: Certificates are Expiring in $days_left days \n\n" >> slack-message.txt
-        exit 0
-        fi
+        printf "\n:yellow_circle: Unable to check the certificate for ${url} \n\n" >> slack-message.txt
+    fi
 }
 
 urls=$(az network front-door frontend-endpoint list --subscription "$subscription_id" --resource-group "$resource_group" --front-door-name "$front_door_name" --query "[].hostName" -o tsv)
