@@ -44,9 +44,10 @@ for url in $urls; do
 done
 
 if (( $days_left -le 100 )); then
+        printf "\n>:red_circle: <$|_* $front_door_name*_> has expired" >> slack-message.txt
   Certificate_Expiration=":red_circle:"
-elif (( $days_left -le 200 )); then
-  Certificate_Expiration=":yellow_circle:"
+#elif (( $days_left -le 200 )); then
+ # Certificate_Expiration=":yellow_circle:"
 fi
 
 # Print header and results to output file if there are results
