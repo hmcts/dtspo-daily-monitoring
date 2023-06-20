@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Azure CLI command to populate URL list
 subscription_id=$1
 resource_group=$2
