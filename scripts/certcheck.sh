@@ -1,5 +1,5 @@
 #!/bin/bash
-az extenstion add --name front-door --yes
+az extension add --name front-door --yes
 
 # Azure CLI command to populate URL list
 subscription_id=$1
