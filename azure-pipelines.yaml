@@ -181,7 +181,7 @@ jobs:
           inputs:
             targetType: filePath
             filePath: scripts/certcheck.sh
-            arguments: $(subscription_id) $(resource_group) $(front_door_name)
+            arguments: ${{ frontdoor.subscription_id }} ${{ frontdoor.resource_group }} ${{ frontdoor.front_door_name}}
       - task: Bash@3
         displayName: 'Send slack message'
         inputs:
