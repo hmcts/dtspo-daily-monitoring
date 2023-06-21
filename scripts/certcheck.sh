@@ -31,6 +31,8 @@ check_certificate_expiration() {
         if [[ $days_left -le 100 ]]; then
              echo ">:red_circle: Certificate for *${url}* expires in *${days_left}* days."
              has_results=true
+        elif [[ $days_left -le 180 ]]; then
+            echo ">:yellow_circle: Certificate for *${url}* expires in *${days_left}* days."
         fi
     fi
 }
