@@ -16,6 +16,9 @@ subscription_id=$1
 resource_group=$2
 front_door_name=$3
 
+# Minimum number days before a notification is sent
+MAX_CERT_EXPIRATION_DAYS=14
+
 # Function to check certificate expiration
 check_certificate_expiration() {
     url=$1
@@ -28,10 +31,10 @@ check_certificate_expiration() {
         days_left=$((seconds_left / 86400))
 
         
-        if [[ $days_left -le 70 ]]; then
-             echo "> :red_circle: Certificate for (*${front_door_name}*) *${url}* expires in *${days_left}* days."
+        if [[ $days_left -le 0 ]]; then
+             echo "> :red_circle: Certificate for (*${front_door_name}*) *${url}* has expired *${days_left}* days."
              has_results=true
-        elif [[ $days_left -le 166 ]]; then
+        elif [[ $days_left -le MAX_CERT_EXPIRATION_DAYS ]]; then
             echo "> :yellow_circle: Certificate for (*${front_door_name}*) *${url}* expires in *${days_left}* days."
         fi
     fi
