@@ -98,6 +98,15 @@ parameters:
       - subscription_id: '8cbc6f36-7c56-4963-9d36-739db5d00b27'
         resource_group: 'lz-prod-rg'  
         front_door_name: 'hmcts-prod'
+      - subscription_id: '5ca62022-6aa2-4cee-aaa7-e7536c8d566c'
+        resource_group: 'lz-prod-rg'  
+        front_door_name: 'sdshmcts-prod'
+      - subscription_id: 'b72ab7b7-723f-4b18-b6f6-03b0f2c6a1bb'
+        resource_group: 'lz-sbox-rg'  
+        front_door_name: 'hmcts-sbox'
+      - subscription_id: '5ca62022-6aa2-4cee-aaa7-e7536c8d566c'
+        resource_group: 'bau-bais_prod_network_rg'  
+        front_door_name: 'hmcts-heritage-prod'
 
 variables:
   - name: SPSecretNumDays
