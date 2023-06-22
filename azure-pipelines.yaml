@@ -113,6 +113,9 @@ variables:
     value: 14
   - name: service_connection
     value: dts-management-prod-intsvc
+  - name: min_cert_expiration_days
+    value: 14
+
 jobs:
   - job: DailyMonitoring
     timeoutInMinutes: 10
@@ -191,7 +194,7 @@ jobs:
             scriptType: bash
             scriptPath: scripts/cert-check.sh
             azureSubscription: ${{ variables.service_connection }}
-            arguments: ${{ frontdoor.subscription_id }} ${{ frontdoor.resource_group }} ${{ frontdoor.front_door_name}}
+            arguments: ${{ frontdoor.subscription_id }} ${{ frontdoor.resource_group }} ${{ frontdoor.front_door_name }} ${{ variables.min_cert_expiration_days }} 
       - task: Bash@3
         displayName: 'Send slack message'
         inputs:
