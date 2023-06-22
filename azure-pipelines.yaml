@@ -189,7 +189,7 @@ jobs:
           displayName: 'Checking Certificate status'
           inputs:
             scriptType: bash
-            scriptPath: scripts/certcheck.sh
+            scriptPath: scripts/cert-check.sh
             azureSubscription: ${{ variables.service_connection }}
             arguments: ${{ frontdoor.subscription_id }} ${{ frontdoor.resource_group }} ${{ frontdoor.front_door_name}}
       - task: Bash@3
