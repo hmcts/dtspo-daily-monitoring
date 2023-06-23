@@ -32,7 +32,7 @@ check_certificate_expiration() {
 
         
         if [[ $days_left -le 0 ]]; then
-             echo "> :red_circle: Certificate for (*${front_door_name}*) *${url}* has expired *${days_left}* days."
+             echo "> :red_circle: Certificate for (*${front_door_name}*) *${url}* has expired *${days_left}* days ago."
              has_results=true
         elif [[ $days_left -le min_cert_expiration_days ]]; then
             echo "> :yellow_circle: Certificate for (*${front_door_name}*) *${url}* expires in *${days_left}* days."
