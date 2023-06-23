@@ -92,12 +92,30 @@ parameters:
       - resourceGroup: 'cft-preview-01-rg'
         clusterName: 'cft-preview-01-aks'
         subscription: 'DCD-CFTAPPS-DEV'
+  - name: certificates
+    type: object
+    default:
+      - subscription_id: '8cbc6f36-7c56-4963-9d36-739db5d00b27'
+        resource_group: 'lz-prod-rg'  
+        front_door_name: 'hmcts-prod'
+      - subscription_id: '5ca62022-6aa2-4cee-aaa7-e7536c8d566c'
+        resource_group: 'lz-prod-rg'  
+        front_door_name: 'sdshmcts-prod'
+      - subscription_id: 'b72ab7b7-723f-4b18-b6f6-03b0f2c6a1bb'
+        resource_group: 'lz-sbox-rg'  
+        front_door_name: 'hmcts-sbox'
+      - subscription_id: '5ca62022-6aa2-4cee-aaa7-e7536c8d566c'
+        resource_group: 'bau-bais_prod_network_rg'  
+        front_door_name: 'hmcts-heritage-prod'
 
 variables:
   - name: SPSecretNumDays
     value: 14
   - name: service_connection
     value: dts-management-prod-intsvc
+  - name: min_cert_expiration_days
+    value: 14
+
 jobs:
   - job: DailyMonitoring
     timeoutInMinutes: 10
@@ -156,6 +174,14 @@ jobs:
             scriptPath: scripts/aks-node-count.sh
             azureSubscription: ${{ cluster.subscription }}
             arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
+      - ${{ each frontdoor in parameters.certificates }}:
+        - task: AzureCLI@2
+          displayName: 'Checking Certificate status'
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/cert-check.sh
+            azureSubscription: ${{ variables.service_connection }}
+            arguments: ${{ frontdoor.subscription_id }} ${{ frontdoor.resource_group }} ${{ frontdoor.front_door_name }} ${{ variables.min_cert_expiration_days }} 
       - task: AzureCLI@2
         displayName: 'Service Principal Check'
         inputs:
@@ -174,4 +200,4 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
-          arguments: $(slack-webhook-url) dtspo-bau
+          arguments: $(slack-webhook-url) dtspo-bau 
