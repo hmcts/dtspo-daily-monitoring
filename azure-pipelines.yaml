@@ -200,4 +200,4 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
-          arguments: $(slack-webhook-url) dtspo-bau
+          arguments: $(slack-webhook-url) dtspo-bau 
