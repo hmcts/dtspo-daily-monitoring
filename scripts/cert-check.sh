@@ -12,7 +12,7 @@ elif [[ $platform == "Linux" ]]; then
 fi
 
 # Azure CLI command to populate URL list
-subscription_id=$1
+subscription=$1
 resource_group=$2
 front_door_name=$3
 
@@ -41,7 +41,7 @@ check_certificate_expiration() {
 }
 
 # Azure CLI command to populate URL list
-urls=$(az network front-door frontend-endpoint list --subscription "$subscription_id" --resource-group "$resource_group" --front-door-name "$front_door_name" --query "[].hostName" -o tsv)
+urls=$(az network front-door frontend-endpoint list --subscription "$subscription" --resource-group "$resource_group" --front-door-name "$front_door_name" --query "[].hostName" -o tsv)
 
 # Check certificate expiration for each URL
 has_results=false
