@@ -55,5 +55,5 @@ if [[ $has_results == true ]]; then
         check_certificate_expiration "${url}" >> slack-message.txt
     done
 else
-    printf "\n:green_circle: No expiring SSL certificates found for URL's on *${front_door_name}*.\n\n" >> slack-message.txt
+    printf "> :green_circle: No expiring SSL certificates found on *${front_door_name}*.\n" >> slack-message.txt
 fi
