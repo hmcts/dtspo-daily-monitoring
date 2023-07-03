@@ -98,19 +98,19 @@ parameters:
       - subscription: 'DCD-CFTAPPS-PROD'
         resource_group: 'lz-prod-rg'  
         front_door_name: 'hmcts-prod'
-        min_cert_exp_days: '100'
+        min_cert_exp_days: '14'
       - subscription: 'DTS-SHAREDSERVICES-PROD'
         resource_group: 'lz-prod-rg'  
         front_door_name: 'sdshmcts-prod'
-        min_cert_exp_days: '100'
+        min_cert_exp_days: '14'
       - subscription: 'DCD-CFTAPPS-SBOX'
         resource_group: 'lz-sbox-rg'  
         front_door_name: 'hmcts-sbox'
-        min_cert_exp_days: '100'
+        min_cert_exp_days: '14'
       - subscription: 'DTS-SHAREDSERVICES-PROD'
         resource_group: 'bau-bais_prod_network_rg'  
         front_door_name: 'hmcts-heritage-prod'
-        min_cert_exp_days: '100'
+        min_cert_exp_days: '14'
 
 variables:
   - name: SPSecretNumDays
@@ -208,4 +208,4 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
-          arguments: $(slack-webhook-url) test-cert-expiry
+          arguments: $(slack-webhook-url) dtspo-bau
