@@ -49,9 +49,10 @@ for url in $urls; do
     check_certificate_expiration "${url}"
 done
 
-# Print header and results to output file if there are results
 if [[ $has_results == true ]]; then
-    printf "\n:ssl-cert: _*Expiring SSL Certificates*_\n\n" > slack-message.txt
+    if ! grep -q ":ssl-cert: _*Expiring SSL Certificates*_" slack-message.txt; then
+        printf "\n:ssl-cert: _*Expiring SSL Certificates*_\n\n" >> slack-message.txt
+    fi
     for url in $urls; do
         check_certificate_expiration "${url}" >> slack-message.txt
     done
