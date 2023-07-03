@@ -98,23 +98,25 @@ parameters:
       - subscription_id: '8cbc6f36-7c56-4963-9d36-739db5d00b27'
         resource_group: 'lz-prod-rg'  
         front_door_name: 'hmcts-prod'
+        min_cert_exp_days: '100'
       - subscription_id: '5ca62022-6aa2-4cee-aaa7-e7536c8d566c'
         resource_group: 'lz-prod-rg'  
         front_door_name: 'sdshmcts-prod'
+        min_cert_exp_days: '100'
       - subscription_id: 'b72ab7b7-723f-4b18-b6f6-03b0f2c6a1bb'
         resource_group: 'lz-sbox-rg'  
         front_door_name: 'hmcts-sbox'
+        min_cert_exp_days: '100'
       - subscription_id: '5ca62022-6aa2-4cee-aaa7-e7536c8d566c'
         resource_group: 'bau-bais_prod_network_rg'  
         front_door_name: 'hmcts-heritage-prod'
+        min_cert_exp_days: '100'
 
 variables:
   - name: SPSecretNumDays
     value: 14
   - name: service_connection
     value: dts-management-prod-intsvc
-  - name: min_cert_expiration_days
-    value: 100
 
 jobs:
   - job: DailyMonitoring
