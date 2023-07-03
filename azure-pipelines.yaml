@@ -114,7 +114,7 @@ variables:
   - name: service_connection
     value: dts-management-prod-intsvc
   - name: min_cert_expiration_days
-    value: 14
+    value: 100
 
 jobs:
   - job: DailyMonitoring
@@ -200,4 +200,4 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
-          arguments: $(slack-webhook-url) dtspo-bau 
+          arguments: $(slack-webhook-url) test-cert-expiry

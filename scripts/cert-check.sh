@@ -51,7 +51,7 @@ done
 
 # Print header and results to output file if there are results
 if [[ $has_results == true ]]; then
-    printf "\n:ssl-cert: _*Expiring SSL Certificates*_\n\n" >> slack-message.txt
+    printf "\n:ssl-cert: _*Expiring SSL Certificates*_\n\n" > slack-message.txt
     for url in $urls; do
         check_certificate_expiration "${url}" >> slack-message.txt
     done
