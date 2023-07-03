@@ -95,26 +95,28 @@ parameters:
   - name: certificates
     type: object
     default:
-      - subscription_id: '8cbc6f36-7c56-4963-9d36-739db5d00b27'
+      - subscription: 'DCD-CFTAPPS-PROD'
         resource_group: 'lz-prod-rg'  
         front_door_name: 'hmcts-prod'
-      - subscription_id: '5ca62022-6aa2-4cee-aaa7-e7536c8d566c'
+        min_cert_exp_days: '14'
+      - subscription: 'DTS-SHAREDSERVICES-PROD'
         resource_group: 'lz-prod-rg'  
         front_door_name: 'sdshmcts-prod'
-      - subscription_id: 'b72ab7b7-723f-4b18-b6f6-03b0f2c6a1bb'
+        min_cert_exp_days: '14'
+      - subscription: 'DCD-CFTAPPS-SBOX'
         resource_group: 'lz-sbox-rg'  
         front_door_name: 'hmcts-sbox'
-      - subscription_id: '5ca62022-6aa2-4cee-aaa7-e7536c8d566c'
+        min_cert_exp_days: '14'
+      - subscription: 'DTS-SHAREDSERVICES-PROD'
         resource_group: 'bau-bais_prod_network_rg'  
         front_door_name: 'hmcts-heritage-prod'
+        min_cert_exp_days: '14'
 
 variables:
   - name: SPSecretNumDays
     value: 14
   - name: service_connection
     value: dts-management-prod-intsvc
-  - name: min_cert_expiration_days
-    value: 14
 
 jobs:
   - job: DailyMonitoring
@@ -174,14 +176,20 @@ jobs:
             scriptPath: scripts/aks-node-count.sh
             azureSubscription: ${{ cluster.subscription }}
             arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
+      - task: Bash@3
+        displayName: 'Expiring SSL certificates header'
+        inputs:
+          targetType: 'inline'
+          script: |
+           echo "\n:ssl-cert: _*Expiring SSL Certificates*_\n\n" >> slack-message.txt
       - ${{ each frontdoor in parameters.certificates }}:
         - task: AzureCLI@2
           displayName: 'Checking Certificate status'
           inputs:
             scriptType: bash
             scriptPath: scripts/cert-check.sh
-            azureSubscription: ${{ variables.service_connection }}
-            arguments: ${{ frontdoor.subscription_id }} ${{ frontdoor.resource_group }} ${{ frontdoor.front_door_name }} ${{ variables.min_cert_expiration_days }} 
+            azureSubscription: ${{ frontdoor.subscription }}
+            arguments: ${{ frontdoor.subscription }} ${{ frontdoor.resource_group }} ${{ frontdoor.front_door_name }} ${{ frontdoor.min_cert_exp_days }} 
       - task: AzureCLI@2
         displayName: 'Service Principal Check'
         inputs:
@@ -200,4 +208,4 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
-          arguments: $(slack-webhook-url) dtspo-bau 
+          arguments: $(slack-webhook-url) dtspo-bau

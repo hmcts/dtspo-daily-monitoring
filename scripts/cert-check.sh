@@ -12,7 +12,7 @@ elif [[ $platform == "Linux" ]]; then
 fi
 
 # Azure CLI command to populate URL list
-subscription_id=$1
+subscription=$1
 resource_group=$2
 front_door_name=$3
 
@@ -32,16 +32,17 @@ check_certificate_expiration() {
 
         
         if [[ $days_left -le 0 ]]; then
-             echo "> :red_circle: Certificate for (*${front_door_name}*) *${url}* has expired *${days_left}* days ago."
+             echo "> :red_circle: Certificate for (*${front_door_name}*) *${url}* has expired *${days_left}* days ago." >> slack-message.txt
              has_results=true
         elif [[ $days_left -le min_cert_expiration_days ]]; then
-            echo "> :yellow_circle: Certificate for (*${front_door_name}*) *${url}* expires in *${days_left}* days."
+             echo "> :yellow_circle: Certificate for (*${front_door_name}*) *${url}* expires in *${days_left}* days." >> slack-message.txt
+             has_results=true
         fi
     fi
 }
 
 # Azure CLI command to populate URL list
-urls=$(az network front-door frontend-endpoint list --subscription "$subscription_id" --resource-group "$resource_group" --front-door-name "$front_door_name" --query "[].hostName" -o tsv)
+urls=$(az network front-door frontend-endpoint list --subscription "$subscription" --resource-group "$resource_group" --front-door-name "$front_door_name" --query "[].hostName" -o tsv)
 
 # Check certificate expiration for each URL
 has_results=false
@@ -49,10 +50,7 @@ for url in $urls; do
     check_certificate_expiration "${url}"
 done
 
-# Print header and results to output file if there are results
-if [[ $has_results == true ]]; then
-    printf "\n:ssl-cert: _*Expiring SSL Certificates*_\n\n" >> slack-message.txt
-    for url in $urls; do
-        check_certificate_expiration "${url}" >> slack-message.txt
-    done
+# If there are no results, append a message to indicate no expiring certificates
+if [[ $has_results == false ]]; then
+    echo "> :green_circle: No certificates for (*${front_door_name}*) are expiring within the specified threshold." >> slack-message.txt
 fi
