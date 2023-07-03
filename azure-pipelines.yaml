@@ -189,7 +189,7 @@ jobs:
             scriptType: bash
             scriptPath: scripts/cert-check.sh
             azureSubscription: ${{ variables.service_connection }}
-            arguments: ${{ frontdoor.subscription_id }} ${{ frontdoor.resource_group }} ${{ frontdoor.front_door_name }} ${{ variables.min_cert_expiration_days }} 
+            arguments: ${{ frontdoor.subscription_id }} ${{ frontdoor.resource_group }} ${{ frontdoor.front_door_name }} ${{ frontdoor.min_cert_exp_days }} 
       - task: AzureCLI@2
         displayName: 'Service Principal Check'
         inputs:
