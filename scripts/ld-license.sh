@@ -14,5 +14,5 @@ elif ((  "$LICENSES_LEFT" >= 10 )); then
   LICENSE_STATUS=":yellow_circle:"
 fi
 
-printf "\n:launchdarkly: <https://app.launchdarkly.com/settings/members|_*LaunchDarkly License Status*_> \n\n" >> slack-message.txt
-printf "> %s *%s* out of *%s* licenses left \n" "$LICENSE_STATUS" "$LICENSES_LEFT" "$TOTAL_LICENSES" >> slack-message.txt
+printf "\n:launchdarkly: <https://app.launchdarkly.com/settings/members|_*LaunchDarkly License Status*_> \n\n" >> slackmessage.txt
+printf "> %s *%s* out of *%s* licenses left \n" "$LICENSE_STATUS" "$LICENSES_LEFT" "$TOTAL_LICENSES" >> slackmessage.txt
