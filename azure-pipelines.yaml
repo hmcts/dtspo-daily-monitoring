@@ -124,6 +124,8 @@ variables:
     value: dts-management-prod-intsvc
   - name: isMain
     value: $[in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/master')]
+  - name: jenkins_url
+    value: "http://jenkins.jenkins:8080/"
 
 jobs:
   - job: DailyMonitoring
@@ -174,7 +176,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/jenkins-status.sh
-          arguments: $(jenkins-api-user) $(jenkins-api-token) 'http://jenkins.jenkins:8080/'
+          arguments: $(jenkins-api-user) $(jenkins-api-token) ${{ variables.jenkins_url }}
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'Get AKS Cluster Status'
