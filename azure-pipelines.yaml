@@ -124,6 +124,8 @@ variables:
     value: dts-management-prod-intsvc
   - name: isMain
     value: $[in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/master')]
+  - name: isAutoTriggered
+    value: $[in(variables['Build.Reason'], 'BatchedCI', 'IndividualCI', 'PullRequest', 'Schedule')] # does not include manually running pipeline from UI (i.e. manual trigger).
   - name: jenkins_url
     value: "http://jenkins.jenkins:8080/"
 
@@ -213,7 +215,7 @@ jobs:
           filePath: scripts/jira-status.sh
           arguments: $(jira-username) $(jira-password)
       - task: Bash@3
-        displayName: 'Send slack message - master branch'
+        displayName: 'Send slack message - pull request'
         condition: |
           and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true))
         inputs:
