@@ -32,10 +32,10 @@ check_certificate_expiration() {
 
         
         if [[ $days_left -le 0 ]]; then
-             echo "> :red_circle: Certificate for (*${front_door_name}*) *${url}* has expired *${days_left}* days ago." >> slack-message.txt
+             echo "> :red_circle: Certificate for (*${front_door_name}*) *${url}* has expired *${days_left}* days ago." >> slackmessage.txt
              has_results=true
         elif [[ $days_left -le min_cert_expiration_days ]]; then
-             echo "> :yellow_circle: Certificate for (*${front_door_name}*) *${url}* expires in *${days_left}* days." >> slack-message.txt
+             echo "> :yellow_circle: Certificate for (*${front_door_name}*) *${url}* expires in *${days_left}* days." >> slackmessage.txt
              has_results=true
         fi
     fi
@@ -52,5 +52,5 @@ done
 
 # If there are no results, append a message to indicate no expiring certificates
 if [[ $has_results == false ]]; then
-    echo "> :green_circle: No certificates for (*${front_door_name}*) are expiring within the specified threshold." >> slack-message.txt
+    echo "> :green_circle: No certificates for (*${front_door_name}*) are expiring within the specified threshold." >> slackmessage.txt
 fi

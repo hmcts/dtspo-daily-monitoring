@@ -12,10 +12,10 @@ AZ_APP_RESULT=$( az ad app list --all --query "[?passwordCredentials[?endDateTim
 
 AZ_APP_COUNT=$(jq -r '. | length' <<< "${AZ_APP_RESULT}")
 
-printf "\n:azure-826: <https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status*_> \n" >> slack-message.txt
+printf "\n:azure-826: <https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status*_> \n" >> slackmessage.txt
 
 if [[ $AZ_APP_COUNT == 0 ]]; then
-    printf "\n:green_circle: No Service Principals Secrets are expiring in $CHECK_DAYS days \n\n" >> slack-message.txt
+    printf "\n:green_circle: No Service Principals Secrets are expiring in $CHECK_DAYS days \n\n" >> slackmessage.txt
     exit 0
 fi
 
@@ -32,12 +32,12 @@ echo "$AZ_APP_RESULT" | jq -c -r '.[]'  | while read i; do
 
     APP_URL="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Credentials/appId/$appId"
     if [ $((date_diff)) -lt 0 ]; then
-        printf "\n>:red_circle: <$APP_URL|_* $displayName*_> has expired" >> slack-message.txt
+        printf "\n>:red_circle: <$APP_URL|_* $displayName*_> has expired" >> slackmessage.txt
     elif [[ $((date_diff)) -gt 7 ]]; then
-        printf "\n>:yellow_circle: <$APP_URL|_* $displayName*_> expires in $date_diff days" >> slack-message.txt
+        printf "\n>:yellow_circle: <$APP_URL|_* $displayName*_> expires in $date_diff days" >> slackmessage.txt
     else
-        printf "\n>:red_circle: <$APP_URL|_* $displayName*_> expires in $date_diff days" >> slack-message.txt
+        printf "\n>:red_circle: <$APP_URL|_* $displayName*_> expires in $date_diff days" >> slackmessage.txt
     fi
 
 done
-printf "\n\n"  >> slack-message.txt
+printf "\n\n"  >> slackmessage.txt
