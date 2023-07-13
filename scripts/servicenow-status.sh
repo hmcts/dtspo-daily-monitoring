@@ -25,7 +25,7 @@ elif ((  "$OPEN_PROBLEMS_COUNT" <= 15 )); then
   OPEN_PROBLEMS_STATUS=":yellow_circle:"
 fi
 
-printf "\n:service-now: <https://mojcppprod.service-now.com/|_*ServiceNow Status*_> \n\n" >> slackmessage.txt
+printf "\n:service-now: <https://mojcppprod.service-now.com/|_*ServiceNow Status*_> \n\n" >> slack-message.txt
 
-printf "> %s *%s* Open incidents\n" "$OPEN_INCIDENTS_STATUS" "$OPEN_INCIDENTS_COUNT" >> slackmessage.txt
-printf "> %s *%s* Open problems\n" "$OPEN_PROBLEMS_STATUS" "$OPEN_PROBLEMS_COUNT" >> slackmessage.txt
+printf "> %s *%s* Open incidents\n" "$OPEN_INCIDENTS_STATUS" "$OPEN_INCIDENTS_COUNT" >> slack-message.txt
+printf "> %s *%s* Open problems\n" "$OPEN_PROBLEMS_STATUS" "$OPEN_PROBLEMS_COUNT" >> slack-message.txt
