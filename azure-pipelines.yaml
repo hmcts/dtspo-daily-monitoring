@@ -1,9 +1,9 @@
 ---
 name: Daily monitoring for platform operations
-#trigger:
+# trigger:
 #  - master
-#pr:
-#  - master
+pr:
+ - master
 schedules:
   - cron: '0 8 * * Mon-Fri'
     displayName: Runs 9 AM Mon-Fri
@@ -123,6 +123,8 @@ variables:
     value: 14
   - name: service_connection
     value: dts-management-prod-intsvc
+  - name: isMain
+    value: $[in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/master')]
 
 jobs:
   - job: DailyMonitoring
@@ -210,7 +212,17 @@ jobs:
           filePath: scripts/jira-status.sh
           arguments: $(jira-username) $(jira-password)
       - task: Bash@3
-        displayName: 'Send slack message'
+        displayName: 'Send slack message - master branch'
+        condition: |
+          and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true))
+        inputs:
+          targetType: filePath
+          filePath: scripts/send-slack-message.sh
+          arguments: $(slack-webhook-url) slack_msg_format_testing
+      - task: Bash@3
+        displayName: 'Send slack message - master branch'
+        condition: |
+          and(succeeded(), eq(variables['isMain'], true), eq(variables['isAutoTriggered'], true))
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
