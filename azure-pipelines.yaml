@@ -1,7 +1,6 @@
 ---
 name: Daily monitoring for platform operations
-# trigger:
-#  - master
+trigger: none
 pr:
  - master
 schedules:
