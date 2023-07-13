@@ -8,6 +8,11 @@ TIME_FOR_RED="$5 days"
 PIPELINE_NAME="$6"
 BRANCH_NAME="$7"
 
+echo $PIPELINE_NAME
+
+echo ${PIPELINE_NAME}
+
+echo "${PIPELINE_NAME}"
 
 PIPELINE_MESSAGE="<https://dev.azure.com/hmcts/$ADO_PROJECT/_build?definitionId=$ADO_DEFINITION_ID|$PIPELINE_NAME pipeline>"
 
