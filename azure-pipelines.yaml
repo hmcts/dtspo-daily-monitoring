@@ -174,7 +174,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/jenkins-status.sh
-          arguments: $(jenkins-api-user) $(jenkins-api-token) "http://jenkins.jenkins:8080/"
+          arguments: $(jenkins-api-user) $(jenkins-api-token) 'http://jenkins.jenkins:8080/'
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'Get AKS Cluster Status'
