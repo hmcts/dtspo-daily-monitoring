@@ -19,7 +19,7 @@ parameters:
     default:
       - project: 'PlatformOperations'
         definitionId: '802'
-        timeForAmber: '3 days'
+        timeForAmber: '3'
         timeForRed: '5 days'
         pipelineName: "Preview Helm release cleanup - scheduled"
         branchName: "refs/heads/master"
@@ -151,7 +151,7 @@ jobs:
           inputs:
             targetType: filePath
             filePath: scripts/ado-pipeline-monitor.sh
-            arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  ""\${{ado_pipeline.timeForAmber}}\""  "${{ado_pipeline.timeForRed}}"  "${{ado_pipeline.pipelineName}}" "${{ado_pipeline.branchName}}"
+            arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  "${{ado_pipeline.timeForAmber}}-days"  "${{ado_pipeline.timeForRed}}"  "${{ado_pipeline.pipelineName}}" "${{ado_pipeline.branchName}}"
       - task: Bash@3
         displayName: 'Checking Github Licenses'
         inputs:
