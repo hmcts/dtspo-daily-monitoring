@@ -128,6 +128,10 @@ variables:
     value: $[in(variables['Build.Reason'], 'BatchedCI', 'IndividualCI', 'PullRequest', 'Schedule')] # does not include manually running pipeline from UI (i.e. manual trigger).
   - name: jenkins_url
     value: "http://jenkins.jenkins:8080/"
+  - name: pull_request_channel
+    value: slack_msg_format_testing
+  - name: main_channel
+    value: dtspo-daily-checks
 
 jobs:
   - job: DailyMonitoring
@@ -221,7 +225,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
-          arguments: $(msg-format-testing-slack-webhook-url) slack_msg_format_testing
+          arguments: $(msg-format-testing-slack-webhook-url) ${{ variables.pull_request_channel }}
       - task: Bash@3
         displayName: 'Send slack message - master branch'
         condition: |
@@ -229,4 +233,4 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
-          arguments: $(dtspo-daily-checks-slack-webhook-url) dtspo-daily-checks
+          arguments: $(dtspo-daily-checks-slack-webhook-url) ${{ variables.main_channel }}
