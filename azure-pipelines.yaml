@@ -1,7 +1,9 @@
 ---
 name: Daily monitoring for platform operations
 trigger:
-  - master
+  branches:
+    include:
+    - '*'
 # pr:
 #  - master
 schedules:
