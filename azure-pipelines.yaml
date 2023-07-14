@@ -69,7 +69,7 @@ parameters:
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: "hmcts.azure-enterprise"
-        branchName: "refs/heads/main"
+        branchName: refs/heads/main
       - project: 'PlatformOperations'
         definitionId: '543'
         timeForAmber: '1'
@@ -87,7 +87,7 @@ parameters:
         timeForAmber: '5'
         timeForRed: '7'
         pipelineName: azure-app-proxy
-        branchName: "refs/heads/main"
+        branchName: refs/heads/main
   - name: aks_clusters
     type: object
     default:
