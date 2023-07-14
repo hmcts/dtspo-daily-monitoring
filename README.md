@@ -6,12 +6,12 @@ Daily monitoring checks for DTS Platform Operations BAU team
 Update `azure-pipelines.yaml` by adding a new entry to the ado_pipeline parameter:
 
 ```
-      - project: 'PlatformOperations'
-        definitionId: '123'
-        timeForAmber: '3'
-        timeForRed: '5'
-        pipelineName: my_pipeline_name
-        branchName: "refs/heads/master"
+- project: 'PlatformOperations'
+  definitionId: '123'
+  timeForAmber: '3'
+  timeForRed: '5'
+  pipelineName: my_pipeline_name
+  branchName: "refs/heads/master"
 ```
 
 
