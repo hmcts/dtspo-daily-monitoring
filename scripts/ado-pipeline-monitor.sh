@@ -8,12 +8,6 @@ TIME_FOR_RED="$5 days"
 PIPELINE_NAME=$(echo $6 | sed 's/_/ /g' | sed 's/"//g')
 BRANCH_NAME=$(echo $7 | sed 's/"//g')
 
-echo $PIPELINE_NAME
-
-echo ${PIPELINE_NAME}
-
-echo "${PIPELINE_NAME}"
-
 PIPELINE_MESSAGE="<https://dev.azure.com/hmcts/$ADO_PROJECT/_build?definitionId=$ADO_DEFINITION_ID|$PIPELINE_NAME pipeline>"
 
 #MIN_TIME_RED=$(date -v "-${TIME_FOR_RED}" +"%Y-%m-%dT%H:%M:%SZ" )
