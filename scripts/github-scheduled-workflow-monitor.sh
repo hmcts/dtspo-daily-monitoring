@@ -27,7 +27,7 @@ done
 
 # a function to make it easier to print the message usage: message [red | yellow | green]
 print_message() {
-    printf "\n:${1}_circle Workflow name: <${html_url}|_*${name}*_> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n\n"
+    printf "\n:${1}_circle Workflow name: <${html_url}|_*${name}*_> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n\n" >> slack-message.txt
 }
 
 
@@ -47,17 +47,25 @@ then
         while IFS=, read -r id name;
         do
             # Get the last response for that workflow id and specified branch 
-            workflow_status=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${token}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${repo}/actions/workflows/${id}/runs?per_page=1&branch=$branch" | jq -r '.workflow_runs[].status')
-        
-            if [[ "${workflow_status}" == "completed" ]];
-            then
-                printf "\n:green_circle ${name}: ${workflow_status}  \n\n"
-            elif [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "success" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
-            then
-                printf "\n:yellow_circle ${name}: ${workflow_status}  \n\n"
-            else 
-                printf "\n:red_circle ${name}: ${workflow_status}  \n\n"
-            fi    
+            workflow_status=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${token}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${repo}/actions/workflows/${id}/runs?per_page=1&branch=$branch" | jq -r '.workflow_runs[] | [.status , .conclusion , .html_url , .run_started_at] |@csv')
+            while IFS=, read -r workflow_status conclusion html_url run_started_at;
+            do
+                # clean up responses
+                workflow_status=$(echo ${workflow_status} | tr -d '"')
+                conclusion=$(echo ${conclusion} |tr -d '"')
+                run_started_at=$(echo ${run_started_at} | sed -e 's/T/ /; s/Z//')
+
+                # Write slack message dependant on status and conclusion
+                if [ "${conclusion}" = "success" ];
+                then
+                    print_message green
+                elif [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
+                then
+                    print_message yellow
+                else 
+                    print_message red
+                fi    
+            done  <<< ${workflow_status}
         done <<< $w 
     done <<< ${workflows_response}
 else
