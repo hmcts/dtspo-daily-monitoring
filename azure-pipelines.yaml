@@ -1,11 +1,8 @@
 ---
 name: Daily monitoring for platform operations
-trigger:
-  branches:
-    include:
-    - '*'
-# pr:
-#  - master
+trigger: none
+pr:
+ - master
 schedules:
   - cron: '0 8 * * Mon-Fri'
     displayName: Runs 9 AM Mon-Fri
@@ -135,8 +132,8 @@ variables:
     value: slack_msg_format_testing
   - name: main_channel
     value: dtspo-daily-checks
-  - name: buildRequestedFor
-    value: $(Build.RequestedFor)
+  - name: pull_request_number
+    value: $(system.pullRequest.pullRequestNumber)
 
 jobs:
   - job: DailyMonitoring
@@ -230,7 +227,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
-          arguments: $(msg-format-testing-slack-webhook-url) ${{ variables.pull_request_channel }} ${{ variables.buildRequestedFor }}
+          arguments: $(msg-format-testing-slack-webhook-url) ${{ variables.pull_request_channel }} ${{ variables.pull_request_number }}
       - task: Bash@3
         displayName: 'Send slack message - master branch'
         condition: |
