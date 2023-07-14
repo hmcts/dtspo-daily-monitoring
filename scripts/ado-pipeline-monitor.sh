@@ -6,7 +6,7 @@ ADO_DEFINITION_ID=$3
 TIME_FOR_AMBER="$4 days"
 TIME_FOR_RED="$5 days"
 PIPELINE_NAME=$(echo $6 | sed 's/_/ /g' | sed 's/"//g')
-BRANCH_NAME="$7"
+BRANCH_NAME=$(echo $7 | sed 's/"//g')
 
 echo $PIPELINE_NAME
 
