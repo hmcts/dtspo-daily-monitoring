@@ -23,6 +23,12 @@ parameters:
         pipelineName: Preview_Helm_release_cleanup_-_scheduled
         branchName: refs/heads/master
       - project: 'PlatformOperations'
+        definitionId: '759'
+        timeForAmber: '3'
+        timeForRed: '5'
+        pipelineName: Preview_Helm_release_cleanup_-_PR_close
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
         definitionId: '768'
         timeForAmber: '3'
         timeForRed: '7'
@@ -57,12 +63,6 @@ parameters:
         timeForAmber: '3'
         timeForRed: '7'
         pipelineName: ACR_Base_importer
-        branchName: refs/heads/master
-      - project: 'PlatformOperations'
-        definitionId: '759'
-        timeForAmber: '3'
-        timeForRed: '5'
-        pipelineName: Preview_Helm_release_cleanup_-_PR_close
         branchName: refs/heads/master
       - project: 'PlatformOperations'
         definitionId: '635'
