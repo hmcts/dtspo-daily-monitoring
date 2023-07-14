@@ -26,3 +26,9 @@ This is due to an issue in the bash task for Azure Pipelines where it does not s
 If your pipeline name uses underscores, please replace these with spaces or dashes in Azure DevOps.
 
 `timeForAmber` and `timeForRed` are the amount of time in days that a pipeline should go without a successful run before showing an amber or red circle in the slack message.
+
+## Testing slack message updates
+
+When you submit a pull request, a direct slack message will be sent to you so you can check the format is working.
+
+When you merge your approved PR, the messages will be sent to the `#dtspo-daily-checks` channel.
