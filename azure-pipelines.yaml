@@ -27,43 +27,43 @@ parameters:
         timeForAmber: '3'
         timeForRed: '7'
         pipelineName: ACR_Cleanup
-        branchName: "refs/heads/master"
+        branchName: refs/heads/master
       - project: 'PlatformOperations'
         definitionId: '777'
         timeForAmber: '14'
         timeForRed: '28'
         pipelineName: Launch_Darkly_cleanup
-        branchName: "refs/heads/master"
+        branchName: refs/heads/master
       - project: 'PlatformOperations'
         definitionId: '472'
         timeForAmber: '3'
         timeForRed: '7'
         pipelineName: Azure_AAD_group_cleanup
-        branchName: "refs/heads/master"
+        branchName: refs/heads/master
       - project: 'PlatformOperations'
         definitionId: '771'
         timeForAmber: '3'
         timeForRed: '7'
         pipelineName: OWASP_DB_Update_-_Production
-        branchName: "refs/heads/master"
+        branchName: refs/heads/master
       - project: 'PlatformOperations'
         definitionId: '808'
         timeForAmber: '3'
         timeForRed: '7'
         pipelineName: OWASP_DB_Update_-_Sandbox
-        branchName: "refs/heads/master"
+        branchName: refs/heads/master
       - project: 'PlatformOperations'
         definitionId: '772'
         timeForAmber: '3'
         timeForRed: '7'
         pipelineName: ACR_Base_importer
-        branchName: "refs/heads/master"
+        branchName: refs/heads/master
       - project: 'PlatformOperations'
         definitionId: '759'
         timeForAmber: '3'
         timeForRed: '5'
         pipelineName: Preview _Helm_release_cleanup_-_PR_close
-        branchName: "refs/heads/master"
+        branchName: refs/heads/master
       - project: 'PlatformOperations'
         definitionId: '635'
         timeForAmber: '1'
@@ -75,13 +75,13 @@ parameters:
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: sds-azure-platform
-        branchName: "refs/heads/master"
+        branchName: refs/heads/master
       - project: 'PlatformOperations'
         definitionId: '765'
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: azure-platform-terraform
-        branchName: "refs/heads/master"
+        branchName: refs/heads/master
       - project: 'PlatformOperations'
         definitionId: '821'
         timeForAmber: '5'
