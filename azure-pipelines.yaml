@@ -1,8 +1,9 @@
 ---
 name: Daily monitoring for platform operations
-trigger: none
-pr:
- - master
+trigger:
+  - master
+# pr:
+#  - master
 schedules:
   - cron: '0 8 * * Mon-Fri'
     displayName: Runs 9 AM Mon-Fri
