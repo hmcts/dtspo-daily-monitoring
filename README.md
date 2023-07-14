@@ -15,7 +15,7 @@ Update `azure-pipelines.yaml` by adding a new entry to the ado_pipeline paramete
 ```
 
 
-If your pipeline name has no spaces, e.g. it uses dashes `-`, then just enter it as is without any quotes e.g. `sds-azure-platform`.
+If your pipeline name uses dashes, `-`, and no spaces, then just enter it as is without any quotes e.g. `sds-azure-platform`.
 
 If your pipeline name has spaces, e.g. `My Pipeline`, then replace the spaces with underscores here, e.g. `My_Pipeline`.
 
