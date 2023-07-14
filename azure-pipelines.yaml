@@ -132,8 +132,8 @@ variables:
     value: slack_msg_format_testing
   - name: main_channel
     value: dtspo-daily-checks
-  - name: buildQueuedBy
-    value: $(Build.QueuedBy)
+  - name: buildRequestedFor
+    value: $(Build.RequestedFor)
 
 jobs:
   - job: DailyMonitoring
@@ -227,7 +227,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
-          arguments: $(msg-format-testing-slack-webhook-url) ${{ variables.pull_request_channel }} ${{ variables.buildQueuedBy }}
+          arguments: $(msg-format-testing-slack-webhook-url) ${{ variables.pull_request_channel }} ${{ variables.buildRequestedFor }}
       - task: Bash@3
         displayName: 'Send slack message - master branch'
         condition: |
