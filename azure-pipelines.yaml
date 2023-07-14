@@ -20,7 +20,7 @@ parameters:
         definitionId: '802'
         timeForAmber: '3'
         timeForRed: '5'
-        pipelineName: "Preview_Helm_release_cleanup_-_scheduled"
+        pipelineName: Preview_Helm_release_cleanup_-_scheduled
         branchName: "refs/heads/master"
       - project: 'PlatformOperations'
         definitionId: '768'
