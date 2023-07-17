@@ -1,9 +1,8 @@
 ---
 name: Daily monitoring for platform operations
-#trigger:
-#  - master
-#pr:
-#  - master
+trigger: none
+pr:
+ - master
 schedules:
   - cron: '0 8 * * Mon-Fri'
     displayName: Runs 9 AM Mon-Fri
@@ -19,76 +18,76 @@ parameters:
     default:
       - project: 'PlatformOperations'
         definitionId: '802'
-        timeForAmber: '3 days'
-        timeForRed: '5 days'
-        pipelineName: "Preview Helm release cleanup - scheduled"
-        branchName: "refs/heads/master"
-      - project: 'PlatformOperations'
-        definitionId: '768'
-        timeForAmber: '3 days'
-        timeForRed: '7 days'
-        pipelineName: "ACR Cleanup"
-        branchName: "refs/heads/master"
-      - project: 'PlatformOperations'
-        definitionId: '777'
-        timeForAmber: '14 days'
-        timeForRed: '28 days'
-        pipelineName: "Launch Darkly cleanup"
-        branchName: "refs/heads/master"
-      - project: 'PlatformOperations'
-        definitionId: '472'
-        timeForAmber: '3 days'
-        timeForRed: '7 days'
-        pipelineName: "Azure AAD group cleanup"
-        branchName: "refs/heads/master"
-      - project: 'PlatformOperations'
-        definitionId: '771'
-        timeForAmber: '3 days'
-        timeForRed: '7 days'
-        pipelineName: "OWASP DB Update - Production"
-        branchName: "refs/heads/master"
-      - project: 'PlatformOperations'
-        definitionId: '808'
-        timeForAmber: '3 days'
-        timeForRed: '7 days'
-        pipelineName: "OWASP DB Update - Sandbox"
-        branchName: "refs/heads/master"
-      - project: 'PlatformOperations'
-        definitionId: '772'
-        timeForAmber: '3 days'
-        timeForRed: '7 days'
-        pipelineName: "ACR Base importer"
-        branchName: "refs/heads/master"
+        timeForAmber: '3'
+        timeForRed: '5'
+        pipelineName: Preview_Helm_release_cleanup_-_scheduled
+        branchName: refs/heads/master
       - project: 'PlatformOperations'
         definitionId: '759'
-        timeForAmber: '3 days'
-        timeForRed: '5 days'
-        pipelineName: "Preview Helm release cleanup - PR close"
-        branchName: "refs/heads/master"
+        timeForAmber: '3'
+        timeForRed: '5'
+        pipelineName: Preview_Helm_release_cleanup_-_PR_close
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '768'
+        timeForAmber: '3'
+        timeForRed: '7'
+        pipelineName: ACR_Cleanup
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '777'
+        timeForAmber: '14'
+        timeForRed: '28'
+        pipelineName: Launch_Darkly_cleanup
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '472'
+        timeForAmber: '3'
+        timeForRed: '7'
+        pipelineName: Azure_AAD_group_cleanup
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '771'
+        timeForAmber: '3'
+        timeForRed: '7'
+        pipelineName: OWASP_DB_Update_-_Production
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '808'
+        timeForAmber: '3'
+        timeForRed: '7'
+        pipelineName: OWASP_DB_Update_-_Sandbox
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '772'
+        timeForAmber: '3'
+        timeForRed: '7'
+        pipelineName: ACR_Base_importer
+        branchName: refs/heads/master
       - project: 'PlatformOperations'
         definitionId: '635'
-        timeForAmber: '1 days'
-        timeForRed: '3 days'
+        timeForAmber: '1'
+        timeForRed: '3'
         pipelineName: "hmcts.azure-enterprise"
-        branchName: "refs/heads/main"
+        branchName: refs/heads/main
       - project: 'PlatformOperations'
         definitionId: '543'
-        timeForAmber: '1 days'
-        timeForRed: '3 days'
-        pipelineName: "sds-azure-platform"
-        branchName: "refs/heads/master"
+        timeForAmber: '1'
+        timeForRed: '3'
+        pipelineName: sds-azure-platform
+        branchName: refs/heads/master
       - project: 'PlatformOperations'
         definitionId: '765'
-        timeForAmber: '1 days'
-        timeForRed: '3 days'
-        pipelineName: "azure-platform-terraform"
-        branchName: "refs/heads/master"
+        timeForAmber: '1'
+        timeForRed: '3'
+        pipelineName: azure-platform-terraform
+        branchName: refs/heads/master
       - project: 'PlatformOperations'
         definitionId: '821'
-        timeForAmber: '5 days'
-        timeForRed: '7 days'
-        pipelineName: "azure-app-proxy"
-        branchName: "refs/heads/main"
+        timeForAmber: '5'
+        timeForRed: '7'
+        pipelineName: azure-app-proxy
+        branchName: refs/heads/main
   - name: aks_clusters
     type: object
     default:
@@ -123,6 +122,16 @@ variables:
     value: 14
   - name: service_connection
     value: dts-management-prod-intsvc
+  - name: isMain
+    value: $[in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/master')]
+  - name: isAutoTriggered
+    value: $[in(variables['Build.Reason'], 'BatchedCI', 'IndividualCI', 'PullRequest', 'Schedule')] # does not include manually running pipeline from UI (i.e. manual trigger).
+  - name: jenkins_url
+    value: "http://jenkins.jenkins:8080/"
+  - name: main_channel
+    value: dtspo-daily-checks
+  - name: pull_request_number
+    value: $(system.pullRequest.pullRequestNumber)
 
 jobs:
   - job: DailyMonitoring
@@ -135,7 +144,7 @@ jobs:
         inputs:
           azureSubscription:  "DTS-CFTPTL-INTSVC"
           keyVaultName:   "cftptl-intsvc"
-          secretsFilter: 'slack-webhook-url,azure-devops-token,jira-password,jira-username,github-management-api-token,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token'
+          secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,github-management-api-token,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token'
       - task: Bash@3
         displayName: 'Create a slack message file'
         inputs:
@@ -149,7 +158,7 @@ jobs:
           inputs:
             targetType: filePath
             filePath: scripts/ado-pipeline-monitor.sh
-            arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  "${{ado_pipeline.timeForAmber}}"  "${{ado_pipeline.timeForRed}}"  "${{ado_pipeline.pipelineName}}" "${{ado_pipeline.branchName}}"
+            arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  ${{ado_pipeline.timeForAmber}}  ${{ado_pipeline.timeForRed}}  "${{ado_pipeline.pipelineName}}" "${{ado_pipeline.branchName}}"
       - task: Bash@3
         displayName: 'Checking Github Licenses'
         inputs:
@@ -173,7 +182,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/jenkins-status.sh
-          arguments: $(jenkins-api-user) $(jenkins-api-token) "http://jenkins.jenkins:8080/"
+          arguments: $(jenkins-api-user) $(jenkins-api-token) ${{ variables.jenkins_url }}
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'Get AKS Cluster Status'
@@ -210,8 +219,18 @@ jobs:
           filePath: scripts/jira-status.sh
           arguments: $(jira-username) $(jira-password)
       - task: Bash@3
-        displayName: 'Send slack message'
+        displayName: 'Send slack message - pull request'
+        condition: |
+          and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true))
+        inputs:
+          targetType: filePath
+          filePath: scripts/send-slack-message-pr.sh
+          arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.pull_request_number }} $(github-management-api-token)
+      - task: Bash@3
+        displayName: 'Send slack message - master branch'
+        condition: |
+          and(succeeded(), eq(variables['isMain'], true), eq(variables['isAutoTriggered'], true))
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
-          arguments: $(slack-webhook-url) dtspo-bau
+          arguments: $(dtspo-daily-checks-slack-webhook-url) ${{ variables.main_channel }}

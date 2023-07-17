@@ -3,11 +3,10 @@ set -ex
 ADO_TOKEN=$1
 ADO_PROJECT=$2
 ADO_DEFINITION_ID=$3
-TIME_FOR_AMBER=$4
-TIME_FOR_RED=$5
-PIPELINE_NAME=$6
-BRANCH_NAME=$7
-
+TIME_FOR_AMBER="$4 days"
+TIME_FOR_RED="$5 days"
+PIPELINE_NAME=$(echo $6 | sed 's/_/ /g' | sed 's/"//g')
+BRANCH_NAME=$(echo $7 | sed 's/"//g')
 
 PIPELINE_MESSAGE="<https://dev.azure.com/hmcts/$ADO_PROJECT/_build?definitionId=$ADO_DEFINITION_ID|$PIPELINE_NAME pipeline>"
 
