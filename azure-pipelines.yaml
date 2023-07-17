@@ -128,8 +128,6 @@ variables:
     value: $[in(variables['Build.Reason'], 'BatchedCI', 'IndividualCI', 'PullRequest', 'Schedule')] # does not include manually running pipeline from UI (i.e. manual trigger).
   - name: jenkins_url
     value: "http://jenkins.jenkins:8080/"
-  - name: pull_request_channel
-    value: slack_msg_format_testing
   - name: main_channel
     value: dtspo-daily-checks
   - name: pull_request_number
