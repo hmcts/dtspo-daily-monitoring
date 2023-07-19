@@ -218,12 +218,11 @@ jobs:
           targetType: filePath
           filePath: scripts/jira-status.sh
           arguments: $(jira-username) $(jira-password)
-      - task: AzureCLI@2
+      - task: Bash@3
         displayName: 'Checking toffee & plum status'
         inputs:
-          scriptType: bash
-          scriptPath: scripts/check-toffee-plum.sh
-          azureSubscription: $(SUBSCRIPTIONS)
+          targetType: filePath
+          filePath: scripts/jira-status.sh
       - task: Bash@3
         displayName: 'Send slack message - pull request'
         condition: |
