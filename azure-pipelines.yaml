@@ -88,12 +88,6 @@ parameters:
         timeForRed: '7'
         pipelineName: azure-app-proxy
         branchName: refs/heads/main
-      - project: 'PlatformOperations'
-        definitionId: '716'
-        timeForAmber: '3'
-        timeForRed: '5'
-        pipelineName: my_pipeline_name
-        branchName: "refs/heads/master"
   - name: aks_clusters
     type: object
     default:
@@ -224,6 +218,11 @@ jobs:
           targetType: filePath
           filePath: scripts/jira-status.sh
           arguments: $(jira-username) $(jira-password)
+      - task: Bash@3
+        displayName: 'Checking toffee & plum status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/check-toffee-plum.sh
       - task: Bash@3
         displayName: 'Send slack message - pull request'
         condition: |
