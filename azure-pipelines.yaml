@@ -222,7 +222,7 @@ jobs:
         displayName: 'Checking toffee & plum status'
         inputs:
           targetType: filePath
-          filePath: scripts/jira-status.sh
+          filePath: scripts/check-toffee-plum.sh
       - task: Bash@3
         displayName: 'Send slack message - pull request'
         condition: |
