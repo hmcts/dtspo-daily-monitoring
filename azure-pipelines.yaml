@@ -88,6 +88,12 @@ parameters:
         timeForRed: '7'
         pipelineName: azure-app-proxy
         branchName: refs/heads/main
+      - project: 'PlatformOperations'
+        definitionId: '716'
+        timeForAmber: '3'
+        timeForRed: '5'
+        pipelineName: my_pipeline_name
+        branchName: "refs/heads/master"
   - name: aks_clusters
     type: object
     default:
