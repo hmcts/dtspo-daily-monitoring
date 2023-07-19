@@ -223,7 +223,7 @@ jobs:
         inputs:
           scriptType: bash
           scriptPath: scripts/check-toffee-plum.sh
-          azureSubscription: ${{ cluster.subscription }}
+          azureSubscription: ${{ CLUSTERS.subscription }}
       - task: Bash@3
         displayName: 'Send slack message - pull request'
         condition: |
