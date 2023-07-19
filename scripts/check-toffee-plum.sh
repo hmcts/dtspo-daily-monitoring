@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-ENVIRONMENTS=('sbox', 'ithc', 'demo', 'prod')
+ENVIRONMENTS=( 'sbox', 'ithc', 'demo', 'prod' )
 
 function environments() {
         if [[ "$APP" == "toffee" ]]; then
-        $ENVIRONMENTS+=('dev', 'test', 'staging')
+        $ENVIRONMENTS+=( 'dev', 'test', 'staging' )
         elif [[ "$APP" == "plum" ]]; then
-        $ENVIRONMENTS+=('preview', 'perftest', 'aat')
+        $ENVIRONMENTS+=( 'preview', 'perftest', 'aat' )
         fi
 }
 
