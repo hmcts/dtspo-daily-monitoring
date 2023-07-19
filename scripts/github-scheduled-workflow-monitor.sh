@@ -30,8 +30,6 @@ print_message() {
     printf "\n:${1}_circle Workflow name: <${html_url}|_*${name}*_> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n\n" >> slack-message.txt
 }
 
-
-
 printf "\n:GitHub sheduled Workflow status: <https://https://github.com/${owner}/> \n\n" >> slack-message.txt
 
 # Check if we need to intergoate a specific run or all of the runs for that workflow
