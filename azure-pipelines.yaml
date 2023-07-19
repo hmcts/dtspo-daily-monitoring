@@ -218,7 +218,7 @@ jobs:
           targetType: filePath
           filePath: scripts/jira-status.sh
           arguments: $(jira-username) $(jira-password)
-      - task: Bash@3
+      - task: AzureCLI@2
         displayName: 'Checking toffee & plum status'
         inputs:
           targetType: filePath
