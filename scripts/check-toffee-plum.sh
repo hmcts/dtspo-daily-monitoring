@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-ENVIRONMENTS=(sbox ithc demo prod)
+ENVIRONMENTS=("sbox" "ithc" "demo" "prod")
 
 function environments() {
         if [[ "$APP" == "toffee" ]]; then
@@ -23,9 +23,9 @@ function logic() {
 }
 
 function uptime() {
-    for element in {$ENVIRONMENTS} 
+    for element in {$ENVIRONMENTS[@]}; 
     do
-        echo $ENVIRONMENTS
+        echo $element
     done
 }
 
