@@ -25,7 +25,7 @@ function logic() {
 function uptime() {
     for ENV in {$ENVIRONMENTS} 
     do
-        echo "hi"
+        echo $ENVIRONMENTS
     done
 }
 
