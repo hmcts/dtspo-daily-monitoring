@@ -10,7 +10,7 @@ function environments() {
         fi
 }
 
-function logic () {
+function logic() {
     statuscode=$(curl --max-time 30 --retry 20 --retry-delay 15 -s -o /dev/null -w "%{http_code}"  https://$APP.$ENV.platform.hmcts.net)
 
     if [[ "$ENVIRONMENT" == "demo" && $statuscode -eq 302 ]]; then
@@ -24,7 +24,7 @@ function logic () {
 
 function uptime () {
     for $ENV in "${ENVIRONMENTS[@]}" do
-        logic ()
+        logic()
     done
 }
 
