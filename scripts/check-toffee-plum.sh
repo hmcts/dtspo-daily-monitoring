@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 
-ENVIRONMENTS=("sbox" "ithc" "demo" "prod")
-
 function add_environments() {
         if [[ "$APP" == "toffee" ]]; then
-        ENVIRONMENTS+=(dev, test, staging)
+        ENVIRONMENTS=("sbox" "test" "ithc" "demo" "staging" "prod")
         elif [[ "$APP" == "plum" ]]; then
-        ENVIRONMENTS+=(preview, perftest, aat)
+        ENVIRONMENTS=("sbox" "perftest" "ithc" "demo" "aat" "prod")
         fi
 }
 
