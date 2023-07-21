@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-Array=("sbox" "ithc" "demo" "prod")
+ENVIRONMENTS=("sbox" "ithc" "demo" "prod")
 
-function environments() {
+function add_environments() {
         if [[ "$APP" == "toffee" ]]; then
         ENVIRONMENTS+=(dev, test, staging)
         elif [[ "$APP" == "plum" ]]; then
@@ -23,17 +23,17 @@ function logic() {
 }
 
 function uptime() {
-for str in ${Array[@]}; do
-  echo $str
+for env in ${ENVIRONMENTS[@]}; do
+  echo $env
 done
 }
 
 ### test toffee
 APP="toffee"
-environments
+add_environments
 uptime
 
 ### test plum
 APP="plum"
-environments
+add_environments
 uptime
