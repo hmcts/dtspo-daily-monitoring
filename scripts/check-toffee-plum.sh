@@ -23,8 +23,9 @@ function logic() {
 }
 
 function uptime() {
-    for $ENV in $ENVIRONMENTS do
-        logic()
+    for $ENV in $ENVIRONMENTS 
+    do
+        echo "hi"
     done
 }
 
