@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-ENVIRONMENTS=(sbox, ithc, demo, prod)
+ENVIRONMENTS=(sbox ithc demo prod)
 
 function environments() {
         if [[ "$APP" == "toffee" ]]; then
