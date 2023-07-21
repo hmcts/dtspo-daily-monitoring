@@ -31,8 +31,8 @@ function uptime() {
 
 ### test toffee
 APP="toffee"
-environments()
-uptime()
+environments
+uptime
 
 ### test plum
 APP="plum"
