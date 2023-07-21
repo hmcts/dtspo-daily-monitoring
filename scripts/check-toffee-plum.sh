@@ -23,7 +23,7 @@ function logic() {
 }
 
 function uptime() {
-    for ENV in {$ENVIRONMENTS} 
+    for element in {$ENVIRONMENTS} 
     do
         echo $ENVIRONMENTS
     done
