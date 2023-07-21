@@ -22,8 +22,8 @@ function logic() {
     fi
 }
 
-function uptime () {
-    for $ENV in "${ENVIRONMENTS[@]}" do
+function uptime() {
+    for $ENV in $ENVIRONMENTS do
         logic()
     done
 }
