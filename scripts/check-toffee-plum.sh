@@ -23,7 +23,7 @@ function logic() {
 }
 
 function uptime() {
-    for $ENV in $ENVIRONMENTS 
+    for ENV in $ENVIRONMENTS 
     do
         echo "hi"
     done
@@ -36,5 +36,5 @@ uptime
 
 ### test plum
 APP="plum"
-environments()
-uptime()
+environments
+uptime
