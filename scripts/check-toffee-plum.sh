@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 function add_environments() {
-        if [[ "$APP" == "toffee" ]]; then
-        ENVIRONMENTS=("sandbox" "test" "ithc" "demo" "staging" "prod")
-        fi
+        # if [[ "$APP" == "toffee" ]]; then
+        # ENVIRONMENTS=("sandbox" "test" "ithc" "demo" "staging" "prod")
+        # fi
         if [[ "$APP" == "plum" ]]; then
         ENVIRONMENTS=("sandbox" "perftest" "ithc" "demo" "aat" "prod")
         fi
@@ -38,12 +38,12 @@ for ENV in ${ENVIRONMENTS[@]}; do
 done
 }
 
-printf "\ntoffee status:" >> slack-message.txt
+# printf "\ntoffee status:" >> slack-message.txt
 
-### test toffee
-APP="toffee"
-add_environments
-uptime
+# ### test toffee
+# APP="toffee"
+# add_environments
+# uptime
 
 printf "\nplum status:" >> slack-message.txt
 
