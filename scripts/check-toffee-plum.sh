@@ -8,26 +8,32 @@ function add_environments() {
         fi
 }
 
-function logic() {
+function status_code() {
     if [ $ENV == "prod" ]; then
         statuscode=$(curl https://$APP.platform.hmcts.net)
     elif [ $ENV != "prod" ]; then
         statuscode=$(curl https://$APP.$ENV.platform.hmcts.net)
     fi
+}
 
-    echo $statuscode
-    # if [[ "$ENVIRONMENT" == "demo" && $statuscode -eq 302 ]]; then
-    #     printf "\n>:green_circle: https://$APP.$ENV.platform.hmcts.net" >> slack-message.txt
-    # elif [[ $statuscode -eq 200 ]]; then
-    #     printf "\n>:green_circle: https://$APP.$ENV.platform.hmcts.net" >> slack-message.txt
-    # else
-    #     printf "\n>:red_circle: https://$APP.$ENV.platform.hmcts.net" >> slack-message.txt
-    # fi
+function slack_message() {
+    if [[ "$ENV" == "demo" && $statuscode -eq 302 ]]; then
+        printf "\n>:green_circle: https://$APP.$ENV.platform.hmcts.net" >> slack-message.txt
+    elif [[ $statuscode -eq 200 ]]; then
+        printf "\n>:green_circle: https://$APP.$ENV.platform.hmcts.net" >> slack-message.txt
+    elif [[ "$ENV" == "prod" && $statuscode -eq 200 ]]; then
+        printf "\n>:green_circle: https://$APP.platform.hmcts.net" >> slack-message.txt
+    elif [[ "$ENV" == "prod" && $statuscode -ne 200 ]]; then
+        printf "\n>:green_circle: https://$APP.platform.hmcts.net" >> slack-message.txt
+    else
+        printf "\n>:red_circle: https://$APP.$ENV.platform.hmcts.net" >> slack-message.txt
+    fi
 }
 
 function uptime() {
 for ENV in ${ENVIRONMENTS[@]}; do
-    logic
+    status_code
+    slack_message
 done
 }
 
