@@ -15,6 +15,8 @@ function status_code() {
     elif [ $ENV != "prod" ]; then
         statuscode=$(curl https://$APP.$ENV.platform.hmcts.net)
     fi
+
+    echo statuscode
 }
 
 function slack_message() {
