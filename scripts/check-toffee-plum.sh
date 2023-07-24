@@ -22,7 +22,7 @@ function logic() {
 
 function uptime() {
 for env in ${ENVIRONMENTS[@]}; do
-  logic
+  echo "hi there"
 done
 }
 
