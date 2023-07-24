@@ -19,6 +19,7 @@ function status_code() {
     fi
 
     echo $url
+    echo $statuscode
 }
 
 function slack_message() {
