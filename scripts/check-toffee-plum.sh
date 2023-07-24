@@ -11,12 +11,14 @@ function add_environments() {
 
 function status_code() {
     if [ $ENV == "prod" ]; then
-        statuscode="https://$APP.platform.hmcts.net"
+        url="https://$APP.platform.hmcts.net"
+        statuscode=$(curl $url)
     elif [ $ENV != "prod" ]; then
-        statuscode="https://$APP.$ENV.platform.hmcts.net"
+        url="https://$APP.$ENV.platform.hmcts.net"
+        statuscode=$(curl $url)
     fi
 
-    echo $statuscode
+    echo $url
 }
 
 function slack_message() {
@@ -36,7 +38,7 @@ function slack_message() {
 function uptime() {
 for ENV in ${ENVIRONMENTS[@]}; do
     status_code
-    # slack_message
+    slack_message
 done
 }
 
