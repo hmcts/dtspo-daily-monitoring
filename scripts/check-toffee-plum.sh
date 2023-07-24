@@ -2,14 +2,19 @@
 
 function add_environments() {
         if [[ "$APP" == "toffee" ]]; then
-        ENVIRONMENTS=("sbox" "test" "ithc" "demo" "staging" "prod")
+        ENVIRONMENTS=("sandbox" "test" "ithc" "demo" "staging" "prod")
         elif [[ "$APP" == "plum" ]]; then
-        ENVIRONMENTS=("sbox" "perftest" "ithc" "demo" "aat" "prod")
+        ENVIRONMENTS=("sandbox" "perftest" "ithc" "demo" "aat" "prod")
         fi
 }
 
 function logic() {
-    statuscode=$(curl https://$APP.$ENV.platform.hmcts.net)
+    if [$ENV == "prod"]; then
+        statuscode=$(curl https://$APP.platform.hmcts.net)
+    elif [$ENV != "prod"]; then
+        statuscode=$(curl https://$APP.$ENV.platform.hmcts.net)
+    fi
+
     echo $statuscode
     # if [[ "$ENVIRONMENT" == "demo" && $statuscode -eq 302 ]]; then
     #     printf "\n>:green_circle: https://$APP.$ENV.platform.hmcts.net" >> slack-message.txt
@@ -22,7 +27,7 @@ function logic() {
 
 function uptime() {
 for ENV in ${ENVIRONMENTS[@]}; do
-  logic
+    logic
 done
 }
 
