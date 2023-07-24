@@ -3,7 +3,8 @@
 function add_environments() {
         if [[ "$APP" == "toffee" ]]; then
         ENVIRONMENTS=("sandbox" "test" "ithc" "demo" "staging" "prod")
-        elif [[ "$APP" == "plum" ]]; then
+        fi
+        if [[ "$APP" == "plum" ]]; then
         ENVIRONMENTS=("sandbox" "perftest" "ithc" "demo" "aat" "prod")
         fi
 }
@@ -40,13 +41,13 @@ done
 printf "\ntoffee status:" >> slack-message.txt
 
 ### test toffee
-APP="plum"
+APP="toffee"
 add_environments
 uptime
 
 printf "\nplum status:" >> slack-message.txt
 
 ### test plum
-APP="toffee"
+APP="plum"
 add_environments
 uptime
