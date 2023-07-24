@@ -4,9 +4,9 @@ function add_environments() {
         if [[ "$APP" == "plum" ]]; then
         ENVIRONMENTS=("sandbox" "test" "ithc" "demo" "staging" "prod")
         fi
-        # if [[ "$APP" == "plum" ]]; then
-        # ENVIRONMENTS=("sandbox" "perftest" "ithc" "demo" "aat" "prod")
-        # fi
+        if [[ "$APP" == "plum" ]]; then
+        ENVIRONMENTS=("sandbox" "perftest" "ithc" "demo" "aat" "prod")
+        fi
 }
 
 function status_code() {
@@ -20,12 +20,12 @@ function status_code() {
 function slack_message() {
     if [[ "$ENV" == "demo" && $statuscode -eq 302 ]]; then
         printf "\n>:green_circle: https://$APP.$ENV.platform.hmcts.net" >> slack-message.txt
-    elif [[ $statuscode -eq 200 ]]; then
-        printf "\n>:green_circle: https://$APP.$ENV.platform.hmcts.net" >> slack-message.txt
     elif [[ "$ENV" == "prod" && $statuscode -eq 200 ]]; then
         printf "\n>:green_circle: https://$APP.platform.hmcts.net" >> slack-message.txt
     elif [[ "$ENV" == "prod" && $statuscode -ne 200 ]]; then
         printf "\n>:green_circle: https://$APP.platform.hmcts.net" >> slack-message.txt
+    elif [[ $statuscode -eq 200 ]]; then
+        printf "\n>:green_circle: https://$APP.$ENV.platform.hmcts.net" >> slack-message.txt
     else
         printf "\n>:red_circle: https://$APP.$ENV.platform.hmcts.net" >> slack-message.txt
     fi
