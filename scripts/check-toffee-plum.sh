@@ -12,10 +12,10 @@ function add_environments() {
 function status_code() {
     if [ $ENV == "prod" ]; then
         url="https://$APP.platform.hmcts.net"
-        statuscode=$(curl "%{http_code}" $url)
+        statuscode=$(curl -s -o /dev/null -w "%{http_code}" $url)
     elif [ $ENV != "prod" ]; then
         url="https://$APP.$ENV.platform.hmcts.net"
-        statuscode=$(curl "%{http_code}" $url)
+        statuscode=$(curl -s -o /dev/null -w "%{http_code}" $url)
     fi
 
     echo $url
