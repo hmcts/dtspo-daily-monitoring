@@ -12,10 +12,10 @@ function add_environments() {
 function status_code() {
     if [ $ENV == "prod" ]; then
         url="https://$APP.platform.hmcts.net"
-        statuscode=$(curl $url)
+        statuscode=$(curl --max-time 30 --retry 20 --retry-delay 15 -s -w "%{http_code}" $url)
     elif [ $ENV != "prod" ]; then
         url="https://$APP.$ENV.platform.hmcts.net"
-        statuscode=$(curl $url)
+        statuscode=$(curl --max-time 30 --retry 20 --retry-delay 15 -s -w "%{http_code}" $url)
     fi
 
     echo $url
@@ -38,6 +38,7 @@ for ENV in ${ENVIRONMENTS[@]}; do
 done
 }
 
+printf "\n:azure: *Check Toffee/Plum Status*_ \n">> slack-message.txt
 printf "\ntoffee status:" >> slack-message.txt
 
 ### test toffee
