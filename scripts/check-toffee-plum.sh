@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
 function add_environments() {
-        # if [[ "$APP" == "toffee" ]]; then
-        # ENVIRONMENTS=("sandbox" "test" "ithc" "demo" "staging" "prod")
-        # fi
         if [[ "$APP" == "plum" ]]; then
-        ENVIRONMENTS=("sandbox" "perftest" "ithc" "demo" "aat" "prod")
+        ENVIRONMENTS=("sandbox" "test" "ithc" "demo" "staging" "prod")
         fi
+        # if [[ "$APP" == "plum" ]]; then
+        # ENVIRONMENTS=("sandbox" "perftest" "ithc" "demo" "aat" "prod")
+        # fi
 }
 
 function status_code() {
