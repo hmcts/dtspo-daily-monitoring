@@ -40,13 +40,13 @@ done
 printf "\ntoffee status:" >> slack-message.txt
 
 ### test toffee
-APP="toffee"
+APP="plum"
 add_environments
 uptime
 
 printf "\nplum status:" >> slack-message.txt
 
 ### test plum
-APP="plum"
+APP="toffee"
 add_environments
 uptime
