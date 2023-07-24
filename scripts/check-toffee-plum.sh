@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function add_environments() {
-        if [[ "$APP" == "plum" ]]; then
+        if [[ "$APP" == "toffee" ]]; then
         ENVIRONMENTS=("sandbox" "test" "ithc" "demo" "staging" "prod")
         fi
         if [[ "$APP" == "plum" ]]; then
@@ -34,7 +34,7 @@ function slack_message() {
 function uptime() {
 for ENV in ${ENVIRONMENTS[@]}; do
     status_code
-    slack_message
+    # slack_message
 done
 }
 
