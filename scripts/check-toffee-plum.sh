@@ -37,14 +37,14 @@ for ENV in ${ENVIRONMENTS[@]}; do
 done
 }
 
-printf "\ntoffee status: \n\n" >> slack-message.txt
+printf "\ntoffee status:" >> slack-message.txt
 
 ### test toffee
 APP="toffee"
 add_environments
 uptime
 
-printf "\nplum status: \n\n" >> slack-message.txt
+printf "\nplum status:" >> slack-message.txt
 
 ### test plum
 APP="plum"
