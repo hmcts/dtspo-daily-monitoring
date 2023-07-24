@@ -9,8 +9,9 @@ function add_environments() {
 }
 
 function logic() {
-    # if [$ENV == "prod"]; then
-    #     statuscode=$(curl https://$APP.platform.hmcts.net)
+    if [$ENV == "prod"]; then
+        statuscode=$(curl https://$APP.platform.hmcts.net)
+    fi
     # elif [$ENV != "prod"]; then
         statuscode=$(curl https://$APP.$ENV.platform.hmcts.net)
     # fi
