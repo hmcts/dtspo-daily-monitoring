@@ -21,7 +21,7 @@ function logic() {
 }
 
 function uptime() {
-for env in ${ENVIRONMENTS[@]}; do
+for ENV in ${ENVIRONMENTS[@]}; do
   logic
 done
 }
