@@ -16,7 +16,7 @@ function status_code() {
         statuscode=$(curl https://$APP.$ENV.platform.hmcts.net)
     fi
 
-    echo statuscode
+    echo $statuscode
 }
 
 function slack_message() {
