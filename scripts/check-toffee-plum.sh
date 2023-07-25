@@ -11,11 +11,11 @@ function add_environments() {
 
 function status_code() {
     if [ $ENV == "prod" ]; then
-        url="http://$APP.platform.hmcts.net"
-        statuscode=$(curl --max-time 20 --retry 3 -s -o /dev/null -w "%{http_code}" $url; echo "Exit code: $?")
+        url="https://$APP.platform.hmcts.net"
+        statuscode=$(curl -s -o /dev/null -w "%{http_code}" $url)
     elif [ $ENV != "prod" ]; then
-        url="http://$APP.$ENV.platform.hmcts.net"
-        statuscode=$(curl --max-time 20 --retry 3 -s -o /dev/null -w "%{http_code}" $url; echo "Exit code: $?")
+        url="https://$APP.$ENV.platform.hmcts.net"
+        statuscode=$(curl -s -o /dev/null -w "%{http_code}" $url)
     fi
 
     echo $url
