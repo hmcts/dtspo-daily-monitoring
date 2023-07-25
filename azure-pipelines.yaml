@@ -177,12 +177,12 @@ jobs:
           targetType: filePath
           filePath: scripts/servicenow-status.sh
           arguments: $(service-now-username)  $(service-now-password)
-      # - task: Bash@3
-      #   displayName: 'Checking Jenkins status'
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/jenkins-status.sh
-      #     arguments: $(jenkins-api-user) $(jenkins-api-token) ${{ variables.jenkins_url }}
+      - task: Bash@3
+        displayName: 'Checking Jenkins status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/jenkins-status.sh
+          arguments: $(jenkins-api-user) $(jenkins-api-token) ${{ variables.jenkins_url }}
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'Get AKS Cluster Status'
