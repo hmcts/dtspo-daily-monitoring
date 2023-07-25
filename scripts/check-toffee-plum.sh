@@ -39,7 +39,7 @@ for ENV in ${ENVIRONMENTS[@]}; do
 done
 }
 
-printf "\n:upvote: *Check Toffee/Plum Status* \n">> slack-message.txt
+printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n">> slack-message.txt
 printf "\n*Toffee Status:*" >> slack-message.txt
 
 ### test toffee
