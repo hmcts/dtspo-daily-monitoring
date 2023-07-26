@@ -214,7 +214,7 @@ jobs:
         inputs:
           targetType: 'inline'
           script: |
-           echo "\n:azuremonitoring: _*Azure Backup Checks*_\n" >> slack-message.txt
+           echo "\n:azuremonitoring: _*Azure Backup Checks*_" >> slack-message.txt
       - ${{ each backup_vault in parameters.recovery_services_vaults }}:
         - task: AzureCLI@2
           displayName: 'Check Backup Status'

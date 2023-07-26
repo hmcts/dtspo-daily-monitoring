@@ -27,3 +27,4 @@ jq -c '.[]' <<< $AZ_BACKUP_RESULT | while read job_data; do
         first_run="false"
     fi
 done
+printf "\n"  >> slack-message.txt
