@@ -21,11 +21,9 @@ jq -c '.[]' <<< $AZ_BACKUP_RESULT | while read job_data; do
     parsed_vault_url="${vault_url_full::-37}"
 
     if [[ $job_status == "Failed" ]]; then
-        #printf "\n:red_circle: $vm_name backup in $VAULT_NAME has $job_status" #>> slack-message.txt
-        printf "\n>:red_circle: $vm_name backup in <https://portal.azure.com/#@HMCTS.NET/resource$parsed_vault_url|_*$VAULT_NAME*_> has $job_status" >> slack-message.txt
+        printf "\n>:red_circle:  *$vm_name* backup in <https://portal.azure.com/#@HMCTS.NET/resource$parsed_vault_url|_*$VAULT_NAME*_> has $job_status" >> slack-message.txt
     elif [[ $first_run == "true" ]] && [[ $job_status != "Failed" ]]; then
-        printf "\n>:green_circle: No failed backups in <https://portal.azure.com/#@HMCTS.NET/resource$parsed_vault_url|_*$VAULT_NAME*_> \n" >> slack-message.txt
+        printf "\n>:green_circle:  No failed backups in <https://portal.azure.com/#@HMCTS.NET/resource$parsed_vault_url|_*$VAULT_NAME*_>" >> slack-message.txt
         first_run="false"
     fi
 done
-printf "\n\n"  >> slack-message.txt
