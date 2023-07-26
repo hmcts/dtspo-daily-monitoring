@@ -228,7 +228,7 @@ jobs:
         inputs:
           targetType: 'inline'
           script: |
-           echo "\n:ssl-cert: _*Expiring SSL Certificates*_\n\n" >> slack-message.txt
+           echo "\n\n:ssl-cert: _*Expiring SSL Certificates*_\n\n" >> slack-message.txt
       - ${{ each frontdoor in parameters.certificates }}:
         - task: AzureCLI@2
           displayName: 'Checking Certificate status'
