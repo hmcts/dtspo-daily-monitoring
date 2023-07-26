@@ -3,7 +3,7 @@
 #Script vars
 RESOURCE_GROUP=$1
 VAULT_NAME=$2
-ranbefore="false"
+first_run="true"
 
 RESOURCE_GROUP_EXIST=$( az group exists --name $RESOURCE_GROUP )
 
@@ -24,9 +24,10 @@ jq -c '.[]' <<< $AZ_BACKUP_RESULT | while read job_data; do
 
     if [[ $job_status == "Failed" ]]; then
         #printf "\n:red_circle: $vm_name backup in $VAULT_NAME has $job_status" #>> slack-message.txt
-        printf "\n:red_circle: $vm_name backup in <https://portal.azure.com/#@HMCTS.NET/resource$parsed_vault_url|_*$VAULT_NAME*_> has $job_status" >> slack-message.txt
+        printf "\n>:red_circle: $vm_name backup in <https://portal.azure.com/#@HMCTS.NET/resource$parsed_vault_url|_*$VAULT_NAME*_> has $job_status" >> slack-message.txt
     elif [[ $first_run == "true" ]] && [[ $job_status != "Failed" ]]; then
-        printf "\n:green_circle: No failed backups in $VAULT_NAME \n" >> slack-message.txt
+        printf "\n>:green_circle: No failed backups in $VAULT_NAME \n" >> slack-message.txt
         first_run="false"
     fi
 done
+printf "\n\n"  >> slack-message.txt
