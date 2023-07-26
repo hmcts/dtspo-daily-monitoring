@@ -97,6 +97,24 @@ parameters:
       - resourceGroup: 'cft-preview-01-rg'
         clusterName: 'cft-preview-01-aks'
         subscription: 'DCD-CFTAPPS-DEV'
+  - name: recovery_services_vaults
+    type: object
+    default:
+      - resourceGroup: 'bau-bais_prod_resource_group'
+        vaultName: 'recovery-vault-dmz-bau-bais-prod'
+        subscription: 'DTS-SHAREDSERVICES-PROD'
+      - resourceGroup: 'bau-bais_prod_resource_group'
+        vaultName: 'recovery-vault-eft-bau-bais-prod'
+        subscription: 'DTS-SHAREDSERVICES-PROD'
+      - resourceGroup: 'libragob-prod-rg'
+        vaultName: 'LIBRAGOB-DB-MIGRATION-PROD-RSV-01'
+        subscription: 'DTS-SHAREDSERVICES-PROD'
+      - resourceGroup: 'externalspoke-rg'
+        vaultName: 'RSV-PROD-UKS-HER-01'
+        subscription: 'DTS-HERITAGE-EXTSVC-PROD'
+      - resourceGroup: 'internalspoke-rg'
+        vaultName: 'RSV-PROD-UKS-HER-02'
+        subscription: 'DTS-HERITAGE-INTSVC-PROD'
   - name: certificates
     type: object
     default:
@@ -191,6 +209,14 @@ jobs:
             scriptPath: scripts/aks-node-count.sh
             azureSubscription: ${{ cluster.subscription }}
             arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
+      - ${{ each backup_vault in parameters.recovery_services_vaults }}:
+        - task: AzureCLI@2
+          displayName: 'Check Backup Status'
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/backup-monitor.sh
+            azureSubscription: ${{ backup_vault.subscription }}
+            arguments: ${{backup_vault.resourceGroup}} ${{backup_vault.vaultName}}
       - task: Bash@3
         displayName: 'Expiring SSL certificates header'
         inputs:
