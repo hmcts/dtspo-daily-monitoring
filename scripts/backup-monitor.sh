@@ -30,7 +30,8 @@ while read job_data; do
     fi
 done < <(jq -c '.[]' <<< $AZ_BACKUP_RESULT)
 
-#If no failures were found in json, make vault as free from backup failures.
+#If no failures were found in json, mark vault as free from backup failures.
 if [[ $failures_exist != "true" ]]; then
     printf "\n>:green_circle:  No failed backups in <https://portal.azure.com/#@HMCTS.NET/resource$parsed_vault_url|_*$VAULT_NAME*_>" >> slack-message.txt
 fi
+
