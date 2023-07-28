@@ -203,6 +203,12 @@ jobs:
           targetType: filePath
           filePath: scripts/jenkins-status.sh
           arguments: $(jenkins-api-user) $(jenkins-api-token) ${{ variables.jenkins_url }}
+      - task: AzureCLI@2
+          displayName: 'Get AKS Cluster State'
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/cluster-state-monitor.sh
+            azureSubscription: ${{ variables.ado_service_connection }}
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'Get AKS Cluster Status'
