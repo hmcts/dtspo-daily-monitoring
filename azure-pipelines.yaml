@@ -141,7 +141,7 @@ variables:
   - name: service_connection
     value: dts-management-prod-intsvc
   - name: ado_service_connection
-    value: HMCTS-RAPID7-NONPROD-INTSVC
+    value: OPS-APPROVAL-GATE-MGMT-ENVS
   - name: isMain
     value: $[in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/master')]
   - name: isAutoTriggered
