@@ -1,7 +1,5 @@
 #!/bin/bash
 #Vars
-test=$1
-
 printf "\n:aks: *Cluster State Check*" >> slack-message.txt
 
 SUBSCRIPTIONS=$(az account list -o json)
