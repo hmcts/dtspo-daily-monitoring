@@ -209,6 +209,7 @@ jobs:
             scriptType: bash
             scriptPath: scripts/cluster-state-monitor.sh
             azureSubscription: ${{ variables.ado_service_connection }}
+            arguments: ${{ variables.SPSecretNumDays }}
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'Get AKS Cluster Status'
