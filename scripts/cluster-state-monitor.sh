@@ -6,8 +6,7 @@ SUBSCRIPTIONS=$(az account list -o json)
 while read subscription; do
     SUBSCRIPTION_ID=$(jq -r '.id' <<< $subscription)
     az account set -s $SUBSCRIPTION_ID
-    #CLUSTERS=$(az resource list --resource-type Microsoft.ContainerService/managedClusters --query "[?tags.application == 'core']" -o json)
-    CLUSTERS=$(az resource list --resource-type Microsoft.ContainerService/managedClusters -o json)
+    CLUSTERS=$(az resource list --resource-type Microsoft.ContainerService/managedClusters --query "[?tags.application == 'core']" -o json)
 
 while read cluster; do
     RESOURCE_GROUP=$(jq -r '.resourceGroup' <<< $cluster)
