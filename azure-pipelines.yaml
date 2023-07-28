@@ -140,6 +140,8 @@ variables:
     value: 14
   - name: service_connection
     value: dts-management-prod-intsvc
+  - name: ado_service_connection
+    value: dcd_sp_ado_mgmt_operations_v2
   - name: isMain
     value: $[in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/master')]
   - name: isAutoTriggered
@@ -206,6 +208,7 @@ jobs:
           inputs:
             scriptType: bash
             scriptPath: scripts/cluster-state-monitor.sh
+            azureSubscription: ${{ variables.ado_service_connection }}
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'Get AKS Cluster Status'
