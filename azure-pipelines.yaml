@@ -259,7 +259,7 @@ jobs:
           filePath: scripts/jira-status.sh
           arguments: $(jira-username) $(jira-password)
       - task: Bash@3
-        displayName: 'Checking toffee & plum status'
+        displayName: 'Check Toffee/Plum Status'
         inputs:
           targetType: filePath
           filePath: scripts/check-toffee-plum.sh
