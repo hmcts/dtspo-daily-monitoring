@@ -24,9 +24,9 @@ function status_code() {
 
 function slack_message() {
     if [[ "$ENV" == "demo" && $statuscode -eq 302 ]]; then
-        printf "\n>:green_circle: $url" >> slack-message.txt
+        printf "\n>:green_circle: <$url|$ENV>" >> slack-message.txt
     elif [[ $statuscode -eq 200 ]]; then
-        printf "\n>:green_circle: $url" >> slack-message.txt
+        printf "\n>:green_circle: <$url|$ENV>" >> slack-message.txt
     else
         printf "\n>:red_circle: $url" >> slack-message.txt
     fi
