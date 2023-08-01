@@ -23,7 +23,7 @@ parameters:
         pipelineName: Preview_Helm_release_cleanup_-_scheduled
         branchName: refs/heads/master
       - project: 'PlatformOperations'
-        definitionId: '759'
+        definitionId: '840'
         timeForAmber: '3'
         timeForRed: '5'
         pipelineName: Preview_Helm_release_cleanup_-_PR_close
@@ -97,6 +97,24 @@ parameters:
       - resourceGroup: 'cft-preview-01-rg'
         clusterName: 'cft-preview-01-aks'
         subscription: 'DCD-CFTAPPS-DEV'
+  - name: recovery_services_vaults
+    type: object
+    default:
+      - resourceGroup: 'bau-bais_prod_resource_group'
+        vaultName: 'recovery-vault-dmz-bau-bais-prod'
+        subscription: 'DTS-SHAREDSERVICES-PROD'
+      - resourceGroup: 'bau-bais_prod_resource_group'
+        vaultName: 'recovery-vault-eft-bau-bais-prod'
+        subscription: 'DTS-SHAREDSERVICES-PROD'
+      - resourceGroup: 'libragob-prod-rg'
+        vaultName: 'LIBRAGOB-DB-MIGRATION-PROD-RSV-01'
+        subscription: 'DTS-SHAREDSERVICES-PROD'
+      - resourceGroup: 'externalspoke-rg'
+        vaultName: 'RSV-PROD-UKS-HER-01'
+        subscription: 'DTS-HERITAGE-EXTSVC-PROD'
+      - resourceGroup: 'internalspoke-rg'
+        vaultName: 'RSV-PROD-UKS-HER-02'
+        subscription: 'DTS-HERITAGE-INTSVC-PROD'
   - name: certificates
     type: object
     default:
@@ -122,6 +140,8 @@ variables:
     value: 14
   - name: service_connection
     value: dts-management-prod-intsvc
+  - name: ado_service_connection
+    value: OPS-APPROVAL-GATE-MGMT-ENVS
   - name: isMain
     value: $[in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/master')]
   - name: isAutoTriggered
@@ -177,12 +197,18 @@ jobs:
           targetType: filePath
           filePath: scripts/servicenow-status.sh
           arguments: $(service-now-username)  $(service-now-password)
-      # - task: Bash@3
-      #   displayName: 'Checking Jenkins status'
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/jenkins-status.sh
-      #     arguments: $(jenkins-api-user) $(jenkins-api-token) ${{ variables.jenkins_url }}
+      - task: Bash@3
+        displayName: 'Checking Jenkins status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/jenkins-status.sh
+          arguments: $(jenkins-api-user) $(jenkins-api-token) ${{ variables.jenkins_url }}
+      - task: AzureCLI@2
+        displayName: 'Get Provisioning State'
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/cluster-state-monitor.sh
+          azureSubscription: ${{ variables.ado_service_connection }}
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'Get AKS Cluster Status'
@@ -192,11 +218,25 @@ jobs:
             azureSubscription: ${{ cluster.subscription }}
             arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
       - task: Bash@3
+        displayName: 'Recovery Services Vaults header'
+        inputs:
+          targetType: 'inline'
+          script: |
+           echo "\n:azuremonitoring: _*Azure Backup Checks*_" >> slack-message.txt
+      - ${{ each backup_vault in parameters.recovery_services_vaults }}:
+        - task: AzureCLI@2
+          displayName: 'Check Backup Status'
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/backup-monitor.sh
+            azureSubscription: ${{ backup_vault.subscription }}
+            arguments: ${{backup_vault.resourceGroup}} ${{backup_vault.vaultName}}
+      - task: Bash@3
         displayName: 'Expiring SSL certificates header'
         inputs:
           targetType: 'inline'
           script: |
-           echo "\n:ssl-cert: _*Expiring SSL Certificates*_\n\n" >> slack-message.txt
+           echo "\n\n:ssl-cert: _*Expiring SSL Certificates*_\n\n" >> slack-message.txt
       - ${{ each frontdoor in parameters.certificates }}:
         - task: AzureCLI@2
           displayName: 'Checking Certificate status'
