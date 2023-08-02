@@ -29,8 +29,9 @@ function failure_check() {
 }
 
 function slack_message() {
-    if [[ $failed -eq true ]]; then
-        printf "\n>:red_circle:  <$url| $ENV>" >> slack-message.txt  
+    if [[ $failed -eq false ]]; then
+        printf "\n>:green_circle:  All $APP environments are accessible" >> slack-message.txt  
+        # printf "\n>:red_circle:  <$url| $ENV>" >> slack-message.txt  
     # else
     #     printf "\n>:green_circle:  <$url| $ENV>" >> slack-message.txt
     fi
@@ -40,7 +41,6 @@ function uptime() {
 for ENV in ${ENVIRONMENTS[@]}; do
     status_code
     failure_check
-    slack_message
 done
 }
 
