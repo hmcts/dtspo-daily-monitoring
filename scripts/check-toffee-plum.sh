@@ -51,6 +51,7 @@ printf "\n*Toffee Status:*" >> slack-message.txt
 APP="toffee"
 add_environments
 uptime
+slack_message
 
 printf "\n*Plum Status:*" >> slack-message.txt
 
@@ -59,3 +60,4 @@ failed=false
 APP="plum"
 add_environments
 uptime
+slack_message
