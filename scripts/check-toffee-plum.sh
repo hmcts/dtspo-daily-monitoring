@@ -22,19 +22,24 @@ function status_code() {
     echo $statuscode
 }
 
+function failure_check() {
+    if [[ $statuscode -ne 200 ]]; then
+        failed=true
+    fi
+}
+
 function slack_message() {
-    if [[ "$ENV" == "demo" && $statuscode -eq 302 ]]; then
-        printf "\n>:green_circle:  <$url| $ENV>" >> slack-message.txt
-    elif [[ $statuscode -eq 200 ]]; then
-        printf "\n>:green_circle:  <$url| $ENV>" >> slack-message.txt
-    else
-        printf "\n>:red_circle:  <$url| $ENV>" >> slack-message.txt
+    if [[ $failed -eq true ]]; then
+        printf "\n>:red_circle:  <$url| $ENV>" >> slack-message.txt  
+    # else
+    #     printf "\n>:green_circle:  <$url| $ENV>" >> slack-message.txt
     fi
 }
 
 function uptime() {
 for ENV in ${ENVIRONMENTS[@]}; do
     status_code
+    failure_check
     slack_message
 done
 }
@@ -50,6 +55,7 @@ uptime
 printf "\n*Plum Status:*" >> slack-message.txt
 
 ### test plum
+failed=false
 APP="plum"
 add_environments
 uptime
