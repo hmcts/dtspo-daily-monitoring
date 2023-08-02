@@ -60,7 +60,7 @@ overall_status=""
 APP="toffee"
 add_environments
 uptime
-echo $failed
+echo $overall_status
 passed_message
 
 
@@ -71,5 +71,5 @@ overall_status=""
 APP="plum"
 add_environments
 uptime
-echo $failed
+echo $overall_status
 passed_message
