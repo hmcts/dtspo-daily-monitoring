@@ -28,11 +28,19 @@ function failure_check() {
     fi
 }
 
-function slack_message() {
+function failed_message() {
     if [[ $statuscode -ne 200 ]]; then 
         printf "\n>:red_circle:  <$url| $ENV>" >> slack-message.txt  
     # else
     #     printf "\n>:green_circle:  All $APP environments are accessible" >> slack-message.txt  
+    fi
+}
+
+function passed_message() {
+    if [[ $failed -eq true ]]; then
+        printf "\n>:green_circle:  All other $APP environments are accessible" >> slack-message.txt  
+    elif [[ $failed -eq false ]]; then
+        printf "\n>:green_circle:  All $APP environments are accessible" >> slack-message.txt  
     fi
 }
 
@@ -41,7 +49,7 @@ for ENV in ${ENVIRONMENTS[@]}; do
     status_code
     failure_check
     echo $failed
-    slack_message
+    failed_message
 done
 }
 
@@ -52,6 +60,7 @@ printf "\n*Toffee Status:*" >> slack-message.txt
 APP="toffee"
 add_environments
 uptime
+passed_message
 
 
 printf "\n*Plum Status:*" >> slack-message.txt
@@ -61,3 +70,4 @@ failed=false
 APP="plum"
 add_environments
 uptime
+passed_message
