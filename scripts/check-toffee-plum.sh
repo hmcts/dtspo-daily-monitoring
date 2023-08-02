@@ -29,7 +29,7 @@ function failure_check() {
 }
 
 function slack_message() {
-    if [[ $failed -eq false ]]; then
+    if [[ $failed -eq true ]]; then
         printf "\n>:green_circle:  All $APP environments are accessible" >> slack-message.txt  
         # printf "\n>:red_circle:  <$url| $ENV>" >> slack-message.txt  
     else
