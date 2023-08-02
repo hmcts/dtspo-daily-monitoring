@@ -41,6 +41,7 @@ function uptime() {
 for ENV in ${ENVIRONMENTS[@]}; do
     status_code
     failure_check
+    echo $failed
 done
 }
 
