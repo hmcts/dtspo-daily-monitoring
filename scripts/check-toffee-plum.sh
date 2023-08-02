@@ -28,7 +28,7 @@ function slack_message() {
     elif [[ $statuscode -eq 200 ]]; then
         printf "\n>:green_circle: " " <$url| $ENV>" >> slack-message.txt
     else
-        printf "\n>:red_circle: " " <$url| $ENV>" >> slack-message.txt
+        printf "\n>:red_circle: + " " + <$url| $ENV>" >> slack-message.txt
     fi
 }
 
