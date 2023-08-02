@@ -48,7 +48,6 @@ function uptime() {
 for ENV in ${ENVIRONMENTS[@]}; do
     status_code
     failure_check
-    echo $failed
     failed_message
 done
 }
@@ -60,6 +59,7 @@ printf "\n*Toffee Status:*" >> slack-message.txt
 APP="toffee"
 add_environments
 uptime
+echo $failed
 passed_message
 
 
@@ -70,4 +70,5 @@ failed=false
 APP="plum"
 add_environments
 uptime
+echo $failed
 passed_message
