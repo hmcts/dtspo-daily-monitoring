@@ -23,8 +23,8 @@ function status_code() {
 }
 
 function failure_check() {
-    if [[ $statuscode -ne 200 ]]; then
-        overall_status=failure
+    if [[ $statuscode != 200 ]]; then
+        overall_status="failure"
     fi
 }
 
@@ -37,12 +37,13 @@ function failed_message() {
 }
 
 function passed_message() {
-    if [[ $overall_status -eq NULL ]]; then
+    if [[ $overall_status != "failure" ]]; then
 
     #     printf "\n>:green_circle:  All other $APP environments are accessible" >> slack-message.txt  
     # else
         # printf "\n>:green_circle:  All $APP environments are accessible" >> slack-message.txt  
         printf $overall_status
+        printf "yay"
     fi
 }
 
