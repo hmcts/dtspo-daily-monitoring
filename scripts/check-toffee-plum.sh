@@ -37,9 +37,9 @@ function failed_message() {
 }
 
 function passed_message() {
-    if [[ $overall_status -eq "failure" ]]; then
-        printf "\n>:green_circle:  All other $APP environments are accessible" >> slack-message.txt  
-    else
+    if [[ $overall_status -eq NULL ]]; then
+    #     printf "\n>:green_circle:  All other $APP environments are accessible" >> slack-message.txt  
+    # else
         printf "\n>:green_circle:  All $APP environments are accessible" >> slack-message.txt  
     fi
 }
@@ -56,7 +56,7 @@ printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n">> slack-message.t
 printf "\n*Toffee Status:*" >> slack-message.txt
 
 ### test toffee
-overall_status=""
+overall_status=NULL
 APP="toffee"
 add_environments
 uptime
@@ -67,7 +67,7 @@ passed_message
 printf "\n*Plum Status:*" >> slack-message.txt
 
 ### test plum
-overall_status=""
+overall_status=NULL
 APP="plum"
 add_environments
 uptime
