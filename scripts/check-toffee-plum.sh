@@ -1,79 +1,60 @@
 #!/usr/bin/env bash
 
 function add_environments() {
-        if [[ "$APP" == "toffee" ]]; then
+        if [[ "$1" == "toffee" ]]; then
         ENVIRONMENTS=("sandbox" "test" "ithc" "demo" "staging" "prod")
         fi
-        if [[ "$APP" == "plum" ]]; then
+        if [[ "$1" == "plum" ]]; then
         ENVIRONMENTS=("sandbox" "perftest" "ithc" "demo" "aat" "prod")
         fi
 }
 
 function status_code() {
     if [ $ENV == "prod" ]; then
-        url="https://$APP.platform.hmcts.net"
+        url="https://$1.platform.hmcts.net"
         statuscode=$(curl -s -o /dev/null -w "%{http_code}" $url)
     elif [ $ENV != "prod" ]; then
-        url="https://$APP.$ENV.platform.hmcts.net"
+        url="https://$1.$ENV.platform.hmcts.net"
         statuscode=$(curl -s -o /dev/null -w "%{http_code}" $url)
     fi
-
-    echo $url
-    echo $statuscode
 }
 
 function failure_check() {
-    if [[ $statuscode != 200 ]]; then
-        failure_status="true"
+    if [[ $statuscode != 200 ]] && [[ $1 == "toffee" ]]; then
+        failures_exist_toffee="true"
+        printf "\n>:red_circle:  <$url| $ENV>" >> slack-message.txt
+    elif [[ $statuscode != 200 ]] && [[ $1 == "plum" ]]; then
+        failures_exist_plum="true"
+        printf "\n>:red_circle:  <$url| $ENV>" >> slack-message.txt
     fi
-}
-
-function failed_message() {
-    if [[ $statuscode != 200 ]]; then 
-        printf "\n>:red_circle:  <$url| $ENV>" >> slack-message.txt  
-    fi
-}
-
-function passed_message() {
-        printf "\n oH nO"
-        echo $failure_status
 }
 
 function uptime() {
 for ENV in ${ENVIRONMENTS[@]}; do
-    status_code
-    failure_check
-    failed_message
+    status_code $1
+    failure_check $1
 done
 }
 
-printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n">> slack-message.txt
-printf "\n*Toffee Status:*" >> slack-message.txt
+function do_failures_exist() {
+    if [[ $1 = "toffee" ]]; then
+        if [[ $failures_exist_toffee != "true" ]]; then
+            printf "\n>:green_circle: EVERYTHING WORKED in toffee" >> slack-message.txt
+        fi
+    elif [[ $1 = "plum" ]]; then
+        if [[ $failures_exist_plum != "true" ]]; then
+            printf "\n>:green_circle: EVERYTHING WORKED in plum" >> slack-message.txt
+        fi
+    fi
+}
 
-### test toffee
-failure_status="false"
-APP="toffee"
-add_environments
-uptime
-passed_message
+printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >> slack-message.txt
 
+APPS=("toffee" "plum")
+    for APP in ${APPS[@]}; do
+    printf "\n*$APP Status:*" >> slack-message.txt
 
-printf "\n*Plum Status:*" >> slack-message.txt
-
-### test plum
-failure_status="false"
-APP="plum"
-add_environments
-uptime
-passed_message
-
-    # if [[ $failure_status == "true" ]]; then
-
-    #     printf "\n>:green_circle:  All other $APP environments are accessible" >> slack-message.txt  
-    # else
-        # printf "\n>:green_circle:  All $APP environments are accessible" >> slack-message.txt  
-
-
-    # if [[ $failure_status == "true" ]]; then
-    #     printf "\n yAy"
-    # fi
+    add_environments $APP
+    uptime $APP
+    do_failures_exist $APP
+done
