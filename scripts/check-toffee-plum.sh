@@ -37,7 +37,7 @@ function failed_message() {
 }
 
 function passed_message() {
-    if [[ $overall_status != "failure" ]]; then
+    if [[ $overall_status == "failure" ]]; then
 
     #     printf "\n>:green_circle:  All other $APP environments are accessible" >> slack-message.txt  
     # else
