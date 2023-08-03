@@ -29,7 +29,7 @@ function failure_check() {
 }
 
 function failed_message() {
-    if [[ $statuscode -ne 200 ]]; then 
+    if [[ $statuscode != 200 ]]; then 
         printf "\n>:red_circle:  <$url| $ENV>" >> slack-message.txt  
     # else
     #     printf "\n>:green_circle:  All $APP environments are accessible" >> slack-message.txt  
