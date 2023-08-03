@@ -1,4 +1,5 @@
 #JH TESTING
+#Test from my branch for new pull request
 # This script expects the following options:
 # Github Api Token
 token=$1
