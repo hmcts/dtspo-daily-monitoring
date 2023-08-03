@@ -2,7 +2,7 @@
 
 function add_environments() {
         if [[ "$1" == "toffee" ]]; then
-        ENVIRONMENTS=("sandbox" "test" "ithc" "demo" "staging" "prod" "yay")
+        ENVIRONMENTS=("sandbox" "test" "ithc" "demo" "staging" "prod")
         fi
         if [[ "$1" == "plum" ]]; then
         ENVIRONMENTS=("sandbox" "perftest" "ithc" "demo" "aat" "prod")
@@ -22,10 +22,10 @@ function status_code() {
 function failure_check() {
     if [[ $statuscode != 200 ]] && [[ $1 == "toffee" ]]; then
         failures_exist_toffee="true"
-        printf "\n>:red_circle:  <$url| $ENV>" #>> slack-message.txt
+        printf "\n>:red_circle:  <$url| $ENV>" >> slack-message.txt
     elif [[ $statuscode != 200 ]] && [[ $1 == "plum" ]]; then
         failures_exist_plum="true"
-        printf "\n>:red_circle:  <$url| $ENV>" #>> slack-message.txt
+        printf "\n>:red_circle:  <$url| $ENV>" >> slack-message.txt
     fi
 }
 
@@ -38,22 +38,21 @@ done
 
 function do_failures_exist() {
     if [[ $1 = "toffee" ]]; then
-        echo "toffee failures var value is $failures_exist_toffee"
-        if [[ failures_exist_toffee != "true" ]]; then
-            printf "\n>:green_circle: EVERYTHING WORKED in toffee - THIS IS A TEST"
+        if [[ $failures_exist_toffee != "true" ]]; then
+            printf "\n>:green_circle: EVERYTHING WORKED in toffee" >> slack-message.txt
         fi
     elif [[ $1 = "plum" ]]; then
-        if [[ failures_exist_plum != "true" ]]; then
-            printf "\n>:green_circle: EVERYTHING WORKED in plum"
+        if [[ $failures_exist_plum != "true" ]]; then
+            printf "\n>:green_circle: EVERYTHING WORKED in plum" >> slack-message.txt
         fi
     fi
 }
 
-printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" #>> slack-message.txt
+printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >> slack-message.txt
 
 APPS=("toffee" "plum")
     for APP in ${APPS[@]}; do
-    printf "\n*$APP Status:*" #>> slack-message.txt
+    printf "\n*$APP Status:*" >> slack-message.txt
 
     add_environments $APP
     uptime $APP
