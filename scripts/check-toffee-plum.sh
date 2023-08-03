@@ -42,7 +42,7 @@ function passed_message() {
     #     printf "\n>:green_circle:  All other $APP environments are accessible" >> slack-message.txt  
     # else
         # printf "\n>:green_circle:  All $APP environments are accessible" >> slack-message.txt  
-        printf $overall_status
+
         printf "yay"
     fi
 }
@@ -52,6 +52,7 @@ for ENV in ${ENVIRONMENTS[@]}; do
     status_code
     failure_check
     failed_message
+    echo $overall_status
 done
 }
 
@@ -63,7 +64,7 @@ overall_status=NULL
 APP="toffee"
 add_environments
 uptime
-echo $overall_status
+
 passed_message
 
 
@@ -74,5 +75,5 @@ overall_status=NULL
 APP="plum"
 add_environments
 uptime
-echo $overall_status
+
 passed_message
