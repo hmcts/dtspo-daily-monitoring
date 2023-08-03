@@ -1,10 +1,4 @@
 
-# WORK IN PROGRESS
-#
-# Add a script to check the status of github actions scheduled workflows. List of workflows are listed in the above link.
-# azure pipeline updated accordingly.
-# Make sure similar pattern is followed wrt icons, colours etc..
-
 # This script expects the following options:
 # Github Api Token
 # Repository to check 
@@ -12,30 +6,19 @@
 # Workflow run this is optional if its not speified the script will check all runs in workflow
 # Github owner 
 
+token=$1
+repo=$2
+branch=$3
+run=$4
+owner=hmcts
+
+
 # Function to set cmd line varibles
 usage() { 
-    echo "$0 Usage: specify -t github-api-token -r repo name -b branch name -g github workflow run (optional) -o github owner" 
+    echo "$0 Usage: specify github-api-token repo name branch name github workflow run (optional)" 
     }
-[ $# -eq 0 ] && usage
-while getopts ":t:r:b:o:g:" arg; do
-  case $arg in
-    t) # Specify token value.
-        token=${OPTARG}
-      ;;
-    r) # Specify repo name
-        repo=${OPTARG}
-      ;;
-    b) # Specify branch
-      branch=${OPTARG}
-      ;;
-    g) # specific run (optional)
-      run=${OPTARG}
-      ;; 
-    o) # Specify Owner of Github
-      owner=${OPTARG}
-      ;;
-  esac
-done
+
+# [ $# -lt 3 ] && usage & exit 1
 
 # a function to make it easier to print the message usage: message [red | yellow | green]
 print_message() {

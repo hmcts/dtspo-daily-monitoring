@@ -12,7 +12,12 @@ schedules:
     always: 'true'
 
 parameters:
-
+  - name: gh_workflows
+    type: object
+    default:
+      - repo: 'finops-reporting-incremental-export'
+        branch: 'githubactions2'
+        run: ''
   - name: ado_pipelines
     type: object
     default:
@@ -185,6 +190,13 @@ jobs:
           targetType: filePath
           filePath: scripts/github-licenses.sh
           arguments: $(github-management-api-token)
+      - ${{ each gh_workflow in parameters.gh_workflows }}:
+        - task: Bash@3
+          displayName: 'Check Github workflow Runs'
+          inputs:
+            targetType: filePath
+            filePath: scripts/github-scheduled-workflow-monitor.sh
+            arguments: $(github-management-api-token) ${{gh_workflow.repo}} ${{gh_workflow.branch}} ${{gh_workflow.run}}
       - task: Bash@3
         displayName: 'Checking Launchdarkly Licenses'
         inputs:
