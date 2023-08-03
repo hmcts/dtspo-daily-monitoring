@@ -1,4 +1,4 @@
-
+#JH TESTING
 # This script expects the following options:
 # Github Api Token
 token=$1
