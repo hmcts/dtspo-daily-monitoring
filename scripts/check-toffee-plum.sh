@@ -38,9 +38,11 @@ function failed_message() {
 
 function passed_message() {
     if [[ $overall_status -eq NULL ]]; then
+
     #     printf "\n>:green_circle:  All other $APP environments are accessible" >> slack-message.txt  
     # else
-        printf "\n>:green_circle:  All $APP environments are accessible" >> slack-message.txt  
+        # printf "\n>:green_circle:  All $APP environments are accessible" >> slack-message.txt  
+        printf $overall_status
     fi
 }
 
