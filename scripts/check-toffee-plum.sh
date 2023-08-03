@@ -37,14 +37,14 @@ function failed_message() {
 }
 
 function passed_message() {
-    if [[ $failure_status == "true" ]]; then
+    # if [[ $failure_status == "true" ]]; then
 
     #     printf "\n>:green_circle:  All other $APP environments are accessible" >> slack-message.txt  
     # else
         # printf "\n>:green_circle:  All $APP environments are accessible" >> slack-message.txt  
 
         printf "\n oH nO"
-    elif [[ $failure_status == "false" ]]; then
+    if [[ $failure_status == "false" ]]; then
         printf "\n yAy"
     fi
 }
