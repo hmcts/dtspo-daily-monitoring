@@ -1,24 +1,20 @@
 
 # This script expects the following options:
 # Github Api Token
-# Repository to check 
-# Branch name i.e. Master
-# Workflow run this is optional if its not speified the script will check all runs in workflow
-# Github owner 
-
 token=$1
+# Repository to check 
 repo=$2
+# Branch name i.e. Master
 branch=$3
+# Workflow run this is optional if its not speified the script will check all runs in workflow
 run=$4
+# Github owner 
 owner=hmcts
-
 
 # Function to set cmd line varibles
 usage() { 
     echo "$0 Usage: specify github-api-token repo name branch name github workflow run (optional)" 
     }
-
-# [ $# -lt 3 ] && usage & exit 1
 
 # a function to make it easier to print the message usage: message [red | yellow | green]
 print_message() {
