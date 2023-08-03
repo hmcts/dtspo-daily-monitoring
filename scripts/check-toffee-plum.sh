@@ -2,7 +2,7 @@
 
 function add_environments() {
         if [[ "$1" == "Toffee" ]]; then
-        ENVIRONMENTS=("Sandbox" "Test" "ITHC" "Demo" "Staging" "Prod" "yay")
+        ENVIRONMENTS=("Sandbox" "Test" "ITHC" "Demo" "Staging" "Prod")
         fi
         if [[ "$1" == "Plum" ]]; then
         ENVIRONMENTS=("Sandbox" "Perftest" "ITHC" "Demo" "AAT" "Prod")
