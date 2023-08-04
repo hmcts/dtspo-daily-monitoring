@@ -4,7 +4,7 @@ trigger: none
 pr:
  - master
 schedules:
-  - cron: '0 8 * * Mon-Fri'
+  - cron: '45 7 * * Mon-Fri'
     displayName: Runs 9 AM Mon-Fri
     branches:
       include:
@@ -155,7 +155,7 @@ variables:
 
 jobs:
   - job: DailyMonitoring
-    timeoutInMinutes: 10
+    timeoutInMinutes: 20
     pool:
       name: 'hmcts-cftptl-agent-pool'
     steps:
@@ -258,6 +258,11 @@ jobs:
           targetType: filePath
           filePath: scripts/jira-status.sh
           arguments: $(jira-username) $(jira-password)
+      - task: Bash@3
+        displayName: 'Check Toffee/Plum Status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/check-toffee-plum.sh
       - task: Bash@3
         displayName: 'Send slack message - pull request'
         condition: |
