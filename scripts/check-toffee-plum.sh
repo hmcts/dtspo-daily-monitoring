@@ -22,7 +22,7 @@ function status_code() {
 function failure_check() {
     if [[ $statuscode != 200 ]] && [[ $1 == "Toffee" ]]; then
         failures_exist_toffee="true"
-        printf "\n>:red_circle:  <$url| $ENV>" >> slack-message.txt
+        printf "\n>:red_circle:  <$url| $ENV> is unhealthy" >> slack-message.txt
     elif [[ $statuscode != 200 ]] && [[ $1 == "Plum" ]]; then
         failures_exist_plum="true"
         printf "\n>:red_circle:  <$url| $ENV>" >> slack-message.txt
