@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
 function add_environments() {
-        if [[ "$1" == "Toffee" ]]; then
+    if [[ "$1" == "Toffee" ]]; then
         ENVIRONMENTS=("Sandbox" "Test" "ITHC" "Demo" "Staging" "Prod")
-        fi
-        if [[ "$1" == "Plum" ]]; then
+    fi
+    if [[ "$1" == "Plum" ]]; then
         ENVIRONMENTS=("Sandbox" "Perftest" "ITHC" "Demo" "AAT" "Prod")
-        fi
+    fi
 }
 
 function status_code() {
@@ -22,38 +22,37 @@ function status_code() {
 function failure_check() {
     if [[ $statuscode != 200 ]] && [[ $1 == "Toffee" ]]; then
         failures_exist_toffee="true"
-        printf "\n>:red_circle:  <$url| $ENV> is unhealthy" >> slack-message.txt
+        printf "\n>:red_circle:  <$url| $ENV> is unhealthy" >>slack-message.txt
     elif [[ $statuscode != 200 ]] && [[ $1 == "Plum" ]]; then
         failures_exist_plum="true"
-        printf "\n>:red_circle:  <$url| $ENV> is unhealthy" >> slack-message.txt
+        printf "\n>:red_circle:  <$url| $ENV> is unhealthy" >>slack-message.txt
     fi
 }
 
 function uptime() {
-for ENV in ${ENVIRONMENTS[@]}; do
-    status_code $1
-    failure_check $1
-done
+    for ENV in ${ENVIRONMENTS[@]}; do
+        status_code $1
+        failure_check $1
+    done
 }
 
 function do_failures_exist() {
     if [[ $1 = "Toffee" ]]; then
         if [[ $failures_exist_toffee != "true" ]]; then
-            printf "\n>:green_circle:  All environments in $1 are healthy" >> slack-message.txt
+            printf "\n>:green_circle:  All environments in $1 are healthy" >>slack-message.txt
         fi
     elif [[ $1 = "Plum" ]]; then
         if [[ $failures_exist_plum != "true" ]]; then
-            printf "\n>:green_circle:  All environments in $1 are healthy" >> slack-message.txt
+            printf "\n>:green_circle:  All environments in $1 are healthy" >>slack-message.txt
         fi
     fi
 }
 
-printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >> slack-message.txt
+printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >>slack-message.txt
 
 APPS=("Toffee" "Plum")
-    for APP in ${APPS[@]}; do
-    printf "\n*$APP Status:*" >> slack-message.txt
-
+for APP in ${APPS[@]}; do
+    printf "\n*$APP Status:*" >>slack-message.txt
     add_environments $APP
     uptime $APP
     do_failures_exist $APP
