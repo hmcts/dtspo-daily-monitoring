@@ -43,7 +43,7 @@ function do_failures_exist() {
         fi
     elif [[ $1 = "Plum" ]]; then
         if [[ $failures_exist_plum != "true" ]]; then
-            printf "\n>:green_circle:  All environments in $1 are accessible" >> slack-message.txt
+            printf "\n>:green_circle:  All environments in $1 are healthy" >> slack-message.txt
         fi
     fi
 }
