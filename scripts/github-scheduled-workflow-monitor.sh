@@ -11,18 +11,22 @@ run=$4
 # Github owner 
 owner=hmcts
 
+
+
+
+
+# a function to make it easier to print the message usage: message [red | yellow | green]
+print_message() {
+    printf "\n:${1}_circle Workflow name: <${html_url}|_*${name}*_> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n\n" >> slack-message.txt
+}
 echo "TESTING"
-echo "TEST gh workflows"  >> slack-message.txt
+html_url=https://abc
+name=test
+workflow_status=test
+conclusion=test
+run_started_at=test
+print_message red  >> slack-message.txt 
 
-# # Function to set cmd line varibles
-# usage() { 
-#     echo "$0 Usage: specify github-api-token repo name branch name github workflow run (optional)" 
-#     }
-
-# # a function to make it easier to print the message usage: message [red | yellow | green]
-# print_message() {
-#     printf "\n:${1}_circle Workflow name: <${html_url}|_*${name}*_> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n\n" >> slack-message.txt
-# }
 
 # printf "\n:GitHub sheduled Workflow status: <https://https://github.com/${owner}/> \n\n" >> slack-message.txt
 
