@@ -25,7 +25,7 @@ function failure_check() {
         printf "\n>:red_circle:  <$url| $ENV> is unhealthy" >> slack-message.txt
     elif [[ $statuscode != 200 ]] && [[ $1 == "Plum" ]]; then
         failures_exist_plum="true"
-        printf "\n>:red_circle:  <$url| $ENV>" >> slack-message.txt
+        printf "\n>:red_circle:  <$url| $ENV> is unhealthy" >> slack-message.txt
     fi
 }
 
