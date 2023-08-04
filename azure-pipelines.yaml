@@ -4,7 +4,7 @@ trigger: none
 pr:
  - master
 schedules:
-  - cron: '0 8 * * Mon-Fri'
+  - cron: '45 7 * * Mon-Fri'
     displayName: Runs 9 AM Mon-Fri
     branches:
       include:
@@ -155,7 +155,7 @@ variables:
 
 jobs:
   - job: DailyMonitoring
-    timeoutInMinutes: 10
+    timeoutInMinutes: 20
     pool:
       name: 'hmcts-cftptl-agent-pool'
     steps:
@@ -197,12 +197,12 @@ jobs:
           targetType: filePath
           filePath: scripts/servicenow-status.sh
           arguments: $(service-now-username)  $(service-now-password)
-      # - task: Bash@3
-      #   displayName: 'Checking Jenkins status'
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/jenkins-status.sh
-      #     arguments: $(jenkins-api-user) $(jenkins-api-token) ${{ variables.jenkins_url }}
+      - task: Bash@3
+        displayName: 'Checking Jenkins status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/jenkins-status.sh
+          arguments: $(jenkins-api-user) $(jenkins-api-token) ${{ variables.jenkins_url }}
       - task: AzureCLI@2
         displayName: 'Get Provisioning State'
         inputs:
