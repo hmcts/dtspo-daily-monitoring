@@ -55,14 +55,11 @@ then
                     if [ "${conclusion}" = "success" ];
                     then
                         printf "\n>:green_circle: Workflow name: ${name} \n # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
-}
                     elif [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
                     then
                         printf "\n>:yellow_circle: Workflow name: ${name} \n # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
-}
                     else 
                         printf "\n>:red_circle: Workflow name: ${name} \n # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
-}
                     fi    
                  fi    
             done  <<< ${workflow_status}
@@ -101,10 +98,8 @@ else
                     elif [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
                     then
                         printf "\n>:yellow_circle: Workflow name: ${name} \n # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
-}
                     else 
                        printf "\n>:red_circle: Workflow name: ${name} \n # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
-}
                     fi    
                 fi
             done  <<< ${workflow_status}
