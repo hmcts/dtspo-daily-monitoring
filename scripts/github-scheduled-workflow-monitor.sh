@@ -11,9 +11,6 @@ run=$4
 # Github owner 
 owner=hmcts
 
-# a function to make it easier to print the message usage: message [red | yellow | green]
-
-# printf "\n:github: <https://github.com/orgs/hmcts/people|_*GitHub License Status*_> \n\n" >> slack-message.txt
 printf "\n :github: <https://github.com/orgs/${owner}/|_*GitHub Sheduled Workflow Status:*_> \n" >> slack-message.txt
 
 # Check if we need to intergoate a specific run or all of the runs for that workflow 
@@ -46,7 +43,7 @@ then
                 workflow_status=$(echo ${workflow_status} | tr -d '"')
                 if [ -z ${workflow_status} ];
                 then
-                    printf "> :red_circle: Workflow name: <"https://github.com/${owner}/${repo}/actions/runs/"|_*${name}*_> did not return a workflow status" #>> slack-message.txt
+                    printf "> :red_circle: Workflow name: <"https://github.com/${owner}/${repo}/actions/runs/"|_*${name}*_> did not return a workflow status" >> slack-message.txt
                 else
                     conclusion=$(echo ${conclusion} |tr -d '"')
                     run_started_at=$(echo ${run_started_at} | sed -e 's/T/ /; s/Z//')
@@ -56,12 +53,12 @@ then
                     # Write slack message dependant on status and conclusion
                     if [ "${conclusion}" = "success" ];
                     then
-                        printf "\n>:green_circle: $name \n" >> slack-message.txt #Workflow name: ${name} \n" >> slack-message.txt #  # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
+                        printf "\n>:green_circle: <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
                     elif [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
                     then
-                        printf ":yellow_circle: $name \n" >> slack-message.txt #Workflow name: ${name} \n" >> slack-message.txt #  # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
+                        printf ":yellow_circle: <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
                     else 
-                        printf ":red_circle: $name \n" >> slack-message.txt #Workflow name: ${name} \n" >> slack-message.txt #  # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
+                        printf ":red_circle: <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
                     fi    
                  fi    
             done  <<< ${workflow_status}
@@ -74,7 +71,7 @@ else
      # While loop reads in data piped to it.
      while IFS=, read -r id name;
         do
-            # name=$(echo $name | tr -d '"')
+            
             name="${name//\"}"
             echo "id is: " $id "name is: "$name "owner:" $owner "repo " $repo "branch" $branch
             # Get the last response for that workflow id and specified branch and store status and conclusion
@@ -88,7 +85,7 @@ else
                 echo wf_status:${workflow_status}
                 if [ -z ${workflow_status} ];
                 then
-                    printf "> :red_circle: $name\n" >> slack-message.txt #Workflow name: <"${html_url}"|_*${name}*_> did not return a workflow status" >> slack-message.txt
+                    printf "> :red_circle: <"${html_url}"|_*${name}*_> did not return a workflow status" >> slack-message.txt
                 else     
                     conclusion=$(echo ${conclusion} |tr -d '"')
                     run_started_at=$(echo ${run_started_at} | sed -e 's/T/ /; s/Z//')
@@ -97,12 +94,12 @@ else
                     # Write slack message dependant on status and conclusion
                     if [ "${conclusion}" = "success" ];
                     then
-                        printf "\n>:green_circle: $name\n" >> slack-message.txt #Workflow name: ${name} \n" >> slack-message.txt # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
+                        printf "\n>:green_circle: <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
                     elif [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
                     then
-                        printf "\n>:yellow_circle: $name\n" >> slack-message.txt #Workflow name: ${name} \n" >> slack-message.txt #  <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
+                        printf "\n>:yellow_circle: <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
                     else 
-                       printf "\n>:red_circle: $name\n" >> slack-message.txt #Workflow name: ${name} \n" >> slack-message.txt #  <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
+                       printf "\n>:red_circle: <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
                     fi    
                 fi
             done  <<< ${workflow_status}
