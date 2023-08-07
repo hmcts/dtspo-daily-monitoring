@@ -16,7 +16,8 @@ print_message() {
     printf "> :${1}_circle: Workflow name: <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
 }
 
-printf "\n _:Github: *Sheduled Workflow Status:*_ \n" >> slack-message.txt
+# printf "\n:github: <https://github.com/orgs/hmcts/people|_*GitHub License Status*_> \n\n" >> slack-message.txt
+printf "\n :github: Sheduled Workflow Status: \n" >> slack-message.txt
 
 # Check if we need to intergoate a specific run or all of the runs for that workflow 
 if [[ -z "${run}" ]];
