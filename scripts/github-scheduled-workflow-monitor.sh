@@ -14,7 +14,7 @@ owner=hmcts
 # a function to make it easier to print the message usage: message [red | yellow | green]
 print_message() {
     # printf "\n>:red_circle:  *$vm_name* backup in <https://portal.azure.com/#@HMCTS.NET/resource$parsed_vault_url|_*$VAULT_NAME*_> has $job_status" >> slack-message.txt
-    printf "\n>:${1}_circle: Workflow name: ${name} \n" >> slack-message.txt # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" #>> slack-message.txt
+    printf '\n>:${1}_circle: Workflow name: ${name} \n' >> slack-message.txt # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" #>> slack-message.txt
 }
 
 # printf "\n:github: <https://github.com/orgs/hmcts/people|_*GitHub License Status*_> \n\n" >> slack-message.txt
