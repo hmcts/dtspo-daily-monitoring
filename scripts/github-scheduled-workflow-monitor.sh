@@ -13,7 +13,7 @@ owner=hmcts
 
 # a function to make it easier to print the message usage: message [red | yellow | green]
 print_message() {
-    printf "> :${1}_circle: Workflow name: <${html_url}|_*${name}*_> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
+    printf "> :${1}_circle: Workflow name: <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
 }
 printf "\n:Github Sheduled Workflow Status: \n\n" >> slack-message.txt
 
