@@ -15,7 +15,7 @@ owner=hmcts
 print_message() {
     printf "> :${1}_circle: Workflow name: <${html_url}|_*${name}*_> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
 }
-printf "\n:Github Sheduled Workflow Status: <https://github.com/${owner}|_*GitHub Workflow Status*_> \n\n" >> slack-message.txt
+printf "\n:Github Sheduled Workflow Status: \n\n" >> slack-message.txt
 
 # Check if we need to intergoate a specific run or all of the runs for that workflow 
 if [[ -z "${run}" ]];
@@ -86,11 +86,10 @@ else
                 echo wf_status:${workflow_status}
                 if [ -z ${workflow_status} ];
                 then
-                    printf "> :${1}_circle: Workflow name: <${html_url}|_*${name}*_> did not return a workflow status" >> slack-message.txt
+                    printf "> :${1}_circle: Workflow name: <"${html_url}"|_*${name}*_> did not return a workflow status" >> slack-message.txt
                 else     
                     conclusion=$(echo ${conclusion} |tr -d '"')
                     run_started_at=$(echo ${run_started_at} | sed -e 's/T/ /; s/Z//')
-                    
                     echo conclusion:${conclusion}
                     echo runstarted:${run_started_at}
                     # Write slack message dependant on status and conclusion
