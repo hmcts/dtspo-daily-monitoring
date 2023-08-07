@@ -54,12 +54,12 @@ then
                     # Write slack message dependant on status and conclusion
                     if [ "${conclusion}" = "success" ];
                     then
-                        printf "\n>:green_circle: Workflow name: ${name} \n" >> slack-message.txt #  # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
+                        printf "\n>:green_circle: \n" >> slack-message.txt #Workflow name: ${name} \n" >> slack-message.txt #  # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
                     elif [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
                     then
-                        printf "\n>:yellow_circle: Workflow name: ${name} \n" >> slack-message.txt #  # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
+                        printf ":yellow_circle: \n" >> slack-message.txt #Workflow name: ${name} \n" >> slack-message.txt #  # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
                     else 
-                        printf "\n>:red_circle: Workflow name: ${name} \n" >> slack-message.txt #  # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
+                        printf ":red_circle: \n" >> slack-message.txt #Workflow name: ${name} \n" >> slack-message.txt #  # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
                     fi    
                  fi    
             done  <<< ${workflow_status}
@@ -85,7 +85,7 @@ else
                 echo wf_status:${workflow_status}
                 if [ -z ${workflow_status} ];
                 then
-                    printf "> :red_circle: Workflow name: <"${html_url}"|_*${name}*_> did not return a workflow status" >> slack-message.txt
+                    printf "> :red_circle: \n" >> slack-message.txt #Workflow name: <"${html_url}"|_*${name}*_> did not return a workflow status" >> slack-message.txt
                 else     
                     conclusion=$(echo ${conclusion} |tr -d '"')
                     run_started_at=$(echo ${run_started_at} | sed -e 's/T/ /; s/Z//')
@@ -94,12 +94,12 @@ else
                     # Write slack message dependant on status and conclusion
                     if [ "${conclusion}" = "success" ];
                     then
-                        printf "\n>:green_circle: Workflow name: ${name} \n" >> slack-message.txt # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
+                        printf "\n>:green_circle: \n" >> slack-message.txt #Workflow name: ${name} \n" >> slack-message.txt # <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
                     elif [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
                     then
-                        printf "\n>:yellow_circle: Workflow name: ${name} \n" >> slack-message.txt #  <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
+                        printf "\n>:yellow_circle: \n" >> slack-message.txt #Workflow name: ${name} \n" >> slack-message.txt #  <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
                     else 
-                       printf "\n>:red_circle: Workflow name: ${name} \n" >> slack-message.txt #  <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
+                       printf "\n>:red_circle: \n" >> slack-message.txt #Workflow name: ${name} \n" >> slack-message.txt #  <${html_url}|${name}> Workflow status: ${workflow_status} Workflow conclusion: ${conclusion} Started at: ${run_started_at} \n" >> slack-message.txt
                     fi    
                 fi
             done  <<< ${workflow_status}
