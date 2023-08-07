@@ -34,9 +34,11 @@ then
         # loop through the $workflows_respose and for each of the workflows find their name and id   
         while IFS=, read -r id name;
         do
+            name="${name//\"}"
             workflow_status=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${token}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${repo}/actions/workflows/${id}/runs?per_page=1&branch=${branch}" | jq -r '.workflow_runs[] | [.status , .conclusion , .html_url , .run_started_at] |@csv')
             # While loop reads in data piped to it.
             echo "Workflow status is: "
+            echo NAME IS: ${name}
             echo ${workflow_status}
             while IFS=, read -r workflow_status conclusion html_url run_started_at;
             do
@@ -72,7 +74,8 @@ else
      # While loop reads in data piped to it.
      while IFS=, read -r id name;
         do
-            name=$(echo $name | tr -d '"')
+            # name=$(echo $name | tr -d '"')
+            name="${name//\"}"
             echo "id is: " $id "name is: "$name "owner:" $owner "repo " $repo "branch" $branch
             # Get the last response for that workflow id and specified branch and store status and conclusion
             workflow_status=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${token}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${repo}/actions/workflows/${id}/runs?per_page=1&branch=$branch" | jq -r '.workflow_runs[] | [.status , .conclusion , .html_url , .run_started_at] |@csv')
