@@ -218,6 +218,11 @@ jobs:
             azureSubscription: ${{ cluster.subscription }}
             arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
       - task: Bash@3
+        displayName: 'Check Toffee/Plum Status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/check-toffee-plum.sh
+      - task: Bash@3
         displayName: 'Recovery Services Vaults header'
         inputs:
           targetType: 'inline'
@@ -258,11 +263,6 @@ jobs:
           targetType: filePath
           filePath: scripts/jira-status.sh
           arguments: $(jira-username) $(jira-password)
-      - task: Bash@3
-        displayName: 'Check Toffee/Plum Status'
-        inputs:
-          targetType: filePath
-          filePath: scripts/check-toffee-plum.sh
       - task: Bash@3
         displayName: 'Send slack message - pull request'
         condition: |
