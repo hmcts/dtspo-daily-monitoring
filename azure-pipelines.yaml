@@ -23,7 +23,7 @@ parameters:
         run: 'cd'
       - repo: 'tech-docs-monitor'
         branch: 'main'
-        run: 'run'
+        run: '.github/workflows/run.yml'
   - name: ado_pipelines
     type: object
     default:
