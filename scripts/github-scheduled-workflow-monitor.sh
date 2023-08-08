@@ -12,8 +12,6 @@ run=$4
 # Github owner 
 owner=hmcts
 
-printf "\n :github: <https://github.com/orgs/${owner}/|_*GitHub Sheduled Workflow Status*_> \n\n" >> slack-message.txt
-
 # Check if we need to intergoate a specific run or all of the runs for that workflow 
 if [[ -z "${run}" ]];
 then
