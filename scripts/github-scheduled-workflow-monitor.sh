@@ -47,8 +47,8 @@ then
                 then
                     printf ":red_circle: <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> Did not return a workflow status \n" >> slack-message.txt #<"https://github.com/${owner}/${repo}/actions/runs/"|_*${name}*_> did not return a workflow status" >> slack-message.txt
                 else
-                    conclusion=$(echo ${conclusion} |tr -d '"')
-                    run_started_at=$(echo ${run_started_at} | sed -e 's/T/ /; s/Z//')
+                    conclusion="${conclusion//\"}"
+                    # run_started_at=$(echo ${run_started_at} | sed -e 's/T/ /; s/Z//')
                     echo wf_status:${workflow_status}
                     echo conclusion:${conclusion}
                     echo runstarted:${run_started_at}
@@ -89,8 +89,8 @@ else
                 then
                     printf "> :red_circle: ${name}" >>slack-message.txt #<"${html_url}"|_*${name}*_> did not return a workflow status" >> slack-message.txt
                 else     
-                    conclusion=$(echo ${conclusion} |tr -d '"')
-                    run_started_at=$(echo ${run_started_at} | sed -e 's/T/ /; s/Z//')
+                    conclusion="${conclusion//\"}"
+                    # run_started_at=$(echo ${run_started_at} | sed -e 's/T/ /; s/Z//')
                     echo conclusion:${conclusion}
                     echo runstarted:${run_started_at}
                     # Write slack message dependant on status and conclusion
