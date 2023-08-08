@@ -15,9 +15,15 @@ parameters:
   - name: gh_workflows
     type: object
     default:
-      - repo: 'finops-reporting-incremental-export'
-        branch: 'githubactions2'
-        run: ''
+      - repo: 'cnp-java-base'
+        branch: 'master'
+        run: 'cd'
+      - repo: 'cnp-node-base'
+        branch: 'master'
+        run: 'cd'
+      - repo: 'tech-docs-monitore'
+        branch: 'main'
+        run: 'run'
   - name: ado_pipelines
     type: object
     default:
