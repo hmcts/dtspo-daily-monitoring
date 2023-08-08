@@ -9,12 +9,7 @@ GITHUB_USER=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorizat
 CHANNEL_NAME=$(curl -s https://raw.githubusercontent.com/hmcts/github-slack-user-mappings/master/slack.json | jq --arg GITHUB_USER "$GITHUB_USER" -r '.[][] | (select(.github | contains($GITHUB_USER)))' | jq -r '.slack')
 
 MESSAGE=$(cat slack-message.txt)
-echo $MESSAGE
-echo $CHANNEL_NAME
 payload="{\"channel\": \"${CHANNEL_NAME}\", \"username\": \"Plato\", \"text\": \"${MESSAGE}\", \"icon_emoji\": \":plato:\"}"
-
-echo $payload
-
 
 curl -s -H "Content-type: application/json" \
 --data "${payload}" \
