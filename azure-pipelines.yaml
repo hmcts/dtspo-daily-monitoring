@@ -190,7 +190,7 @@ jobs:
       #     targetType: filePath
       #     filePath: scripts/github-licenses.sh
       #     arguments: $(github-management-api-token)
-      # - ${{ each gh_workflow in parameters.gh_workflows }}:
+       - ${{ each gh_workflow in parameters.gh_workflows }}:
         - task: Bash@3
           displayName: 'Check Github workflow Runs'
           inputs:
