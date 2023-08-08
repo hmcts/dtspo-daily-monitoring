@@ -184,12 +184,12 @@ jobs:
       #       targetType: filePath
       #       filePath: scripts/ado-pipeline-monitor.sh
       #       arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  ${{ado_pipeline.timeForAmber}}  ${{ado_pipeline.timeForRed}}  "${{ado_pipeline.pipelineName}}" "${{ado_pipeline.branchName}}"
-      # - task: Bash@3
-      #   displayName: 'Checking Github Licenses'
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/github-licenses.sh
-      #     arguments: $(github-management-api-token)
+      - task: Bash@3
+        displayName: 'Checking Github Licenses'
+        inputs:
+          targetType: filePath
+          filePath: scripts/github-licenses.sh
+          arguments: $(github-management-api-token)
        - ${{ each gh_workflow in parameters.gh_workflows }}:
         - task: Bash@3
           displayName: 'Check Github workflow Runs'
