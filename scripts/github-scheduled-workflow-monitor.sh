@@ -1,5 +1,6 @@
 #!/bin/bash
 # This script expects the following options:
+
 # Github Api Token
 token=$1
 # Repository to check 
