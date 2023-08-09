@@ -4,7 +4,7 @@ trigger: none
 pr:
  - master
 schedules:
-  - cron: '0 8 * * Mon-Fri'
+  - cron: '45 7 * * Mon-Fri'
     displayName: Runs 9 AM Mon-Fri
     branches:
       include:
@@ -166,7 +166,7 @@ variables:
 
 jobs:
   - job: DailyMonitoring
-    timeoutInMinutes: 10
+    timeoutInMinutes: 20
     pool:
       name: 'hmcts-cftptl-agent-pool'
     steps:
@@ -242,11 +242,16 @@ jobs:
             azureSubscription: ${{ cluster.subscription }}
             arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
       - task: Bash@3
+        displayName: 'Check Toffee/Plum Status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/check-toffee-plum.sh
+      - task: Bash@3
         displayName: 'Recovery Services Vaults header'
         inputs:
           targetType: 'inline'
           script: |
-           echo "\n:azuremonitoring: _*Azure Backup Checks*_" >> slack-message.txt
+           echo "\n\n:azuremonitoring: _*Azure Backup Checks*_" >> slack-message.txt
       - ${{ each backup_vault in parameters.recovery_services_vaults }}:
         - task: AzureCLI@2
           displayName: 'Check Backup Status'
