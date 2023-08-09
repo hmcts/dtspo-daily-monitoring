@@ -26,10 +26,8 @@ parameters:
         run: '.github/workflows/run.yml'
       - repo: 'auto-shutdown'
         branch: 'master'
-        run: 'AKS Auto Start'
       - repo: 'auto-shutdown'
         branch: 'master'
-        run: 'AKS Auto Shutdown'
   - name: ado_pipelines
     type: object
     default:
