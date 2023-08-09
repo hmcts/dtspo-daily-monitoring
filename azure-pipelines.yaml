@@ -24,6 +24,12 @@ parameters:
       - repo: 'tech-docs-monitor'
         branch: 'main'
         run: '.github/workflows/run.yml'
+      - repo: 'auto-shutdown'
+        branch: 'master'
+        run: '.github/workflows/aks-auto-shutdown.yaml'
+      - repo: 'auto-shutdown'
+        branch: 'master'
+        run: '.github/workflows/aks-auto-start.yaml'
   - name: ado_pipelines
     type: object
     default:
