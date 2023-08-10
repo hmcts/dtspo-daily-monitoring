@@ -49,5 +49,5 @@ parameters:
 
 ```
 
-Note: This process requires uses name key set in the github actions YAML in the repo you are wanting to monitor the name key should be one work or use underscores as a seperator. If you are getting blank slack messages it is because 
+Note: This process requires uses name key set in the github actions YAML in the repo you are wanting to monitor the name key should be one word or use underscores as a separator. If you are getting blank slack messages it is because 
 the name is not set or set incorrectly. If it is not set the path can be used but looks bad in the slack messages.
