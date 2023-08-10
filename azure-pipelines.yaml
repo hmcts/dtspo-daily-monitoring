@@ -229,6 +229,7 @@ jobs:
           arguments: $(service-now-username)  $(service-now-password)
       - task: Bash@3
         displayName: 'Checking Jenkins status'
+        continueOnError: true
         inputs:
           targetType: filePath
           filePath: scripts/jenkins-status.sh
