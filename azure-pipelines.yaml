@@ -207,7 +207,7 @@ jobs:
         inputs:
           targetType: 'inline'
           script: |
-           echo "\n:github: *GitHub Sheduled Workflow Status* \n\n" >> slack-message.txt
+           echo "\n:github: *GitHub Scheduled Workflow Status* \n\n" >> slack-message.txt
       - ${{ each gh_workflow in parameters.gh_workflows }}:
         - task: Bash@3
           displayName: 'Check Github workflow Runs'
