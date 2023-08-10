@@ -36,7 +36,7 @@ When you merge your approved PR, the messages will be sent to the `#dtspo-daily-
 ## GitHub workflow
 
 
-To add a workflow to me monitored add it to the azure-pipelines.yaml within the gh_workflows section as below
+To add a workflow to be monitored add it to the azure-pipelines.yaml within the gh_workflows section as below
 
 ```
 parameters:
