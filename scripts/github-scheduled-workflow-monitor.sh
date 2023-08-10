@@ -43,7 +43,7 @@ then
                 workflow_status="${workflow_status//\"}"
                 if [ -z ${workflow_status} ];
                 then
-                    printf ":red_circle: <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> Did not return a workflow status \n" >> slack-message.txt 
+                    printf ":red_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> Did not return a workflow status \n" >> slack-message.txt 
                 else
                     conclusion="${conclusion//\"}"
                     
@@ -53,12 +53,12 @@ then
                     # Write slack message dependant on status and conclusion
                     if [ "${conclusion}" = "success" ];
                     then
-                        printf ":green_circle: <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
+                        printf ":green_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
                     elif [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
                     then
-                        printf ":yellow_circle: <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
+                        printf ":yellow_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
                     else 
-                        printf ":red_circle: <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
+                        printf ":red_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
                     fi    
                  fi    
             done  <<< ${workflow_status}
@@ -85,7 +85,7 @@ else
                 echo wf_status:${workflow_status}
                 if [ -z ${workflow_status} ];
                 then
-                    printf "> :red_circle: ${name}" >>slack-message.txt 
+                    printf "> :red_circle: *$repo:* ${name}" >>slack-message.txt 
                 else     
                     conclusion="${conclusion//\"}"
                     
@@ -94,12 +94,12 @@ else
                     # Write slack message dependant on status and conclusion
                     if [ "${conclusion}" = "success" ];
                     then
-                        printf ":green_circle: <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
+                        printf ":green_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
                     elif [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
                     then
-                        printf ":yellow_circle: <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
+                        printf ":yellow_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
                     else 
-                       printf ":red_circle: <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
+                       printf ":red_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
                     fi    
                 fi
             done  <<< ${workflow_status}
