@@ -33,7 +33,7 @@ When you submit a pull request, a direct slack message will be sent to you so yo
 
 When you merge your approved PR, the messages will be sent to the `#dtspo-daily-checks` channel.
 
-## Git hub workflow
+## GitHub workflow
 
 
 To add a workflow to me monitored add it to the azure-pipelines.yaml within the gh_workflows section as below
