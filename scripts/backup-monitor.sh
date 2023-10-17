@@ -12,7 +12,7 @@ if [[ $RESOURCE_GROUP_EXIST == false ]]; then
     exit 0
 fi
 
-#Get backup jobs json from recovery services vault
+#Get backup items json from recovery services vault
 AZ_BACKUP_RESULT=$( az backup item list --resource-group $RESOURCE_GROUP --vault-name $VAULT_NAME --output json )
 
 #Loop over backup job json data
@@ -20,7 +20,7 @@ while read job_data; do
     job_status=$(jq -r '.properties.lastBackupStatus' <<< "$job_data")
     vm_name=$(jq -r '.properties.friendlyName' <<< "$job_data")
     vaultId=$(jq -r '.properties.vaultId' <<< "$job_data")
-    #remove unwanted tail end of URL
+    #Pointing URL to public portal
     parsed_vault_url=${vaultId/management.azure.com/portal.azure.com/#@HMCTS.NET/resource}
 
     #If backup job has failed, print vm name and vault name to slack message
