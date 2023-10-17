@@ -19,7 +19,7 @@ AZ_BACKUP_RESULT=$( az backup item list --resource-group $RESOURCE_GROUP --vault
 while read job_data; do
     job_status=$(jq -r '.properties.lastBackupStatus' <<< "$job_data")
     vm_name=$(jq -r '.properties.friendlyName' <<< "$job_data")
-    vaultId=$(jq -r 'properties.vaultId' <<< "$job_data")
+    vaultId=$(jq -r '.properties.vaultId' <<< "$job_data")
     #remove unwanted tail end of URL
     parsed_vault_url=${vaultId/management.azure.com/portal.azure.com/#@HMCTS.NET/resource}
 
