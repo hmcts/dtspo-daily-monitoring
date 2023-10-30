@@ -50,7 +50,7 @@ for url in $urls; do
     check_certificate_expiration "${url}"
 done
 
-# If there are no results, append a message to indicate no expiring certificates
+# If there are no results, append a message to indicate no expiring certificates 
 if [[ $has_results == false ]]; then
     echo "> :green_circle: No certificates for (*${front_door_name}*) are expiring within the specified threshold." >> slack-message.txt
 fi
