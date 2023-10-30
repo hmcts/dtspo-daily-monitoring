@@ -22,8 +22,9 @@ min_cert_expiration_days=$4
 # Function to check certificate expiration
 check_certificate_expiration() {
     url=$1
+    echo $url
     expiration_date=$(echo | openssl s_client -servername "${url}" -connect "${url}:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep "notAfter" | cut -d "=" -f 2)
-
+    echo $expiration_date
     if [[ -n $expiration_date ]]; then
         expiration_timestamp=$($date_command -d "${expiration_date}" +%s)
         current_timestamp=$($date_command +%s)
