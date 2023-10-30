@@ -169,6 +169,10 @@ parameters:
         resource_group: 'bau-bais_prod_network_rg'  
         front_door_name: 'hmcts-heritage-prod'
         min_cert_exp_days: '14'
+      - subscription: 'DTS-SHAREDSERVICES-ITHC'
+        resource_group: 'lz-ithc-rg'  
+        front_door_name: 'sdshmcts-ithc'
+        min_cert_exp_days: '14'
 
 variables:
   - name: SPSecretNumDays
