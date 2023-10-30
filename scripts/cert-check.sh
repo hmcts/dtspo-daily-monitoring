@@ -42,7 +42,12 @@ check_certificate_expiration() {
 }
 
 # Azure CLI command to populate URL list
-urls=$(az network front-door frontend-endpoint list --subscription "$subscription" --resource-group "$resource_group" --front-door-name "$front_door_name" --query "[].hostName" -o tsv)
+if [[ $front_door_name == "sdshmcts-ithc" ]]; then
+    urls=$(az afd custom-domain list --subscription "$subscription" --resource-group "$resource_group" --profile-name "$front_door_name" --query "[].hostName" -o tsv)
+else
+    urls=$(az network front-door frontend-endpoint list --subscription "$subscription" --resource-group "$resource_group" --front-door-name "$front_door_name" --query "[].hostName" -o tsv)
+fi
+
 
 # Check certificate expiration for each URL
 has_results=false
