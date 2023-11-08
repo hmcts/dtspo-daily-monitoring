@@ -30,8 +30,6 @@ check_certificate_expiration() {
         current_timestamp=$($date_command +%s)
         seconds_left=$((expiration_timestamp - current_timestamp))
         days_left=$((seconds_left / 86400))
-
-        
         if [[ $days_left -le 0 ]]; then
              echo "> :red_circle: Certificate for (*${front_door_name}*) *${url}* has expired *${days_left}* days ago." >> slack-message.txt
              has_results=true
