@@ -41,7 +41,7 @@ check_certificate_expiration() {
 }
 
 # Azure CLI command to populate URL list
-if [[ $front_door_name == "sdshmcts-ithc" ]]; then
+if [[ $front_door_name == "sdshmcts-prod" ]]; then
     urls=$(az afd custom-domain list --subscription "$subscription" --resource-group "$resource_group" --profile-name "$front_door_name" --query "[].hostName" -o tsv)
     echo $urls
 else
