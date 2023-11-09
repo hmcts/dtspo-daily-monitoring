@@ -24,7 +24,9 @@ check_certificate_expiration() {
     url=$1
     echo "https://$url"
     # expiration_date=$(echo | openssl s_client -servername "${url}" -connect "${url}:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep "notAfter" | cut -d "=" -f 2)
-    expiration_date=$(curl --insecure --cert-status -I -v "https://$url" 2>&1 | grep "expire date" | cut -d ':' -f 2-4)
+    expiration_date=$(curl --insecure --cert-status -I -v "https://$url" 2>&1)
+    
+
     echo $expiration_date
     if [[ -n $expiration_date ]]; then
         expiration_timestamp=$($date_command -d "${expiration_date}" +%s)
