@@ -22,8 +22,9 @@ min_cert_expiration_days=$4
 # Function to check certificate expiration
 check_certificate_expiration() {
     url=$1
-    echo $url
-    expiration_date=$(echo | openssl s_client -servername "${url}" -connect "${url}:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep "notAfter" | cut -d "=" -f 2)
+    echo "https://$url"
+    # expiration_date=$(echo | openssl s_client -servername "${url}" -connect "${url}:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep "notAfter" | cut -d "=" -f 2)
+    expiration_date=$(curl --insecure --cert-status -I -v "https://$url" 2>&1 | grep "expire date" | cut -d ':' -f 2-4)
     echo $expiration_date
     if [[ -n $expiration_date ]]; then
         expiration_timestamp=$($date_command -d "${expiration_date}" +%s)
@@ -42,10 +43,7 @@ check_certificate_expiration() {
 
 # Azure CLI command to populate URL list
 
-    urls=$(az afd custom-domain list --subscription "$subscription" --resource-group "$resource_group" --profile-name "$front_door_name" --query "[].hostName" -o tsv)
-    echo $urls
-
-
+urls=$(az afd custom-domain list --subscription "$subscription" --resource-group "$resource_group" --profile-name "$front_door_name" --query "[].hostName" -o tsv)
 
 # Check certificate expiration for each URL
 has_results=false
