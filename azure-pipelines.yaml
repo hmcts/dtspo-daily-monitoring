@@ -160,7 +160,7 @@ parameters:
       - subscription: 'DTS-SHAREDSERVICES-PROD'
         resource_group: 'lz-prod-rg'  
         front_door_name: 'sdshmcts-prod'
-        min_cert_exp_days: '14'
+        min_cert_exp_days: '60'
       - subscription: 'DCD-CFTAPPS-SBOX'
         resource_group: 'lz-sbox-rg'  
         front_door_name: 'hmcts-sbox'
@@ -168,10 +168,6 @@ parameters:
       - subscription: 'DTS-SHAREDSERVICES-PROD'
         resource_group: 'bau-bais_prod_network_rg'  
         front_door_name: 'hmcts-heritage-prod'
-        min_cert_exp_days: '14'
-      - subscription: 'DTS-SHAREDSERVICES-ITHC'
-        resource_group: 'lz-ithc-rg'  
-        front_door_name: 'sdshmcts-ithc'
         min_cert_exp_days: '14'
 
 variables:
