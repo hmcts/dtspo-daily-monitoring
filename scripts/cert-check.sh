@@ -22,15 +22,12 @@ min_cert_expiration_days=$4
 # Function to check certificate expiration
 check_certificate_expiration() {
     url=$1
-    expiration_date=$(echo | openssl s_client -servername "${url}" -connect "${url}:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep "notAfter" | cut -d "=" -f 2)
-
+    expiration_date=$(echo | openssl s_client -servername "${url}" -connect "${url}:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep "notAfter" | cut -d "=" -f 2) 
     if [[ -n $expiration_date ]]; then
         expiration_timestamp=$($date_command -d "${expiration_date}" +%s)
         current_timestamp=$($date_command +%s)
         seconds_left=$((expiration_timestamp - current_timestamp))
         days_left=$((seconds_left / 86400))
-
-        
         if [[ $days_left -le 0 ]]; then
              echo "> :red_circle: Certificate for (*${front_door_name}*) *${url}* has expired *${days_left}* days ago." >> slack-message.txt
              has_results=true
@@ -42,7 +39,8 @@ check_certificate_expiration() {
 }
 
 # Azure CLI command to populate URL list
-urls=$(az network front-door frontend-endpoint list --subscription "$subscription" --resource-group "$resource_group" --front-door-name "$front_door_name" --query "[].hostName" -o tsv)
+
+urls=$(az afd custom-domain list --subscription "$subscription" --resource-group "$resource_group" --profile-name "$front_door_name" --query "[].hostName" -o tsv)
 
 # Check certificate expiration for each URL
 has_results=false
@@ -50,7 +48,7 @@ for url in $urls; do
     check_certificate_expiration "${url}"
 done
 
-# If there are no results, append a message to indicate no expiring certificates
+# If there are no results, append a message to indicate no expiring certificates 
 if [[ $has_results == false ]]; then
     echo "> :green_circle: No certificates for (*${front_door_name}*) are expiring within the specified threshold." >> slack-message.txt
 fi
