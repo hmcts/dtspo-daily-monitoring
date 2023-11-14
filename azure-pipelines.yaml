@@ -160,7 +160,7 @@ parameters:
       - subscription: 'DTS-SHAREDSERVICES-PROD'
         resource_group: 'lz-prod-rg'  
         front_door_name: 'sdshmcts-prod'
-        min_cert_exp_days: '60'
+        min_cert_exp_days: '14'
       - subscription: 'DCD-CFTAPPS-SBOX'
         resource_group: 'lz-sbox-rg'  
         front_door_name: 'hmcts-sbox'
