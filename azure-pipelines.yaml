@@ -48,6 +48,9 @@ parameters:
       - repo: 'auto-shutdown'
         branch: 'master'
         run: 'flexible-server-auto-shutdown'
+      - repo: 'sandbox-auto-cleardown'
+        branch: 'master'
+        run: 'sandbox-cleanup'
   - name: ado_pipelines
     type: object
     default:
