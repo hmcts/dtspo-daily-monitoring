@@ -23,12 +23,11 @@ function scrapeUrls() {
 # If found it will print a list of the pages found in a slack hyperlink format so it is clickable
 function findNullUrls() {
 
-    NULLFOUNDURLs=$(jq -c '. | select(.review_by == null) | "<" + .url + "|" + .title + ">"' <<<$PAGES) 
+    NULLFOUNDURLs=$(jq -rc '. | select(.review_by == null) | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES) 
 
     if [ -n "$NULLFOUNDURLs" ]; then
-        printf "> :red_circle: Pages found with no review date set: \n\n" >> slack-message.txt
-        echo $NULLFOUNDURLs | jq -rc '.' >> slack-message.txt
-        echo
+        printf ":red_circle: Pages found with no review date set: \n\n" >> slack-message.txt
+        printf "%s\n\n" "$NULLFOUNDURLs" >> slack-message.txt
     fi
 }
 
@@ -36,12 +35,12 @@ function findNullUrls() {
 # If found it will print a list of the pages found in a slack hyperlink format so it is clickable
 function findExpiredUrls() {
 
-    EXPIREDFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$CURRENTDATE'") | "<" + .url + "|" + .title + ">"' <<<$PAGES)
+    EXPIREDFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$CURRENTDATE'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$EXPIREDFOUNDURLs" ]; then
-        printf "> :red_circle: Pages found which have an expired review date: \n\n" >> slack-message.txt
-        echo $EXPIREDFOUNDURLs | jq -rc '.' >> slack-message.txt
-        echo
+        printf ":red_circle: Pages found which have an expired review date: \n\n" >> slack-message.txt
+        printf "%s\n" "$EXPIREDFOUNDURLs" >> slack-message.txt
+        printf "\n\n"
     fi
 }
 
@@ -50,19 +49,19 @@ function findExpiredUrls() {
 # If none found it will print an all green message stating so.
 function findExpiringUrls() {
 
-    EXPIRINGFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$EXPIRETHRESHOLD'") | "<" + .url + "|" + .title + ">"' <<<$PAGES)
+    EXPIRINGFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$EXPIRETHRESHOLD'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$EXPIRINGFOUNDURLs" ]; then
-        printf "> :yellow_circle: Pages found which require a review in the next 13 days: \n\n" >> slack-message.txt
-        echo $EXPIRINGFOUNDURLs | jq -rc '.' >> slack-message.txt
-        echo
+        printf ":yellow_circle: Pages found which require a review in the next 13 days: \n\n" >> slack-message.txt
+        printf "%s\n" "$EXPIRINGFOUNDURLs" >> slack-message.txt
+        printf "\n\n"
     else
-        printf "> :green_circle: All pages with review dates are up to date! :smile: \n\n" >> slack-message.txt
+        printf ":green_circle: All pages have acceptable review dates! :smile: \n\n" >> slack-message.txt
     fi
 }
 
 scrapeUrls
-printf ":document_it: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> status: \n\n" >> slack-message.txt
+printf "\n:github: :document_it: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> status: \n\n" >> slack-message.txt
 
 findNullUrls
 findExpiredUrls
