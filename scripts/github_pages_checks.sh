@@ -26,7 +26,7 @@ function findNullUrls() {
     NULLFOUNDURLs=$(jq -rc '. | select(.review_by == null) | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES) 
 
     if [ -n "$NULLFOUNDURLs" ]; then
-        printf ":red_circle: Pages found with no review date set: \n\n" >> slack-message.txt
+        printf ">:red_circle: Pages found with no review date set: \n\n" >> slack-message.txt
         printf "%s\n\n" "$NULLFOUNDURLs" >> slack-message.txt
     fi
 }
@@ -38,7 +38,7 @@ function findExpiredUrls() {
     EXPIREDFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$CURRENTDATE'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$EXPIREDFOUNDURLs" ]; then
-        printf ":red_circle: Pages found which have an expired review date: \n\n" >> slack-message.txt
+        printf ">:red_circle: Pages found which have an expired review date: \n\n" >> slack-message.txt
         printf "%s\n\n" "$EXPIREDFOUNDURLs" >> slack-message.txt
     fi
 }
@@ -51,10 +51,10 @@ function findExpiringUrls() {
     EXPIRINGFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$EXPIRETHRESHOLD'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$EXPIRINGFOUNDURLs" ]; then
-        printf ":yellow_circle: Pages found which require a review in the next 13 days: \n\n" >> slack-message.txt
+        printf ">:yellow_circle: Pages found which require a review in the next 13 days: \n\n" >> slack-message.txt
         printf "%s\n\n" "$EXPIRINGFOUNDURLs" >> slack-message.txt
     else
-        printf ":green_circle: All pages have acceptable review dates! :smile: \n\n" >> slack-message.txt
+        printf ">:green_circle: All pages have acceptable review dates! :smile: \n\n" >> slack-message.txt
     fi
 }
 
