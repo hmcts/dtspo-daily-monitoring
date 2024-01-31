@@ -26,8 +26,8 @@ function findNullUrls() {
     NULLFOUNDURLs=$(jq -c '. | select(.review_by == null) | "<" + .url + "|" + .title + ">"' <<<$PAGES) 
 
     if [ -n "$NULLFOUNDURLs" ]; then
-        printf "> :red_circle: Pages found with no review date set: \n\n" #>> slack-message.txt
-        echo $NULLFOUNDURLs | jq -rc '.' #>> slack-message.txt
+        printf "> :red_circle: Pages found with no review date set: \n\n" >> slack-message.txt
+        echo $NULLFOUNDURLs | jq -rc '.' >> slack-message.txt
         echo
     fi
 }
@@ -39,8 +39,8 @@ function findExpiredUrls() {
     EXPIREDFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$CURRENTDATE'") | "<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$EXPIREDFOUNDURLs" ]; then
-        printf "> :red_circle: Pages found which have an expired review date: \n\n" #>> slack-message.txt
-        echo $EXPIREDFOUNDURLs | jq -rc '.' #>> slack-message.txt
+        printf "> :red_circle: Pages found which have an expired review date: \n\n" >> slack-message.txt
+        echo $EXPIREDFOUNDURLs | jq -rc '.' >> slack-message.txt
         echo
     fi
 }
@@ -53,16 +53,16 @@ function findExpiringUrls() {
     EXPIRINGFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$EXPIRETHRESHOLD'") | "<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$EXPIRINGFOUNDURLs" ]; then
-        printf "> :yellow_circle: Pages found which require a review in the next 13 days: \n\n" #>> slack-message.txt
-        echo $EXPIRINGFOUNDURLs | jq -rc '.' #>> slack-message.txt
+        printf "> :yellow_circle: Pages found which require a review in the next 13 days: \n\n" >> slack-message.txt
+        echo $EXPIRINGFOUNDURLs | jq -rc '.' >> slack-message.txt
         echo
     else
-        printf "> :green_circle: All pages with review dates are up to date! :smile: \n\n" #>> slack-message.txt
+        printf "> :green_circle: All pages with review dates are up to date! :smile: \n\n" >> slack-message.txt
     fi
 }
 
 scrapeUrls
-printf ":document_it: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> status: \n\n" #>> slack-message.txt
+printf ":document_it: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> status: \n\n" >> slack-message.txt
 
 findNullUrls
 findExpiredUrls
