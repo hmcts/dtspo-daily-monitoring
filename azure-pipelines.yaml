@@ -208,8 +208,8 @@ jobs:
         inputs:
           targetType: 'inline'
           script: |
-           echo "*Daily Monitoring Summary* \n \n">> slack-message.txt
-           echo "_:azure: *Scheduled Pipelines Status*_ \n">> slack-message.txt
+            echo "*Daily Monitoring Summary* \n \n">> slack-message.txt
+            echo "_:azure: *Scheduled Pipelines Status*_ \n">> slack-message.txt
       - ${{ each ado_pipeline in parameters.ado_pipelines }}:
         - task: Bash@3
           displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
@@ -279,7 +279,7 @@ jobs:
         inputs:
           targetType: 'inline'
           script: |
-           echo "\n\n:azuremonitoring: _*Azure Backup Checks*_" >> slack-message.txt
+            echo "\n\n:azuremonitoring: _*Azure Backup Checks*_" >> slack-message.txt
       - ${{ each backup_vault in parameters.recovery_services_vaults }}:
         - task: AzureCLI@2
           displayName: 'Check Backup Status'
@@ -293,7 +293,7 @@ jobs:
         inputs:
           targetType: 'inline'
           script: |
-           echo "\n\n:ssl-cert: _*Expiring SSL Certificates*_\n\n" >> slack-message.txt
+            echo "\n\n:ssl-cert: _*Expiring SSL Certificates*_\n\n" >> slack-message.txt
       - ${{ each frontdoor in parameters.certificates }}:
         - task: AzureCLI@2
           displayName: 'Checking Certificate status'
@@ -315,6 +315,11 @@ jobs:
           targetType: filePath
           filePath: scripts/jira-status.sh
           arguments: $(jira-username) $(jira-password)
+      - task: Bash@3
+        displayName: "Checking GitHub Pages review status"
+        inputs:
+          targetType: filePath
+          filePath: scripts/github_pages_checks.sh
       - task: Bash@3
         displayName: 'Send slack message - pull request'
         condition: |
