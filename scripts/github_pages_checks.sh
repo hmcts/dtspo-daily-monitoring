@@ -15,7 +15,7 @@ function scrapeUrls() {
     for URL in ${URLS[@]}; do
         local STRIPSUFFIX="/api/pages.json"
         local BASE_URL="${URL%$STRIPSUFFIX}"
-        PAGES+=$(curl -s $URL | jq '.[] | .url |= sub("\\.\\."; "'$BASE_URL'")')
+        PAGES+=$(curl -s $URL | jq '.[] | select(.url | contains("search/index.html") | not) | .url |= sub("\\.\\."; "'$BASE_URL'")')
     done
 }
 
