@@ -179,7 +179,7 @@ variables:
   - name: service_connection
     value: dts-management-prod-intsvc
   - name: dev_service_connection
-    value: dts-terraform-prod-test1
+    value: GA-development-tenant
   - name: ado_service_connection
     value: OPS-APPROVAL-GATE-MGMT-ENVS
   - name: isMain
