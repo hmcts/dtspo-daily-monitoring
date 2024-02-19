@@ -59,7 +59,7 @@ function findExpiredUrls() {
 # If none found it will print an all green message stating so.
 function findExpiringUrls() {
 
-    EXPIRINGFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$EXPIRETHRESHOLD'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
+    EXPIRINGFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$EXPIRETHRESHOLD'" and .review_by > "'$CURRENTDATE'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$EXPIRINGFOUNDURLs" ]; then
         printf "\n>:yellow_circle: Pages found which require a review in the next 13 days: \n\n" >> slack-message.txt
