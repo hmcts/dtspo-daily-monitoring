@@ -64,7 +64,11 @@ function findExpiringUrls() {
     if [ -n "$EXPIRINGFOUNDURLs" ]; then
         printf "\n>:yellow_circle: Pages found which require a review in the next 13 days: \n\n" >> slack-message.txt
         printf "%s\n\n" "$EXPIRINGFOUNDURLs" | tr -d '"' >> slack-message.txt
-    else
+    fi
+}
+
+function findGoodUrls() {
+    if [ -n "$EXPIRINGFOUNDURLs" && -n "$EXPIREDFOUNDURLs" ]; then
         printf "\n>:green_circle: All pages have acceptable review dates! :smile: \n\n" >> slack-message.txt
     fi
 }
@@ -75,3 +79,4 @@ printf "\n\n:github: :document_it: <https://hmcts.github.io|*_HMCTS Way_*> and <
 findNullUrls
 findExpiredUrls
 findExpiringUrls
+findGoodUrls
