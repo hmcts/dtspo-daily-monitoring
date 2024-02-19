@@ -5,9 +5,7 @@
 # Note, if you are running this script on MacOS, the BSD date command works differently. Use `gdate` to get the same output as below.
 
 CURRENTDATE=$(date +"%Y-%m-%d") # 2w = 2 weeks
-echo "current date is ${CURRENTDATE}"
 EXPIRETHRESHOLD=$(date -u +"%Y-%m-%d" -d "+2 weeks") # 2w = 2 weeks
-echo "expire threshold is ${EXPIRETHRESHOLD}"
 
 declare -a URLS=("https://hmcts.github.io/api/pages.json" "https://hmcts.github.io/ops-runbooks/api/pages.json")
 declare -a PAGES
@@ -55,7 +53,7 @@ function findExpiringUrls() {
 
     if [ -n "$EXPIRINGFOUNDURLs" ]; then
         printf ">:yellow_circle: Pages found which require a review in the next 13 days: \n\n" >> slack-message.txt
-        printf "%s\n\n" "$EXPIRINGFOUNDURLs" >> slack-message.txt
+        # printf "%s\n\n" "$EXPIRINGFOUNDURLs" >> slack-message.txt
     else
         printf ">:green_circle: All pages have acceptable review dates! :smile: \n\n" >> slack-message.txt
     fi
