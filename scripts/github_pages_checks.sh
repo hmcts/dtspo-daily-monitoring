@@ -4,8 +4,18 @@
 # The URLs must return valid JSON for JQ to parse it and be of a similar format to those found below i.e. GitHub pages API output.
 # Note, if you are running this script on MacOS, the BSD date command works differently. Use `gdate` to get the same output as below.
 
-CURRENTDATE=$(date +"%Y-%m-%d") # 2w = 2 weeks
-EXPIRETHRESHOLD=$(date -u +"%Y-%m-%d" -d "+2 weeks") # 2w = 2 weeks
+# Check platform
+platform=$(uname)
+
+# Check and install missing packages
+if [[ $platform == "Darwin" ]]; then
+    date_command=$(which gdate)
+elif [[ $platform == "Linux" ]]; then
+    date_command=$(which date)
+fi
+
+CURRENTDATE=$($date_command +"%Y-%m-%d") # 2w = 2 weeks
+EXPIRETHRESHOLD=$($date_command -u +"%Y-%m-%d" -d "+2 weeks") # 2w = 2 weeks
 
 declare -a URLS=("https://hmcts.github.io/api/pages.json" "https://hmcts.github.io/ops-runbooks/api/pages.json")
 declare -a PAGES
@@ -24,7 +34,7 @@ function scrapeUrls() {
 # If found it will print a list of the pages found in a slack hyperlink format so it is clickable
 function findNullUrls() {
 
-    NULLFOUNDURLs=$(jq -rc '. | select(.review_by == null) | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES) 
+    NULLFOUNDURLs=$(jq -rc '. | select(.review_by == null) | "<" + .url + "|" + .title + ">"' <<<$PAGES) 
 
     if [ -n "$NULLFOUNDURLs" ]; then
         printf ">:red_circle: Pages found with no review date set: \n\n" >> slack-message.txt
@@ -36,11 +46,11 @@ function findNullUrls() {
 # If found it will print a list of the pages found in a slack hyperlink format so it is clickable
 function findExpiredUrls() {
 
-    EXPIREDFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$CURRENTDATE'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
+    EXPIREDFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$CURRENTDATE'") | "<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$EXPIREDFOUNDURLs" ]; then
         printf "\n>:red_circle: Pages found which have an expired review date: \n\n" >> slack-message.txt
-        # printf "%s\n\n" "$EXPIREDFOUNDURLs" >> slack-message.txt
+        printf "%s\n\n" "$EXPIREDFOUNDURLs" >> slack-message.txt
     fi
 }
 
