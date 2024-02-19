@@ -68,7 +68,7 @@ function findExpiringUrls() {
 }
 
 function findGoodUrls() {
-    if [ -n "$EXPIRINGFOUNDURLs" && -n "$EXPIREDFOUNDURLs" ]; then
+    if [[ -n "$EXPIRINGFOUNDURLs" && -n "$EXPIREDFOUNDURLs" ]]; then
         printf "\n>:green_circle: All pages have acceptable review dates! :smile: \n\n" >> slack-message.txt
     fi
 }
