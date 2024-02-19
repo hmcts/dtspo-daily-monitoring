@@ -60,7 +60,7 @@ function findExpiringUrls() {
 }
 
 scrapeUrls
-printf "\n:github: :document_it: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> status: \n\n" >> slack-message.txt
+printf "\n\n:github: :document_it: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> status: \n\n" >> slack-message.txt
 
 findNullUrls
 findExpiredUrls
