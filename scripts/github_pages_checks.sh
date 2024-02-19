@@ -4,8 +4,8 @@
 # The URLs must return valid JSON for JQ to parse it and be of a similar format to those found below i.e. GitHub pages API output.
 # Note, if you are running this script on MacOS, the BSD date command works differently. Use `gdate` to get the same output as below.
 
-CURRENTDATE=$(date +"%Y-%m-%d") # 2w = 2 weeks
-EXPIRETHRESHOLD=$(date -u +"%Y-%m-%d" -d "+2 weeks") # 2w = 2 weeks
+CURRENTDATE=$(gdate +"%Y-%m-%d") # 2w = 2 weeks
+EXPIRETHRESHOLD=$(gdate -u +"%Y-%m-%d" -d "+2 weeks") # 2w = 2 weeks
 
 declare -a URLS=("https://hmcts.github.io/api/pages.json" "https://hmcts.github.io/ops-runbooks/api/pages.json")
 declare -a PAGES
@@ -60,7 +60,7 @@ function findExpiringUrls() {
 }
 
 scrapeUrls
-printf "github" >> slack-message.txt
+# printf "github" >> slack-message.txt
 
 findNullUrls
 findExpiredUrls
