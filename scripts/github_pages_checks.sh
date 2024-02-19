@@ -39,7 +39,7 @@ function findExpiredUrls() {
     EXPIREDFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$CURRENTDATE'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$EXPIREDFOUNDURLs" ]; then
-        # printf ">:red_circle: Pages found which have an expired review date: \n\n" >> slack-message.txt
+        printf ">:red_circle: Pages found which have an expired review date: \n\n" >> slack-message.txt
         # printf "%s\n\n" "$EXPIREDFOUNDURLs" >> slack-message.txt
     fi
 }
