@@ -212,76 +212,76 @@ jobs:
           script: |
             echo "*Daily Monitoring Summary* \n \n">> slack-message.txt
             echo "_:azure: *Scheduled Pipelines Status*_ \n">> slack-message.txt
-      # - ${{ each ado_pipeline in parameters.ado_pipelines }}:
-      #   - task: Bash@3
-      #     displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
-      #     inputs:
-      #       targetType: filePath
-      #       filePath: scripts/ado-pipeline-monitor.sh
-      #       arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  ${{ado_pipeline.timeForAmber}}  ${{ado_pipeline.timeForRed}}  "${{ado_pipeline.pipelineName}}" "${{ado_pipeline.branchName}}"
-      # - task: Bash@3
-      #   displayName: 'Checking Github Licenses'
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/github-licenses.sh
-      #     arguments: $(github-management-api-token)
-      # - task: Bash@3
-      #   displayName: 'Github workflow status header'
-      #   inputs:
-      #     targetType: 'inline'
-      #     script: |
-      #      echo "\n:github: *GitHub Scheduled Workflow Status* \n\n" >> slack-message.txt
-      # - ${{ each gh_workflow in parameters.gh_workflows }}:
-      #   - task: Bash@3
-      #     displayName: 'Check Github workflow Runs'
-      #     inputs:
-      #       targetType: filePath
-      #       filePath: scripts/github-scheduled-workflow-monitor.sh
-      #       arguments: $(github-management-api-token) ${{gh_workflow.repo}} ${{gh_workflow.branch}} ${{gh_workflow.run}}
-      # - task: Bash@3
-      #   displayName: "\nChecking Launchdarkly Licenses"
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/ld-license.sh
-      #     arguments: $(launchdarkly-access-token)
-      # - task: Bash@3
-      #   displayName: 'Checking servicenow status'
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/servicenow-status.sh
-      #     arguments: $(service-now-username)  $(service-now-password)
-      # - task: Bash@3
-      #   displayName: 'Checking Jenkins status'
-      #   continueOnError: true
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/jenkins-status.sh
-      #     arguments: $(jenkins-api-user) $(jenkins-api-token) ${{ variables.jenkins_url }}
-      # - task: AzureCLI@2
-      #   displayName: 'Get Provisioning State'
-      #   inputs:
-      #     scriptType: bash
-      #     scriptPath: scripts/cluster-state-monitor.sh
-      #     azureSubscription: ${{ variables.ado_service_connection }}
-      # - ${{ each cluster in parameters.aks_clusters }}:
-      #   - task: AzureCLI@2
-      #     displayName: 'Get AKS Cluster Status'
-      #     inputs:
-      #       scriptType: bash
-      #       scriptPath: scripts/aks-node-count.sh
-      #       azureSubscription: ${{ cluster.subscription }}
-      #       arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
-      # - task: Bash@3
-      #   displayName: 'Check Toffee/Plum Status'
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/check-toffee-plum.sh
-      # - task: Bash@3
-      #   displayName: 'Recovery Services Vaults header'
-      #   inputs:
-      #     targetType: 'inline'
-      #     script: |
-      #       echo "\n\n:azuremonitoring: _*Azure Backup Checks*_" >> slack-message.txt
+      - ${{ each ado_pipeline in parameters.ado_pipelines }}:
+        - task: Bash@3
+          displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
+          inputs:
+            targetType: filePath
+            filePath: scripts/ado-pipeline-monitor.sh
+            arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  ${{ado_pipeline.timeForAmber}}  ${{ado_pipeline.timeForRed}}  "${{ado_pipeline.pipelineName}}" "${{ado_pipeline.branchName}}"
+      - task: Bash@3
+        displayName: 'Checking Github Licenses'
+        inputs:
+          targetType: filePath
+          filePath: scripts/github-licenses.sh
+          arguments: $(github-management-api-token)
+      - task: Bash@3
+        displayName: 'Github workflow status header'
+        inputs:
+          targetType: 'inline'
+          script: |
+           echo "\n:github: *GitHub Scheduled Workflow Status* \n\n" >> slack-message.txt
+      - ${{ each gh_workflow in parameters.gh_workflows }}:
+        - task: Bash@3
+          displayName: 'Check Github workflow Runs'
+          inputs:
+            targetType: filePath
+            filePath: scripts/github-scheduled-workflow-monitor.sh
+            arguments: $(github-management-api-token) ${{gh_workflow.repo}} ${{gh_workflow.branch}} ${{gh_workflow.run}}
+      - task: Bash@3
+        displayName: "\nChecking Launchdarkly Licenses"
+        inputs:
+          targetType: filePath
+          filePath: scripts/ld-license.sh
+          arguments: $(launchdarkly-access-token)
+      - task: Bash@3
+        displayName: 'Checking servicenow status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/servicenow-status.sh
+          arguments: $(service-now-username)  $(service-now-password)
+      - task: Bash@3
+        displayName: 'Checking Jenkins status'
+        continueOnError: true
+        inputs:
+          targetType: filePath
+          filePath: scripts/jenkins-status.sh
+          arguments: $(jenkins-api-user) $(jenkins-api-token) ${{ variables.jenkins_url }}
+      - task: AzureCLI@2
+        displayName: 'Get Provisioning State'
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/cluster-state-monitor.sh
+          azureSubscription: ${{ variables.ado_service_connection }}
+      - ${{ each cluster in parameters.aks_clusters }}:
+        - task: AzureCLI@2
+          displayName: 'Get AKS Cluster Status'
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/aks-node-count.sh
+            azureSubscription: ${{ cluster.subscription }}
+            arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
+      - task: Bash@3
+        displayName: 'Check Toffee/Plum Status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/check-toffee-plum.sh
+      - task: Bash@3
+        displayName: 'Recovery Services Vaults header'
+        inputs:
+          targetType: 'inline'
+          script: |
+            echo "\n\n:azuremonitoring: _*Azure Backup Checks*_" >> slack-message.txt
       # - ${{ each backup_vault in parameters.recovery_services_vaults }}:
       #   - task: AzureCLI@2
       #     displayName: 'Check Backup Status'
