@@ -53,7 +53,7 @@ function findExpiringUrls() {
 
     if [ -n "$EXPIRINGFOUNDURLs" ]; then
         printf "\n>:yellow_circle: Pages found which require a review in the next 13 days: \n\n" >> slack-message.txt
-        printf "%s\n\n" "$EXPIRINGFOUNDURLs" >> slack-message.txt
+        # printf "%s\n\n" "$EXPIRINGFOUNDURLs" >> slack-message.txt
     else
         printf "\n>:green_circle: All pages have acceptable review dates! :smile: \n\n" >> slack-message.txt
     fi
