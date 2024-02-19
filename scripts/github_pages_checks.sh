@@ -2,9 +2,20 @@
 
 # This script will curl the output of the pages found in the URLS array and use JQ to parse the output for specific information
 # The URLs must return valid JSON for JQ to parse it and be of a similar format to those found below i.e. GitHub pages API output.
+# Note, if you are running this script on MacOS, the BSD date command works differently. Use `gdate` to get the same output as below.
 
-CURRENTDATE=$(date +"%Y-%m-%d") # 2w = 2 weeks
-EXPIRETHRESHOLD=$(date -u -v+2w +"%Y-%m-%d") # 2w = 2 weeks
+# Check platform
+platform=$(uname)
+
+# Check and install missing packages
+if [[ $platform == "Darwin" ]]; then
+    date_command=$(which gdate)
+elif [[ $platform == "Linux" ]]; then
+    date_command=$(which date)
+fi
+
+CURRENTDATE=$($date_command +"%Y-%m-%d") # 2w = 2 weeks
+EXPIRETHRESHOLD=$($date_command -u +"%Y-%m-%d" -d "+2 weeks") # 2w = 2 weeks
 
 declare -a URLS=("https://hmcts.github.io/api/pages.json" "https://hmcts.github.io/ops-runbooks/api/pages.json")
 declare -a PAGES
@@ -23,11 +34,11 @@ function scrapeUrls() {
 # If found it will print a list of the pages found in a slack hyperlink format so it is clickable
 function findNullUrls() {
 
-    NULLFOUNDURLs=$(jq -rc '. | select(.review_by == null) | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES) 
+    NULLFOUNDURLs=$(jq -rc '. | select(.review_by == null) | "<" + .url + "|" + .title + ">"' <<<$PAGES) 
 
     if [ -n "$NULLFOUNDURLs" ]; then
         printf ">:red_circle: Pages found with no review date set: \n\n" >> slack-message.txt
-        printf "%s\n\n" "$NULLFOUNDURLs" >> slack-message.txt
+        printf "%s\n\n" "$NULLFOUNDURLs" | tr -d '"' >> slack-message.txt
     fi
 }
 
@@ -35,11 +46,11 @@ function findNullUrls() {
 # If found it will print a list of the pages found in a slack hyperlink format so it is clickable
 function findExpiredUrls() {
 
-    EXPIREDFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$CURRENTDATE'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
+    EXPIREDFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$CURRENTDATE'") | "<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$EXPIREDFOUNDURLs" ]; then
-        printf ">:red_circle: Pages found which have an expired review date: \n\n" >> slack-message.txt
-        printf "%s\n\n" "$EXPIREDFOUNDURLs" >> slack-message.txt
+        printf "\n>:red_circle: Pages found which have an expired review date: \n\n" >> slack-message.txt
+        printf "%s\n\n" "$EXPIREDFOUNDURLs" | tr -d '"' >> slack-message.txt
     fi
 }
 
@@ -48,19 +59,24 @@ function findExpiredUrls() {
 # If none found it will print an all green message stating so.
 function findExpiringUrls() {
 
-    EXPIRINGFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$EXPIRETHRESHOLD'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
+    EXPIRINGFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$EXPIRETHRESHOLD'" and .review_by > "'$CURRENTDATE'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$EXPIRINGFOUNDURLs" ]; then
-        printf ">:yellow_circle: Pages found which require a review in the next 13 days: \n\n" >> slack-message.txt
-        printf "%s\n\n" "$EXPIRINGFOUNDURLs" >> slack-message.txt
-    else
-        printf ">:green_circle: All pages have acceptable review dates! :smile: \n\n" >> slack-message.txt
+        printf "\n>:yellow_circle: Pages found which require a review in the next 13 days: \n\n" >> slack-message.txt
+        printf "%s\n\n" "$EXPIRINGFOUNDURLs" | tr -d '"' >> slack-message.txt
+    fi
+}
+
+function findGoodUrls() {
+    if [[ -n "$EXPIRINGFOUNDURLs" && -n "$EXPIREDFOUNDURLs" ]]; then
+        printf "\n>:green_circle: All pages have acceptable review dates! :smile: \n\n" >> slack-message.txt
     fi
 }
 
 scrapeUrls
-printf "\n:github: :document_it: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> status: \n\n" >> slack-message.txt
+printf "\n\n:github: :document_it: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> status: \n\n" >> slack-message.txt
 
 findNullUrls
 findExpiredUrls
 findExpiringUrls
+findGoodUrls
