@@ -38,7 +38,7 @@ function findNullUrls() {
 
     if [ -n "$NULLFOUNDURLs" ]; then
         printf ">:red_circle: Pages found with no review date set: \n\n" >> slack-message.txt
-        printf "%s\n\n" "$NULLFOUNDURLs" >> slack-message.txt
+        printf "%s\n\n" "$NULLFOUNDURLs" | tr -d '"' >> slack-message.txt
     fi
 }
 
@@ -50,7 +50,7 @@ function findExpiredUrls() {
 
     if [ -n "$EXPIREDFOUNDURLs" ]; then
         printf "\n>:red_circle: Pages found which have an expired review date: \n\n" >> slack-message.txt
-        printf "%s\n\n" $EXPIREDFOUNDURLs | tr -d '"' >> slack-message.txt
+        printf "%s\n\n" "$EXPIREDFOUNDURLs" | tr -d '"' >> slack-message.txt
     fi
 }
 
@@ -63,7 +63,7 @@ function findExpiringUrls() {
 
     if [ -n "$EXPIRINGFOUNDURLs" ]; then
         printf "\n>:yellow_circle: Pages found which require a review in the next 13 days: \n\n" >> slack-message.txt
-        # printf "%s\n\n" "$EXPIRINGFOUNDURLs" >> slack-message.txt
+        printf "%s\n\n" "$EXPIRINGFOUNDURLs" | tr -d '"' >> slack-message.txt
     else
         printf "\n>:green_circle: All pages have acceptable review dates! :smile: \n\n" >> slack-message.txt
     fi
