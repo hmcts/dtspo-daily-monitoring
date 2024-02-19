@@ -34,7 +34,7 @@ function scrapeUrls() {
 # If found it will print a list of the pages found in a slack hyperlink format so it is clickable
 function findNullUrls() {
 
-    NULLFOUNDURLs=$(jq -rc '. | select(.review_by == null) | "<" + .url + "|" + .title + ">"' <<<$PAGES) 
+    NULLFOUNDURLs=$(jq -rc '. | select(.review_by == null) | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES) 
 
     if [ -n "$NULLFOUNDURLs" ]; then
         printf ">:red_circle: Pages found with no review date set: \n\n" >> slack-message.txt
@@ -46,11 +46,11 @@ function findNullUrls() {
 # If found it will print a list of the pages found in a slack hyperlink format so it is clickable
 function findExpiredUrls() {
 
-    EXPIREDFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$CURRENTDATE'") | "<" + .url + "|" + .title + ">"' <<<$PAGES)
+    EXPIREDFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$CURRENTDATE'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$EXPIREDFOUNDURLs" ]; then
         printf "\n>:red_circle: Pages found which have an expired review date: \n\n" >> slack-message.txt
-        printf "%s\n\n" "$EXPIREDFOUNDURLs" >> slack-message.txt
+        printf "%s\n\n" $EXPIREDFOUNDURLs >> slack-message.txt
     fi
 }
 
