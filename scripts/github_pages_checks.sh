@@ -50,7 +50,7 @@ function findExpiredUrls() {
 
     if [ -n "$EXPIREDFOUNDURLs" ]; then
         printf "\n>:red_circle: Pages found which have an expired review date: \n\n" >> slack-message.txt
-        printf "%s\n\n" $EXPIREDFOUNDURLs >> slack-message.txt
+        printf "%s\n\n" $EXPIREDFOUNDURLs | tr -d '"' >> slack-message.txt
     fi
 }
 
