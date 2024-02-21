@@ -47,18 +47,29 @@ function do_failures_exist() {
         fi
     fi
 }
-# potenitally add new func?
+
+function no_failures_exist() {
+    if [[ $failures_exist_plum != "true" && $failures_exist_toffee != "true" ]]; then
+        printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
+    else
+}
+
+# if [[ $failures_exist_plum != "true" && $failures_exist_toffee != "true" ]]; then
+#     printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
+# fi
 
 printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >>slack-message.txt
 
 APPS=("Toffee" "Plum")
-if [[ $failures_exist_plum != "true" && $failures_exist_toffee != "true" ]]; then
-    printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
-elif
-    for APP in ${APPS[@]}; do
-        printf "\n*$APP Status:*" >>slack-message.txt
-        add_environments $APP
-        uptime $APP
+for APP in ${APPS[@]}; do
+    printf "\n*$APP Status:*" >>slack-message.txt
+    add_environments $APP
+    uptime $APP
+
+    if [[ $failures_exist_plum != "true" && $failures_exist_toffee != "true" ]]; then
+        no_failures_exist
+    else
         do_failures_exist $APP
-    done
-fi
+    fi
+done
+
