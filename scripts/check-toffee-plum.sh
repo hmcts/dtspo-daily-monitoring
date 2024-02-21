@@ -45,31 +45,20 @@ function do_failures_exist() {
         if [[ $failures_exist_plum != "true" ]]; then
             printf "\n>:green_circle:  All environments in $1 are healthy" >>slack-message.txt
         fi
-    fi
-}
-
-function no_failures_exist() {
-    if [[ $failures_exist_plum != "true" && $failures_exist_toffee != "true" ]]; then
-        return 0
-    else
-        do_failures_exist $APP
-        return 1
-    fi
 }
 
 printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >>slack-message.txt
 
+if [[ $failures_exist_plum != "true" && $failures_exist_toffee != "true" ]]; then
+    printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
+fi
+
 APPS=("Toffee" "Plum")
-# run twice check results then publish 
+# prints as it runs good for split output
+
 for APP in ${APPS[@]}; do
+    printf "\n*$APP Status:*" >>slack-message.txt
     add_environments $APP
     uptime $APP
     do_failures_exist $APP
-    
-    if no_failures_exist $APP; then
-        printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
-    else
-        printf "\n*$APP Status:*" >>slack-message.txt
-    fi
 done
-
