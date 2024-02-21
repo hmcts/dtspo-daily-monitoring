@@ -37,18 +37,18 @@ function uptime() {
 }
 
 function do_failures_exist() {
-    if [[ $1 = "Toffee" ]]; then
-        if [[ $failures_exist_toffee != "true" ]]; then
-            printf "\n>:green_circle:  All environments in $1 are healthy" >>slack-message.txt
-        fi
-    elif [[ $1 = "Plum" ]]; then
-        if [[ $failures_exist_plum != "true" ]]; then
-            printf "\n>:green_circle:  All environments in $1 are healthy" >>slack-message.txt
-        fi
-    fi
+    # if [[ $1 = "Toffee" ]]; then
+    #     if [[ $failures_exist_toffee != "true" ]]; then
+    #         printf "\n>:green_circle:  All environments in $1 are healthy" >>slack-message.txt
+    #     fi
+    # elif [[ $1 = "Plum" ]]; then
+    #     if [[ $failures_exist_plum != "true" ]]; then
+    #         printf "\n>:green_circle:  All environments in $1 are healthy" >>slack-message.txt
+    #     fi
+    # fi
     
     if [[ $failures_exist_plum != "true" && $failures_exist_toffee != "true" ]]; then
-        printf "\n>:green_circle: all environments are healthy" >>slack-message.txt
+        printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
     fi
 }
 
