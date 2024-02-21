@@ -51,12 +51,8 @@ function do_failures_exist() {
 function no_failures_exist() {
     if [[ $failures_exist_plum != "true" && $failures_exist_toffee != "true" ]]; then
         printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
-    else
+    fi
 }
-
-# if [[ $failures_exist_plum != "true" && $failures_exist_toffee != "true" ]]; then
-#     printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
-# fi
 
 printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >>slack-message.txt
 
