@@ -50,7 +50,7 @@ function do_failures_exist() {
 
 printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >>slack-message.txt
 
-APPS=("Toffee" "Plum")
+APPS=("Toffee crisp" "Plums")
 for APP in ${APPS[@]}; do
     printf "\n*$APP Status:*" >>slack-message.txt
     add_environments $APP
