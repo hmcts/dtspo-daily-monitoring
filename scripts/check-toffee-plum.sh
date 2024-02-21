@@ -48,18 +48,17 @@ function do_failures_exist() {
     fi
 }
 
+
+APPS=("Toffee" "Plum")
 printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >>slack-message.txt
 
 if [[ $failures_exist_plum != "true" && $failures_exist_toffee != "true" ]]; then
     printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
+else
+    for APP in ${APPS[@]}; do
+        printf "\n*$APP Status:*" >>slack-message.txt
+        add_environments $APP
+        uptime $APP
+        do_failures_exist $APP
+    done
 fi
-
-APPS=("Toffee" "Plum")
-# prints as it runs good for split output
-
-for APP in ${APPS[@]}; do
-    printf "\n*$APP Status:*" >>slack-message.txt
-    add_environments $APP
-    uptime $APP
-    do_failures_exist $APP
-done
