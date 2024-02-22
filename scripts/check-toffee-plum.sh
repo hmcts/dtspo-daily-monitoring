@@ -93,4 +93,4 @@ declare -A toffee=(
 # declare -A plum=( [app]="Plum" [env]=["Sandbox" "Perftest" "ITHC" "Demo" "AAT" "Prod"] [failure]="False" )
 # ------------
 
-printf "\nHashMap ${toffee[app]}: failures ${toffee[failure]}, env ${toffee[env]}" >>slack-message.txt
+printf "\nHashMap ${toffee[app]}: failures ${toffee[failure]}, env ${toffee["env[@]]}" >>slack-message.txt
