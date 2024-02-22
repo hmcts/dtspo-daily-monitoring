@@ -91,8 +91,7 @@ declare -A Toffee=(
 )
 
 uptime ${Toffee[app]}
-
-printf "%s\n Toffee uptime results: "${Toffee[env][@]}""
+printf "%s\nHashMap ${Toffee[app]}: failures ${Toffee[failure]}, env ${Toffee["env[@]]}" >>slack-message.txt
 
 # need to run uptime on both arrays
 # need to check for failure, if not then simple printf else well think of that later
