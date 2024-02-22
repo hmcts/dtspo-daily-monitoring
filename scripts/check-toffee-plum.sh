@@ -22,10 +22,12 @@ function status_code() {
 
 function failure_check() {
     if [[ $statuscode != 200 ]] && [[ $1 == "Toffee" ]]; then
-        if [[ $statuscode != 200 ]] && [[ $1 == "Toffee" ]] && [[ $failures_exist_toffee == "true" ]]; then
-            printf "\n>:red_circle:  <$url| $ENV> is unhealthy" >>slack-message.txt
-        fi
+        #if [[ $statuscode != 200 ]] && [[ $1 == "Toffee" ]] && [[ $failures_exist_toffee == "true" ]]; then
+            # printf "\n>:red_circle:  <$url| $ENV> is unhealthy" >>slack-message.txt
+        toffee[failure_msg]=( "\n>:red_circle:  <$url| $ENV> is unhealthy" )
+        #fi
         failures_exist_toffee="true"
+
 
     elif [[ $statuscode != 200 ]] && [[ $1 == "Plum" ]]; then
         if [[ $statuscode != 200 ]] && [[ $1 == "Plum" ]] && [[ $failures_exist_plum == "true" ]]; then
@@ -37,8 +39,8 @@ function failure_check() {
 
 function uptime() {
     for ENV in ${ENVIRONMENTS[@]}; do
-        status_code $1
-        failure_check $1
+        status_code $1 # passing name
+        failure_check $1 # passing name 
     done
 }
 
@@ -55,13 +57,14 @@ function do_failures_exist() {
     fi
 }
 
-APPS=("Toffee" "Plum")
 
+# function runner
+APPS=("Toffee" "Plum")
 printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >>slack-message.txt
 
 # Check app status first before output
 for APP in ${APPS[@]}; do
-    add_environments $APP
+    add_environments $APP # not needed now 
     uptime $APP
 done
 
@@ -80,11 +83,14 @@ else
 fi
 
 # ------------
-declare -A toffee=( [app_name]="Toffee" [env]= [statusCode]= [failure]="False" [fail]=
+declare -A toffee=( 
+[app]="Toffee" 
+[env]=["Sandbox" "Test" "ITHC" "Demo" "Staging" "Prod"] 
+[failure]="False"
+[failure_msg]=""
 )
 
-toffee[env]= add_environments() ${toffee[app_name]}
+# declare -A plum=( [app]="Plum" [env]=["Sandbox" "Perftest" "ITHC" "Demo" "AAT" "Prod"] [failure]="False" )
+# ------------
 
-
-
-printf "\nObject Toffee: status code ${toffee[statusCode]}, failures ${toffee[failure]}, env ${toffee[env]}" >>slack-message.txt
+printf "\nHashMap ${toffee[app]}: failures ${toffee[failure]}, env ${toffee[env]}" >>slack-message.txt
