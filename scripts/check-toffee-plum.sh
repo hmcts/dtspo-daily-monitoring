@@ -81,24 +81,22 @@ fi
 
 # ------------
 
-function createobject($APP){
-    Object() {
-        kind="application"
-        self="appToffee"
+Object() {
+    kind="application"
+    self="appToffee"
 
-        name=$APP
-        ENVIRONMENTS=""
-        failed_url=""
-        status_code=""
-        failed_url=""
-        failure_txt_output=""
-    }
+    name=$APP
+    ENVIRONMENTS=""
+    failed_url=""
+    status_code=""
+    failed_url=""
+    failure_txt_output=""
 }
 
-for app in ${APPS[@]}; do
-    createobject(app)
-    printf "\n$appToffee_name" >>slack-message.txt
-done
+
+
+printf "\nObject Toffee: $appToffee_name" >>slack-message.txt
+
 
 # Object() {
 #     name="Toffee"
