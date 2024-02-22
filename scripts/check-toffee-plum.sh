@@ -41,19 +41,12 @@ function do_failures_exist() {
         if [[ $failures_exist_toffee != "true" ]]; then
             printf "\n>:green_circle:  All environments in $1 are healthy" >>slack-message.txt
         fi
-
     elif [[ $1 = "Plum" ]]; then
-        if [[ $failures_exist_toffee = "true" && $failures_exist_plum != "true" ]]; then
-            printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
-
-        elif [[ $failures_exist_plum != "true" ]]; then
+        if [[ $failures_exist_plum != "true" ]]; then
             printf "\n>:green_circle:  All environments in $1 are healthy" >>slack-message.txt
         fi
     fi
-
-
 }
-
 
 APPS=("Toffee" "Plum")
 
@@ -62,10 +55,22 @@ printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >>slack-message.t
 # if [[ $failures_exist_toffee != "true" && $failures_exist_plum != "true" ]]; then
 #     printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
 
-# use this for individual output need new loop if both apps are healthy
+# Check app status first before output
 for APP in ${APPS[@]}; do
-    printf "\n*$APP Status:*" >>slack-message.txt
+    # printf "\n*$APP Status:*" >>slack-message.txt
     add_environments $APP
     uptime $APP
-    do_failures_exist $APP
+    # do_failures_exist $APP
 done
+
+# format output
+if [[ $failures_exist_toffee != "true" && $failures_exist_plum != "true" ]]; then
+    # print if no failure exist
+    printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
+else
+    # print if failure exist
+    for APP in ${APPS[@]}; do
+       printf "\n*$APP Status:*" >>slack-message.txt 
+       do_failures_exist $APP
+    done
+fi
