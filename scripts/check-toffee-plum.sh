@@ -80,33 +80,11 @@ else
 fi
 
 # ------------
+declare -A toffee=( [app_name]="Toffee" [env]= [statusCode]= [failure]="False" [fail]=
+)
 
-Object() {
-    kind="application"
-    self="appToffee"
-
-    name=$APP
-    ENVIRONMENTS=""
-    failed_url=""
-    status_code=""
-    failed_url=""
-    failure_txt_output=""
-}
-
-declare -A toffee=( [statusCode]= [failure]="False" )
-
-toffee[statusCode]=200
+toffee[env]= add_environments() ${toffee[app_name]}
 
 
 
-printf "\nObject Toffee: ${toffee[statusCode]}, ${toffee[failure]}" >>slack-message.txt
-
-
-# Object() {
-#     name="Toffee"
-#     ENVIRONMENTS= add_environments "Toffee"
-#     failed_url=""
-#     statuscode=""
-#     failure="false"
-#     failure_txt_output=""
-# }
+printf "\nObject Toffee: status code ${toffee[statusCode]}, failures ${toffee[failure]}, env ${toffee[env]}" >>slack-message.txt
