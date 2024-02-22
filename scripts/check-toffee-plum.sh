@@ -38,7 +38,7 @@ function failure_check() {
 }
 
 function uptime() {
-    for ENV in ${ENVIRONMENTS[@]}; do
+    for ENV in ${$1[env[@]]}; do
         status_code $1 # passing name
         failure_check $1 # passing name 
     done
@@ -64,7 +64,7 @@ printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >>slack-message.t
 
 # Check app status first before output
 for APP in ${APPS[@]}; do
-    add_environments $APP # not needed now 
+    # add_environments $APP # not needed now 
     uptime $APP
 done
 
@@ -90,7 +90,8 @@ declare -A toffee=(
 [failure_msg]=""
 )
 
+# need to run uptime on both arrays
+# need to check for failure, if not then simple printf else well think of that later
+
 # declare -A plum=( [app]="Plum" [env]=["Sandbox" "Perftest" "ITHC" "Demo" "AAT" "Prod"] [failure]="False" )
 # ------------
-
-printf "\nHashMap ${toffee[app]}: failures ${toffee[failure]}, env ${toffee["env[@]]}" >>slack-message.txt
