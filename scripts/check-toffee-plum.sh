@@ -13,6 +13,7 @@ function status_code() {
     if [ $ENV == "Prod" ]; then
         url="https://$1.platform.hmcts.net"
         statuscode=$(curl -s -o /dev/null -w "%{http_code}" $url)
+
     elif [ $ENV != "Prod" ]; then
         url="https://$1.$ENV.platform.hmcts.net"
         statuscode=$(curl -s -o /dev/null -w "%{http_code}" $url)
@@ -46,6 +47,7 @@ function do_failures_exist() {
         if [[ $failures_exist_toffee != "true" ]]; then
             printf "\n>:green_circle:  All environments in $1 are healthy" >>slack-message.txt
         fi
+
     elif [[ $1 = "Plum" ]]; then
         if [[ $failures_exist_plum != "true" ]]; then
             printf "\n>:green_circle:  All environments in $1 are healthy" >>slack-message.txt
@@ -57,15 +59,10 @@ APPS=("Toffee" "Plum")
 
 printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >>slack-message.txt
 
-# if [[ $failures_exist_toffee != "true" && $failures_exist_plum != "true" ]]; then
-#     printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
-
 # Check app status first before output
 for APP in ${APPS[@]}; do
-    # printf "\n*$APP Status:*" >>slack-message.txt
     add_environments $APP
     uptime $APP
-    # do_failures_exist $APP
 done
 
 # format output
@@ -81,3 +78,31 @@ else
         do_failures_exist $APP
     done
 fi
+
+# ------------
+
+function createobject($APP){
+    Object() {
+        kind="application"
+        name=$APP
+        ENVIRONMENTS=""
+        failed_url=""
+        status_code=""
+        failed_url=""
+        failure_txt_output=""
+    }
+}
+
+for app in ${APPS[@]}; do
+    createobject(app)
+    printf "\n$Application_name" >>slack-message.txt
+done
+
+# Object() {
+#     name="Toffee"
+#     ENVIRONMENTS= add_environments "Toffee"
+#     failed_url=""
+#     statuscode=""
+#     failure="false"
+#     failure_txt_output=""
+# }
