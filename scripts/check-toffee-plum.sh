@@ -22,10 +22,15 @@ function status_code() {
 function failure_check() {
     if [[ $statuscode != 200 ]] && [[ $1 == "Toffee" ]]; then
         failures_exist_toffee="true"
-        printf "\n>:red_circle:  <$url| $ENV> is unhealthy" >>slack-message.txt
+        if [[ $statuscode != 200 ]] && [[ $1 == "Toffee" ]] && [[ $failures_exist_toffee == "true" ]]; then
+            printf "\n>:red_circle:  <$url| $ENV> is unhealthy" >>slack-message.txt
+        fi
+
     elif [[ $statuscode != 200 ]] && [[ $1 == "Plum" ]]; then
         failures_exist_plum="true"
-        printf "\n>:red_circle:  <$url| $ENV> is unhealthy" >>slack-message.txt
+        if [[ $statuscode != 200 ]] && [[ $1 == "Plum" ]] && [[ $failures_exist_plum == "true" ]]; then
+            printf "\n>:red_circle:  <$url| $ENV> is unhealthy" >>slack-message.txt
+        fi
     fi
 }
 
@@ -68,9 +73,11 @@ if [[ $failures_exist_toffee != "true" && $failures_exist_plum != "true" ]]; the
     # print if no failure exist
     printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
 else
-    # print if failure exist
+    # print if failure exist, $1 does not persist need to re run logic
     for APP in ${APPS[@]}; do
-       printf "\n*$APP Status:*" >>slack-message.txt 
-       do_failures_exist $APP
+        printf "\n*$APP Status:*" >>slack-message.txt
+        add_environments $APP
+        uptime $APP
+        do_failures_exist $APP
     done
 fi
