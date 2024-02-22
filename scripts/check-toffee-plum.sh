@@ -59,7 +59,7 @@ function do_failures_exist() {
 
 
 # function runner
-APPS=("Toffee" "Plum")
+APPS=("Toffee")
 printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >>slack-message.txt
 
 # Check app status first before output
