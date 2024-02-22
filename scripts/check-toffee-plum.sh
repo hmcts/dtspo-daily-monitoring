@@ -84,6 +84,8 @@ fi
 function createobject($APP){
     Object() {
         kind="application"
+        self="appToffee"
+
         name=$APP
         ENVIRONMENTS=""
         failed_url=""
@@ -95,7 +97,7 @@ function createobject($APP){
 
 for app in ${APPS[@]}; do
     createobject(app)
-    printf "\n$Application_name" >>slack-message.txt
+    printf "\n$appToffee_name" >>slack-message.txt
 done
 
 # Object() {
