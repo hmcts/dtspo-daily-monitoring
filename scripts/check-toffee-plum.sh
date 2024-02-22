@@ -24,7 +24,7 @@ function failure_check() {
     if [[ $statuscode != 200 ]] && [[ $1 == "Toffee" ]]; then
         #if [[ $statuscode != 200 ]] && [[ $1 == "Toffee" ]] && [[ $failures_exist_toffee == "true" ]]; then
             # printf "\n>:red_circle:  <$url| $ENV> is unhealthy" >>slack-message.txt
-        toffee[failure_msg]=( "\n>:red_circle:  <$url| $ENV> is unhealthy" )
+        Toffee[failure_msg]=( "\n>:red_circle:  <$url| $ENV> is unhealthy" )
         #fi
         failures_exist_toffee="true"
 
@@ -59,36 +59,40 @@ function do_failures_exist() {
 
 
 # function runner
-APPS=("Toffee")
+APPS=("Toffee" "Plum")
 printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >>slack-message.txt
 
 # Check app status first before output
-for APP in ${APPS[@]}; do
-    # add_environments $APP # not needed now 
-    uptime $APP
-done
+# for APP in ${APPS[@]}; do
+#     # add_environments $APP # not needed now 
+#     uptime $APP
+# done
 
-# format output
-if [[ $failures_exist_toffee != "true" && $failures_exist_plum != "true" ]]; then
-    # print if no failure exist
-    printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
-else
-    # print if failure exist, $1 data does not persist need to re run logic
-    for APP in ${APPS[@]}; do
-        printf "\n*$APP Status:*" >>slack-message.txt
-        add_environments $APP
-        uptime $APP
-        do_failures_exist $APP
-    done
-fi
+# # format output
+# if [[ $failures_exist_toffee != "true" && $failures_exist_plum != "true" ]]; then
+#     # print if no failure exist
+#     printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
+# else
+#     # print if failure exist, $1 data does not persist need to re run logic
+#     for APP in ${APPS[@]}; do
+#         printf "\n*$APP Status:*" >>slack-message.txt
+#         add_environments $APP
+#         uptime $APP
+#         do_failures_exist $APP
+#     done
+# fi
 
 # ------------
-declare -A toffee=( 
+declare -A Toffee=( 
 [app]="Toffee" 
 [env]=["Sandbox" "Test" "ITHC" "Demo" "Staging" "Prod"] 
 [failure]="False"
 [failure_msg]=""
 )
+
+uptime ${Toffee[app]}
+
+printf "%s\n Toffee uptime results: ${Toffee[env][@]}"
 
 # need to run uptime on both arrays
 # need to check for failure, if not then simple printf else well think of that later
