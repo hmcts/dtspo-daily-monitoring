@@ -93,11 +93,13 @@ Object() {
     failure_txt_output=""
 }
 
-declare -A apps=( [app1]=Toffee [app2]=Plum )
+declare -A toffee=( [statusCode]= [failure]="False" )
+
+toffee[statusCode]=200
 
 
 
-printf "\nObject Toffee: ${apps[app1]}" >>slack-message.txt
+printf "\nObject Toffee: ${toffee[statusCode]}, ${toffee[failure]}" >>slack-message.txt
 
 
 # Object() {
