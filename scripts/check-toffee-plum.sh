@@ -69,7 +69,7 @@ for APP in ${APPS[@]}; do
 done
 
 # format output
-if [[ $failures_exist_toffee != "true" && $failures_exist_plum != "true" ]]; then
+if [[ $failures_exist_toffee == "true" && $failures_exist_plum != "true" ]]; then
     # print if no failure exist
     printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
 else
