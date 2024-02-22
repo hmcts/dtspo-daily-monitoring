@@ -93,9 +93,11 @@ Object() {
     failure_txt_output=""
 }
 
+declare -A apps=( [app1]=Toffee [app2]=Plum )
 
 
-printf "\nObject Toffee: $appToffee_name" >>slack-message.txt
+
+printf "\nObject Toffee: ${apps[app1]}" >>slack-message.txt
 
 
 # Object() {
