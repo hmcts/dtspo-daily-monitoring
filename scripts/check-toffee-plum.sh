@@ -58,20 +58,14 @@ function do_failures_exist() {
 }
 
 function check_status() {
-    # printf "\n*$1 Status:*" >>slack-message.txt
     add_environments $1
     uptime $1
     do_failures_exist $1
-
-    # if [[ -n "${Toffee[no_fail_msg]}" ]] && [[ -n "${Plum[no_fail_msg]}" ]]; then
-    #     printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
-    # fi
 }
 
 function format_status() {
-
     # first check that no failures have occured
-    if [[ "${Toffee[no_fail_msg]}" ]] && [[ -n "${Plum[no_fail_msg]}" ]]; then
+    if [[ -n "${Toffee[failure_msg]}" ]] && [[ -n "${Plum[no_fail_msg]}" ]]; then
         printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
 
     # if failure occurs print failure msg for each toffee or plum
@@ -80,7 +74,7 @@ function format_status() {
 
         # if toffee has no failures
         if [[ -n "${Toffee[no_fail_msg]}" ]]; then
-            printf "s%" "${Toffee[no_fail_msg]}" >>slack-message.txt
+            printf "s%" "${Toffee[failure_msg]}" >>slack-message.txt
         else
             printf "s%" "${Toffee[failure_msg]}" >>slack-message.txt
         fi
