@@ -48,12 +48,11 @@ function do_failures_exist() {
     if [[ $1 = "Toffee" ]]; then
         if [[ $failures_exist_toffee != "true" ]]; then
             Toffee[no_fail_msg]+="\n>:green_circle:  All environments in $1 are healthy" 
-            Toffee[no_fail_msg]+="this is testing append on associated array"
         fi
 
     elif [[ $1 = "Plum" ]]; then
         if [[ $failures_exist_plum != "true" ]]; then
-            printf "\n>:green_circle:  All environments in $1 are healthy" >>slack-message.txt
+            Plum[no_fail_msg]+="\n>:green_circle:  All environments in $1 are healthy"
         fi
     fi
 }
@@ -63,9 +62,16 @@ function check_status () {
     add_environments $1
     uptime $1
     do_failures_exist $1
+
+    if [[ -n "${Toffee[no_fail_msg]}" ]] && [[ -n "${Plum[no_fail_msg]}" ]]; then
+        printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
+    fi
 }
 
 declare -A Toffee=( 
+[no_fail_msg]=
+)
+declare -A Plum=( 
 [no_fail_msg]=
 )
 
@@ -75,9 +81,6 @@ printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >>slack-message.t
 
 # Check app status first before output
 for APP in ${APPS[@]}; do
-    # add_environments $APP
-    # uptime $APP
-
     check_status $APP
 done
 printf "%s\n" "${Toffee[no_fail_msg]}" >>slack-message.txt
