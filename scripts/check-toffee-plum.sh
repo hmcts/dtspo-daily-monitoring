@@ -65,6 +65,9 @@ function check_status () {
     do_failures_exist $1
 }
 
+declare -A Toffee=( 
+[no_fail_msg]=
+)
 
 # function runner
 APPS=("Toffee" "Plum")
@@ -92,9 +95,7 @@ printf "%s\n" "${Toffee[no_fail_msg][@]}" >>slack-message.txt
 # fi
 
 # ------------
-declare -A Toffee=( 
-[no_fail_msg]=
-)
+
 
 
 # need to run uptime on both arrays
