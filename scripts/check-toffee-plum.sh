@@ -80,7 +80,7 @@ for APP in ${APPS[@]}; do
 
     check_status $APP
 done
-printf "%s\n" "${Toffee[no_fail_msg][@]}" >>slack-message.txt
+printf "%s\n" "${Toffee[no_fail_msg]}" >>slack-message.txt
 
 
 # format output, print if no failure exist
