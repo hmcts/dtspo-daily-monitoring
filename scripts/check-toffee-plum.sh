@@ -73,7 +73,7 @@ function format_status() {
     if [[ -n "${Toffee[no_fail_msg]}" ]] && [[ -n "${Plum[no_fail_msg]}" ]]; then
         # printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
         printf "\n*$1 Status:*" >>slack-message.txt
-        printf "s%\n" "${$1[no_fail_msg]}"
+        printf "s%\n" "${!APP[no_fail_msg]}" >>slack-message.txt
     fi
     
     # if failure occurs print failure msg
