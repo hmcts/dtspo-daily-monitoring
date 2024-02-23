@@ -57,50 +57,51 @@ function do_failures_exist() {
     fi
 }
 
-function check_status () {
-    printf "\n*$1 Status:*" >>slack-message.txt
+function check_status() {
+    # printf "\n*$1 Status:*" >>slack-message.txt
     add_environments $1
     uptime $1
     do_failures_exist $1
 
-    if [[ -n "${Toffee[no_fail_msg]}" ]] && [[ -n "${Plum[no_fail_msg]}" ]]; then
-        printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
-    fi
+    # if [[ -n "${Toffee[no_fail_msg]}" ]] && [[ -n "${Plum[no_fail_msg]}" ]]; then
+    #     printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
+    # fi
 }
 
+function format_status() {
+    # first check that no failures have occured
+    if [[ -n "${Toffee[no_fail_msg]}" ]] && [[ -n "${Plum[no_fail_msg]}" ]]; then
+        # printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
+        printf "\n*$1 Status:*" >>slack-message.txt
+        printf "s%\n" "${$1[no_fail_msg]}"
+    fi
+    
+    # if failure occurs print failure msg
+    # elif [[  ]]; then
+    #     printf "\n*$1 Status:*" >>slack-message.txt
+    #     printf "s%\n" "${$1[no_fail_msg]}"
+}
+
+# hold any failure or success messages 
 declare -A Toffee=( 
-[no_fail_msg]=
+    [failure_msg]=
+    [no_fail_msg]=
 )
 declare -A Plum=( 
-[no_fail_msg]=
+    [failure_msg]=
+    [no_fail_msg]=
 )
 
 # function runner
 APPS=("Toffee" "Plum")
 printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >>slack-message.txt
 
-# Check app status first before output
+# Check app status first
 for APP in ${APPS[@]}; do
     check_status $APP
 done
-printf "%s\n" "${Toffee[no_fail_msg]}" >>slack-message.txt
 
-
-# format output, print if no failure exist
-# if [[ $failures_exist_toffee != "true" && $failures_exist_plum != "true" ]]; then
-#     printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
-# else
-
-#     # print if failure exist, $1 data does not persist need to re run logic
-#     for APP in ${APPS[@]}; do
-#         check_status $APP
-#     done
-# fi
-
-# ------------
-
-
-
-# need to run uptime on both arrays
-# need to check for failure, if not then simple printf else well think of that later
-
+# format output
+for APP in ${APPS[@]}; do
+    format_status $APP
+done
