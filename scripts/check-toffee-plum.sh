@@ -22,18 +22,14 @@ function status_code() {
 }
 
 function failure_check() {
-    if [[ $statuscode == 200 ]] && [[ $1 == "Toffee" ]]; then
-        # if [[ $statuscode != 200 ]] && [[ $1 == "Toffee" ]] && [[ $failures_exist_toffee == "true" ]]; then
-        # toffee_failure_msg="\n>:red_circle:  <$url| $ENV> is unhealthy"
-        toffee_failure_msg+="\n>:green_circle:  <$url| $ENV> is healthy"
-        # fi
+    if [[ $statuscode == 200 ]] && [[ $1 == "Toffee" ]]; then # revert if back to !=
+        # failure_msg_toffee="\n>:red_circle:  <$url| $ENV> is unhealthy"
+        failure_msg_toffee+="\n>:green_circle:  <$url| $ENV> is healthy"
         failures_exist_toffee="true"
 
 
     elif [[ $statuscode != 200 ]] && [[ $1 == "Plum" ]]; then
-        # if [[ $statuscode != 200 ]] && [[ $1 == "Plum" ]] && [[ $failures_exist_plum == "true" ]]; then
-        plum_failure_msg="\n>:red_circle:  <$url| $ENV> is unhealthy"
-        # fi
+        failure_msg_plum+="\n>:red_circle:  <$url| $ENV> is unhealthy"
         failures_exist_plum="true"
     fi
 }
@@ -48,12 +44,12 @@ function uptime() {
 function do_failures_exist() {
     if [[ $1 = "Toffee" ]]; then
         if [[ $failures_exist_toffee != "true" ]]; then
-            toffee_no_failure_msg="\n>:green_circle:  All environments in $1 are healthy" 
+            success_msg_toffee+="\n>:green_circle:  All environments in $1 are healthy" 
         fi
 
     elif [[ $1 = "Plum" ]]; then
         if [[ $failures_exist_plum != "true" ]]; then
-            plum_no_failure_msg="\n>:green_circle:  All environments in $1 are healthy"
+            success_msg_plum+="\n>:green_circle:  All environments in $1 are healthy"
         fi
     fi
 }
@@ -69,32 +65,32 @@ function format_status() {
     if [[ $failures_exist_toffee != "true" ]] && [[ $failures_exist_plum != "true" ]]; then
         printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
 
-    # if failure occurs print failure msg for each toffee and plum
+    # if failure occurs print success/failure msg for each toffee and plum
     else
         printf "\n*Toffee Status:*" >>slack-message.txt
-        # might need a for loop here
+
         if [[ $failures_exist_toffee != "true" ]]; then
-            printf '%s\n' "${toffee_no_failure_msg[@]}" >>slack-message.txt
+            printf '%s\n' "${success_msg_toffee[@]}" >>slack-message.txt
         else
-            printf '%s\n' "${toffee_failure_msg[@]}" >>slack-message.txt
+            printf '%s\n' "${failure_msg_toffee[@]}" >>slack-message.txt
         fi
 
         printf "\n*Plum Status:*" >>slack-message.txt
 
         if [[ $failures_exist_plum != "true" ]]; then
-            printf '%s\n' "${plum_no_failure_msg[@]}" >>slack-message.txt
+            printf '%s\n' "${success_msg_plum[@]}" >>slack-message.txt
         else
-            printf '%s\n' "${plum_failure_msg[@]}" >>slack-message.txt
+            printf '%s\n' "${failure_msg_plum[@]}" >>slack-message.txt
         fi
     fi
 }
 
 # hold any failure or success messages 
-toffee_failure_msg=()
-toffee_no_failure_msg=()
+failure_msg_toffee=()
+success_msg_toffee=()
 
-plum_failure_msg=()
-plum_no_failure_msg=()
+failure_msg_plum=()
+success_msg_plum=()
 
 
 APPS=("Toffee" "Plum")
@@ -105,10 +101,5 @@ for APP in ${APPS[@]}; do
     check_status $APP
 done
 
+# format the output
 format_status
-
-# check toffee
-# 
-# check plum 
-# 
-# format output
