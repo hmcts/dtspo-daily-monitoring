@@ -22,9 +22,10 @@ function status_code() {
 }
 
 function failure_check() {
-    if [[ $statuscode != 200 ]] && [[ $1 == "Toffee" ]]; then
+    if [[ $statuscode == 200 ]] && [[ $1 == "Toffee" ]]; then
         # if [[ $statuscode != 200 ]] && [[ $1 == "Toffee" ]] && [[ $failures_exist_toffee == "true" ]]; then
-        toffee_failure_msg="\n>:red_circle:  <$url| $ENV> is unhealthy"
+        # toffee_failure_msg="\n>:red_circle:  <$url| $ENV> is unhealthy"
+        toffee_failure_msg="\n>:green_circle:  <$url| $ENV> is healthy"
         # fi
         failures_exist_toffee="true"
 
@@ -65,15 +66,14 @@ function check_status() {
 
 function format_status() {
     # first check that no failures have occured
-    if [[ $failures_exist_toffee == "true" ]] && [[ $failures_exist_plum != "true" ]]; then
+    if [[ $failures_exist_toffee != "true" ]] && [[ $failures_exist_plum != "true" ]]; then
         printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
 
     # if failure occurs print failure msg for each toffee and plum
-    toffee_failure_msg="\n>:red_circle: Populating failure array"
     else
         printf "\n*Toffee Status:*" >>slack-message.txt
         # might need a for loop here
-        if [[ $failures_exist_toffee == "true" ]]; then
+        if [[ $failures_exist_toffee != "true" ]]; then
             printf '%s\n' "${toffee_no_failure_msg[@]}" >>slack-message.txt
         else
             printf '%s\n' "${toffee_failure_msg[@]}" >>slack-message.txt
