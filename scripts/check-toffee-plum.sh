@@ -69,49 +69,19 @@ function success_msg() {
 }
 
 function format_status() {
-    # # first check that no failures have occured
-    # if [[ $failures_exist_toffee != "true" ]] && [[ $failures_exist_plum != "true" ]]; then
-    #     success_msg
-
-    # # if failure occurs print success/failure msg for each toffee and plum
-    # else
-    #     printf "\n*Toffee Status:*" >>slack-message.txt
-
-    #     if [[ $failures_exist_toffee == "true" ]]; then
-    #         printf '%s\n' "${success_msg_toffee[@]}" >>slack-message.txt # "\n>:green_circle:  All environments in $1 are healthy" .. slack-message.txt
-    #     else
-    #         printf "\n>:green_circle:  All environments in Toffee are healthy" >>slack-message.txt
-    #     fi
-
-    #     printf "\n*Plum Status:*" >>slack-message.txt
-
-    #     if [[ $failures_exist_plum != "true" ]]; then
-    #         printf '%s\n' "${success_msg_plum[@]}" >>slack-message.txt
-    #     else
-    #         printf '%s\n' "${failure_msg_plum[@]}" >>slack-message.txt
-    #     fi
-    # fi
-
-    if [[ $failures_exist_toffee != "true" ]] && [[ $failures_exist_plum != "true" ]]; then
-        success_msg
-    fi
-
+    printf "\n*Toffee Status:*" >>slack-message.txt
     if [[ $failures_exist_toffee == "true" ]]; then
-        printf "\n*Toffee Status:*" >>slack-message.txt
         printf '%s\n' "${failure_msg_toffee[@]}" >>slack-message.txt
     else
-        printf "\n*Toffee Status:*" >>slack-message.txt
         success_msg
     fi
 
+    printf "\n*Plum Status:*" >>slack-message.txt
     if [[ $failures_exist_plum == "true" ]]; then
-        printf "\n*Plum Status:*" >>slack-message.txt
         printf '%s\n' "${failure_msg_plum[@]}" >>slack-message.txt
     else
-        printf "\n*Toffee Status:*" >>slack-message.txt
         success_msg
     fi
-
 }
 
 # hold any failure or success messages 
@@ -131,4 +101,8 @@ for APP in ${APPS[@]}; do
 done
 
 # format the output
-format_status
+if [[ $failures_exist_toffee == "true" ]] || [[ $failures_exist_plum == "true" ]]; then
+    format_status
+else
+    success_msg
+fi
