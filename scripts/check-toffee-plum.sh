@@ -69,6 +69,7 @@ function format_status() {
         printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
 
     # if failure occurs print failure msg for each toffee and plum
+    toffee_failure_msg="\n>:red_circle: Populating failure array"
     else
         printf "\n*Toffee Status:*" >>slack-message.txt
         # might need a for loop here
