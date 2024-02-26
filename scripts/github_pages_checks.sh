@@ -68,13 +68,16 @@ function findExpiringUrls() {
 }
 
 function findGoodUrls() {
-    if [[ -n "$EXPIRINGFOUNDURLs" && -n "$EXPIREDFOUNDURLs" ]]; then
+    if [[ -z "$EXPIRINGFOUNDURLs" && -z "$EXPIREDFOUNDURLs" ]]; then
         printf "\n>:green_circle: All pages have acceptable review dates! :smile: \n\n" >> slack-message.txt
     fi
 }
 
 scrapeUrls
-printf "\n\n:github: :document_it: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> status: \n\n" >> slack-message.txt
+
+if [[ -n "$EXPIRINGFOUNDURLs" || -n "$EXPIREDFOUNDURLs" ]]; then
+    printf "\n\n:github: :document_it: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> status: \n\n" >> slack-message.txt
+fi
 
 findNullUrls
 findExpiredUrls
