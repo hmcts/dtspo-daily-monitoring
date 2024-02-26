@@ -91,19 +91,27 @@ function format_status() {
     #         printf '%s\n' "${failure_msg_plum[@]}" >>slack-message.txt
     #     fi
     # fi
-    
+
+    if [[ $failures_exist_toffee != "true" ]] && [[ $failures_exist_plum != "true" ]]; then
+        success_msg
+    fi
 
     if [[ $failures_exist_toffee == "true" ]]; then
         printf "\n*Toffee Status:*" >>slack-message.txt
         printf '%s\n' "${failure_msg_toffee[@]}" >>slack-message.txt
+    else
+        printf "\n*Toffee Status:*" >>slack-message.txt
+        success_msg
     fi
 
     if [[ $failures_exist_plum == "true" ]]; then
         printf "\n*Plum Status:*" >>slack-message.txt
         printf '%s\n' "${failure_msg_plum[@]}" >>slack-message.txt
     else
+        printf "\n*Toffee Status:*" >>slack-message.txt
         success_msg
     fi
+
 }
 
 # hold any failure or success messages 
