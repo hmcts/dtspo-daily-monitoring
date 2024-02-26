@@ -73,17 +73,17 @@ function format_status() {
         printf "\n*Toffee Status:*" >>slack-message.txt
         # might need a for loop here
         if [[ $failures_exist_toffee == "true" ]]; then
-            printf "s%" "${toffee_no_failure_msg[@]}" >>slack-message.txt
+            printf '%s\n' "${toffee_no_failure_msg[@]}" >>slack-message.txt
         else
-            printf "s%" "${toffee_failure_msg[@]}" >>slack-message.txt
+            printf '%s\n' "${toffee_failure_msg[@]}" >>slack-message.txt
         fi
 
         printf "\n*Plum Status:*" >>slack-message.txt
 
         if [[ $failures_exist_plum != "true" ]]; then
-            printf "s%" "${plum_no_failure_msg[@]}" >>slack-message.txt
+            printf '%s\n' "${plum_no_failure_msg[@]}" >>slack-message.txt
         else
-            printf "s%" "${plum_failure_msg[@]}" >>slack-message.txt
+            printf '%s\n' "${plum_failure_msg[@]}" >>slack-message.txt
         fi
     fi
 }
