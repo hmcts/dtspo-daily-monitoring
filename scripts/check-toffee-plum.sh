@@ -22,9 +22,9 @@ function status_code() {
 }
 
 function failure_check() {
-    if [[ $statuscode == 200 ]] && [[ $1 == "Toffee" ]]; then # revert if back to !=
-        # failure_msg_toffee="\n>:red_circle:  <$url| $ENV> is unhealthy"
-        failure_msg_toffee+="\n>:green_circle:  <$url| $ENV> is healthy"
+    if [[ $statuscode != 200 ]] && [[ $1 == "Toffee" ]]; then
+        failure_msg_toffee="\n>:red_circle:  <$url| $ENV> is unhealthy"
+        # failure_msg_toffee+="\n>:green_circle:  <$url| $ENV> is healthy"
         failures_exist_toffee="true"
 
 
@@ -41,34 +41,16 @@ function uptime() {
     done
 }
 
-# function do_failures_exist() {
-#     if [[ $1 = "Toffee" ]]; then
-#         if [[ $failures_exist_toffee != "true" ]]; then
-#             success_msg_toffee+="\n>:green_circle:  All environments in $1 are healthy" 
-#         fi
-
-#     elif [[ $1 = "Plum" ]]; then
-#         if [[ $failures_exist_plum != "true" ]]; then
-#             success_msg_plum+="\n>:green_circle:  All environments in $1 are healthy"
-#         fi
-#     fi
-# }
-
 function check_status() {
     add_environments $1
     uptime $1
-    # do_failures_exist $1
 }
-
-# mb make a default slack msg
-# print generic msg if no faults are there
-# create a different slack msg if faults occur 
 
 function success_msg() {
     printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
 }
 
-function format_status() {
+function format_failure() {
     printf "\n*Toffee Status:*" >>slack-message.txt
     if [[ $failures_exist_toffee == "true" ]]; then
         printf '%s\n' "${failure_msg_toffee[@]}" >>slack-message.txt
@@ -84,13 +66,18 @@ function format_status() {
     fi
 }
 
-# hold any failure or success messages 
+function format_status() {
+    # if failure exists
+    if [[ $failures_exist_toffee == "true" ]] || [[ $failures_exist_plum == "true" ]]; then
+        format_failure
+    else
+        success_msg
+    fi
+}
+
+# hold any failure messages 
 failure_msg_toffee=()
-# success_msg_toffee=()
-
 failure_msg_plum=()
-# success_msg_plum=()
-
 
 APPS=("Toffee" "Plum")
 printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >>slack-message.txt
@@ -100,9 +87,5 @@ for APP in ${APPS[@]}; do
     check_status $APP
 done
 
-# format the output
-if [[ $failures_exist_toffee == "true" ]] || [[ $failures_exist_plum == "true" ]]; then
-    format_status
-else
-    success_msg
-fi
+# format the output, if toffee or plum experience faults
+format_status
