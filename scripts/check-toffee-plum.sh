@@ -23,7 +23,7 @@ function failure_check() {
     if [[ $statuscode == 200 ]] && [[ $1 == "Toffee" ]]; then
         failure_msg_toffee+="\n>:red_circle:  <$url| $ENV> is unhealthy"
         failures_exist_toffee="true"
-    elif [[ $statuscode == 200 ]] && [[ $1 == "Plum" ]]; then
+    elif [[ $statuscode != 200 ]] && [[ $1 == "Plum" ]]; then
         failure_msg_plum+="\n>:red_circle:  <$url| $ENV> is unhealthy"
         failures_exist_plum="true"
     fi
