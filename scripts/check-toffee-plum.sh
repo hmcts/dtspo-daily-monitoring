@@ -21,8 +21,7 @@ function status_code() {
 
 function failure_check() {
     if [[ $statuscode == 200 ]] && [[ $1 == "Toffee" ]]; then
-        #failure_msg_toffee+="\n>:red_circle:  <$url| $ENV> is unhealthy"
-        failure_msg_toffee+="\n>:green_circle:  <$url| $ENV> is healthy"
+        failure_msg_toffee+="\n>:red_circle:  <$url| $ENV> is unhealthy"
         failures_exist_toffee="true"
     elif [[ $statuscode != 200 ]] && [[ $1 == "Plum" ]]; then
         failure_msg_plum+="\n>:red_circle:  <$url| $ENV> is unhealthy"
@@ -68,7 +67,7 @@ function format_failure() {
     local failure_msg=$3
 
     printf "\n*$app Status:*" >>slack-message.txt
-    if [[ $failures_exist == "true" ]]; then
+    if [[ $failures_exist ]]; then
         printf '%s\n' "${failure_msg[@]}" >>slack-message.txt
     else
         success_msg
@@ -77,8 +76,8 @@ function format_failure() {
 
 function format_status() {
     if [[ $failures_exist_toffee || $failures_exist_plum ]]; then
-        format_failure "Toffee" $failures_exist_toffee "${failure_msg_toffee[@]}"
-        format_failure "Plum" $failures_exist_plum "${failure_msg_plum[@]}"
+        format_failure "Toffee" $failures_exist_toffee ${failure_msg_toffee[@]}
+        format_failure "Plum" $failures_exist_plum ${failure_msg_plum[@]}
     else
         success_msg
     fi
