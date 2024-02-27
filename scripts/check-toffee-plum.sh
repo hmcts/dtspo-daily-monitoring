@@ -43,11 +43,11 @@ function check_status() {
 
 function format_failure() {
     local app=$1
-    local failure_exists=$2
+    local failure_exist=$2
     local failure_msg=$3
 
     printf "\n*$app Status:*" >>slack-message.txt
-    if [[ $failure_exists ]]; then
+    if [[ $failure_exist ]]; then
         printf '%s\n' "${failure_msg[@]}" >>slack-message.txt
     else
         printf "\n>:green_circle:  All environments in ${app} are healthy" >>slack-message.txt
