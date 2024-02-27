@@ -70,17 +70,17 @@ function format_failure() {
     if [[ $failure_exists ]]; then
         printf '%s\n' "${failure_msg[@]}" >>slack-message.txt
     else
-        success_msg
+        printf "\n>:green_circle:  All environments in ${app} are healthy" >>slack-message.txt
     fi
 }
 
 function format_status() {
-    if [[ $failures_exist_toffee || $failures_exist_plum ]]; then
-        format_failure "Toffee" $failures_exist_toffee "${failure_msg_toffee[@]}"
-        format_failure "Plum" $failures_exist_plum "${failure_msg_plum[@]}"
-    else
-        success_msg
-    fi
+    # if [[ $failures_exist_toffee || $failures_exist_plum ]]; then
+    format_failure "Toffee" $failures_exist_toffee "${failure_msg_toffee[@]}"
+    format_failure "Plum" $failures_exist_plum "${failure_msg_plum[@]}"
+    # else
+    #     success_msg
+    # fi
 }
 
 # hold any failure messages 
