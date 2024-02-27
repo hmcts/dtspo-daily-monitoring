@@ -41,26 +41,6 @@ function check_status() {
     uptime $1
 }
 
-# function success_msg() {
-#     printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
-# }
-
-# function format_failure() {
-#     printf "\n*Toffee Status:*" >>slack-message.txt
-#     if [[ $failures_exist_toffee == "true" ]]; then
-#         printf '%s\n' "${failure_msg_toffee[@]}" >>slack-message.txt
-#     else
-#         success_msg
-#     fi
-
-#     printf "\n*Plum Status:*" >>slack-message.txt
-#     if [[ $failures_exist_plum == "true" ]]; then
-#         printf '%s\n' "${failure_msg_plum[@]}" >>slack-message.txt
-#     else
-#         success_msg
-#     fi
-# }
-
 function format_failure() {
     local app=$1
     local failure_exists=$2
@@ -83,7 +63,7 @@ function format_status() {
     fi
 }
 
-# hold any failure messages 
+# hold any failure messages
 failure_msg_toffee=()
 failure_msg_plum=()
 
