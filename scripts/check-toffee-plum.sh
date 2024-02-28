@@ -75,5 +75,12 @@ for APP in ${APPS[@]}; do
     check_status $APP
 done
 
+test_ENV_1="prod"
+test_url_1="https://Toffee.prod.platform.hmcts.net"
+test_ENV_2="sandbox"
+test_url_2="https://Toffee.sandbox.platform.hmcts.net"
+failure_msg_toffee=("\n>:red_circle:  <$test_url_1| $test_ENV_1> is unhealthy" "\n>:red_circle:  <$test_url_2| $test_ENV_2> is unhealthy")
+
+
 # format the output, if toffee or plum experience faults
 format_status
