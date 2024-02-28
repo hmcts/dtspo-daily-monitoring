@@ -82,8 +82,8 @@ test_ENV_1="ITHC"
 test_url_1="https://$test_app.$test_ENV_1.platform.hmcts.net"
 test_ENV_2="Demo"
 test_url_2="https://$test_app.$test_ENV_2.platform.hmcts.net"
-failure_msg_Plum+="\n>:red_circle:  <$test_url_1| $test_ENV_1> is unhealthy"
-failure_msg_Plum+="\n>:red_circle:  <$test_url_2| $test_ENV_2> is unhealthy"
+failure_msg_plum+="\n>:red_circle:  <$test_url_1| $test_ENV_1> is unhealthy"
+failure_msg_plum+="\n>:red_circle:  <$test_url_2| $test_ENV_2> is unhealthy"
 
 
 # format the output, if toffee or plum experience faults
