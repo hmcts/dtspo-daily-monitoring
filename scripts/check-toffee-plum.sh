@@ -77,7 +77,7 @@ done
 
 # testing toffee app prod and 
 test_app="Plum"
-failures_exist_Plum="true"
+failures_exist_plum="true"
 test_ENV_1="ITHC"
 test_url_1="https://$test_app.$test_ENV_1.platform.hmcts.net"
 test_ENV_2="Demo"
