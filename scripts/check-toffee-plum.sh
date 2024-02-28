@@ -76,14 +76,14 @@ for APP in ${APPS[@]}; do
 done
 
 # testing toffee app prod and 
-test_app="Toffee"
-failures_exist_toffee="true"
-test_ENV_1="prod"
+test_app="Plum"
+failures_exist_Plum="true"
+test_ENV_1="ITHC"
 test_url_1="https://$test_app.$test_ENV_1.platform.hmcts.net"
-test_ENV_2="sandbox"
+test_ENV_2="Demo"
 test_url_2="https://$test_app.$test_ENV_2.platform.hmcts.net"
-failure_msg_toffee+="\n>:red_circle:  <$test_url_1| $test_ENV_1> is unhealthy"
-failure_msg_toffee+="\n>:red_circle:  <$test_url_2| $test_ENV_2> is unhealthy"
+failure_msg_Plum+="\n>:red_circle:  <$test_url_1| $test_ENV_1> is unhealthy"
+failure_msg_Plum+="\n>:red_circle:  <$test_url_2| $test_ENV_2> is unhealthy"
 
 
 # format the output, if toffee or plum experience faults
