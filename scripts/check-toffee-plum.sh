@@ -69,22 +69,9 @@ failure_msg_plum=()
 
 APPS=("Toffee" "Plum")
 printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >>slack-message.txt
-
 # Check app status first
 for APP in ${APPS[@]}; do
     check_status $APP
 done
-
-# testing toffee app prod and 
-test_app="Plum"
-failures_exist_plum="true"
-test_ENV_1="ITHC"
-test_url_1="https://$test_app.$test_ENV_1.platform.hmcts.net"
-test_ENV_2="Demo"
-test_url_2="https://$test_app.$test_ENV_2.platform.hmcts.net"
-failure_msg_plum+="\n>:red_circle:  <$test_url_1| $test_ENV_1> is unhealthy"
-failure_msg_plum+="\n>:red_circle:  <$test_url_2| $test_ENV_2> is unhealthy"
-
-
 # format the output, if toffee or plum experience faults
 format_status
