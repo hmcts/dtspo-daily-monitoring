@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 
-WEBHOOK_URL=$1
+SLACK_BOT_TOKEN=$1
 CHANNEL_NAME=$2
 
 MESSAGE=$(cat slack-message.txt)
-curl -s -X POST --data-urlencode "payload={\"channel\": \"${CHANNEL_NAME}\", \"username\": \"Plato\", \"text\": \"${MESSAGE}\", \"icon_emoji\": \":plato:\"}" ${WEBHOOK_URL}
+
+payload="{\"channel\": \"${CHANNEL_NAME}\", \"username\": \"Plato\", \"text\": \"${MESSAGE}\", \"icon_emoji\": \":plato:\"}"
+
+curl -s -H "Content-type: application/json" \
+--data "${payload}" \
+-H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \
+-H application/json \
+-X POST https://slack.com/api/chat.postMessage

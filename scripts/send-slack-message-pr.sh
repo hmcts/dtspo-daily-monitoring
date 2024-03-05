@@ -15,7 +15,6 @@ payload="{\"channel\": \"${CHANNEL_NAME}\", \"username\": \"Plato\", \"text\": \
 
 echo $payload
 
-
 curl -s -H "Content-type: application/json" \
 --data "${payload}" \
 -H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \

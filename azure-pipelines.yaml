@@ -344,4 +344,4 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
-          arguments: $(dtspo-daily-checks-slack-webhook-url) ${{ variables.main_channel }}
+          arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.main_channel }}
