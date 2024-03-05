@@ -336,7 +336,8 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message-pr.sh
-          arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.pull_request_number }} $(github-management-api-token)
+          # arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.pull_request_number }} $(github-management-api-token)
+          arguments: $(dtspo-daily-checks-slack-webhook-url) ${{ variables.main_channel }}
       - task: Bash@3
         displayName: 'Send slack message - master branch'
         condition: |
