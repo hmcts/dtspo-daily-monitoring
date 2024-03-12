@@ -126,6 +126,12 @@ parameters:
         timeForRed: '7'
         pipelineName: azure-app-proxy
         branchName: refs/heads/main
+      - project: 'PlatformOperations'
+        definitionId: '534'
+        timeForAmber: '5'
+        timeForRed: '7'
+        pipelineName: azure-resource-locks
+        branchName: refs/heads/master
   - name: aks_clusters
     type: object
     default:
