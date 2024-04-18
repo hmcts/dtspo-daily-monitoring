@@ -34,9 +34,9 @@ elif ((  "$UNASSIGNED_ISSUES_COUNT" <= 15 )); then
 fi
 
 OPEN_ISSUES_STATUS=":red_circle:"
-if (( "$OPEN_ISSUES_COUNT" <= 40 )); then
+if (( "$OPEN_ISSUES_COUNT" <= 50 )); then
   OPEN_ISSUES_STATUS=":green_circle:"
-elif (( "$OPEN_ISSUES_COUNT" <= 55 )); then
+elif (( "$OPEN_ISSUES_COUNT" <= 70 )); then
   OPEN_ISSUES_STATUS=":yellow_circle:"
 fi
 
