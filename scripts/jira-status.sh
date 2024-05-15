@@ -52,12 +52,26 @@ elif (( "$OPEN_ISSUES_COUNT" <= 70 )); then
   OPEN_ISSUES_STATUS=":yellow_circle:"
 fi
 
+OPEN_PATCHING_ISSUES_STATUS=":red_circle:"
+if (( "$OPEN_PATCHING_ISSUES_COUNT" <= 20 )); then
+  OPEN_PATCHING_ISSUES_STATUS=":green_circle:"
+elif (( "$OPEN_PATCHING_ISSUES_COUNT" <= 25 )); then
+  OPEN_PATCHING_ISSUES_STATUS=":yellow_circle:"
+fi
+
+OPEN_OAT_ISSUES_STATUS=":red_circle:"
+if (( "$OPEN_OAT_ISSUES_COUNT" <= 15 )); then
+  OPEN_OAT_ISSUES_STATUS=":green_circle:"
+elif (( "$OPEN_OAT_ISSUES_COUNT" <= 20 )); then
+  OPEN_OAT_ISSUES_STATUS=":yellow_circle:"
+fi
+
 printf "\n:jira: <https://bit.ly/3mzE5DL|_*BAU Tickets Status*_> \n\n" >> slack-message.txt
 
 printf "> %s *%s* Open BAU issues\n" "$OPEN_ISSUES_STATUS" "$OPEN_ISSUES_COUNT" >> slack-message.txt
-printf "> %s *%s* unassigned BAU issues\n" "$UNASSIGNED_STATUS" "$UNASSIGNED_ISSUES_COUNT" >> slack-message.txt
-printf "> %s *%s* Open Patching issues\n" "$OPEN_ISSUES_STATUS" "$OPEN_PATCHING_ISSUES_COUNT" >> slack-message.txt
-printf "> %s *%s* Open OAT issues\n" "$OPEN_ISSUES_STATUS" "$OPEN_OAT_ISSUES_COUNT" >> slack-message.txt
+printf "> %s *%s* Unassigned BAU issues\n" "$UNASSIGNED_STATUS" "$UNASSIGNED_ISSUES_COUNT" >> slack-message.txt
+printf "> %s *%s* Open Patching issues\n" "$OPEN_PATCHING_ISSUES_STATUS" "$OPEN_PATCHING_ISSUES_COUNT" >> slack-message.txt
+printf "> %s *%s* Open OAT issues\n" "$OPEN_OAT_ISSUES_STATUS" "$OPEN_OAT_ISSUES_COUNT" >> slack-message.txt
 
 printf ">\n>\n>:tada:  *%s issues closed yesterday:* \n>\n" "$CLOSED_ISSUES_COUNT" >> slack-message.txt
 echo "${CLOSED_ISSUES_USER}">> slack-message.txt
