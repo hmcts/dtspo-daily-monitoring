@@ -39,7 +39,7 @@ OPEN_OAT_ISSUES_RESULT=$(curl   -u $JIRA_USERNAME:$JIRA_PASSWORD -X POST -H "Con
 OPEN_OAT_ISSUES_COUNT=$(jq -r .total <<< "${OPEN_OAT_ISSUES_RESULT}")
 
 AUTO_WITHDRAWN_ISSUES_RESULT=$(curl   -u $JIRA_USERNAME:$JIRA_PASSWORD -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
-   --data '{"jql":"project = DTSPO AND issuetype in ("BAU Task", Task) AND Labels = auto-withdrawn AND status changed to (Withdrawn) ON -'${PREVIOUS_DAYS}'d"}')
+   --data '{"jql":"project = DTSPO AND issuetype in ("BAU Task", Task) AND Labels = auto-withdrawn"}')
 
 AUTO_WITHDRAWN_ISSUES_COUNT=$(jq -r .total <<< "${AUTO_WITHDRAWN_ISSUES_RESULT}")
 
