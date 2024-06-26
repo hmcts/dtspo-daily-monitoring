@@ -39,7 +39,7 @@ OPEN_OAT_ISSUES_RESULT=$(curl   -u $JIRA_USERNAME:$JIRA_PASSWORD -X POST -H "Con
 OPEN_OAT_ISSUES_COUNT=$(jq -r .total <<< "${OPEN_OAT_ISSUES_RESULT}")
 
 AUTO_WITHDRAWN_ISSUES_RESULT=$(curl   -u $JIRA_USERNAME:$JIRA_PASSWORD -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
-   --data '{"jql":"project = DTSPO AND issuetype in ("BAU Task", Task) AND Labels = auto-withdrawn AND status changed to (Withdrawn) ON -'${PREVIOUS_DAYS}'d","startAt":0,"maxResults":200,"fields":["assignee"]},"expand":"names"')
+   --data '{"jql":"project = DTSPO AND issuetype in ("BAU Task", Task) AND Labels = auto-withdrawn AND status changed to (Withdrawn) ON -'${PREVIOUS_DAYS}'d"}')
 
 AUTO_WITHDRAWN_ISSUES_COUNT=$(jq -r .total <<< "${AUTO_WITHDRAWN_ISSUES_RESULT}")
 
@@ -78,7 +78,7 @@ printf "> %s *%s* Unassigned BAU issues\n" "$UNASSIGNED_STATUS" "$UNASSIGNED_ISS
 printf "> %s *%s* Open Patching issues\n" "$OPEN_PATCHING_ISSUES_STATUS" "$OPEN_PATCHING_ISSUES_COUNT" >> slack-message.txt
 printf "> %s *%s* Open OAT issues\n" "$OPEN_OAT_ISSUES_STATUS" "$OPEN_OAT_ISSUES_COUNT" >> slack-message.txt
 
-printf ">\n>\n>:tada:  *%s issues automatically withdrawn yesterday:* \n>\n" "$AUTO_WITHDRAWN_ISSUES_COUNT" >> slack-message.txt
+printf ">\n>\n>:o:  *%s issues automatically withdrawn yesterday:* \n>\n" "$AUTO_WITHDRAWN_ISSUES_COUNT" >> slack-message.txt
 
 printf ">\n>\n>:tada:  *%s issues closed yesterday:* \n>\n" "$CLOSED_ISSUES_COUNT" >> slack-message.txt
 echo "${CLOSED_ISSUES_USER}">> slack-message.txt
