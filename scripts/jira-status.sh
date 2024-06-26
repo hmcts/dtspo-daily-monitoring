@@ -71,6 +71,12 @@ elif (( "$OPEN_OAT_ISSUES_COUNT" <= 20 )); then
   OPEN_OAT_ISSUES_STATUS=":yellow_circle:"
 fi
 
+if [ -n "$AUTO_WITHDRAWN_ISSUES_COUNT" ]; then
+  printf ">\n>\n>:o: *%s issues automatically withdrawn yesterday:* \n>\n" "$AUTO_WITHDRAWN_ISSUES_COUNT" >> slack-message.txt
+else
+  printf ">\n>\n>:green_circle:  *No issues were automatically withdrawn yesterday:* \n>\n" >> slack-message.txt
+fi
+
 printf "\n:jira: <https://bit.ly/3mzE5DL|_*BAU Tickets Status*_> \n\n" >> slack-message.txt
 
 printf "> %s *%s* Open BAU issues\n" "$OPEN_ISSUES_STATUS" "$OPEN_ISSUES_COUNT" >> slack-message.txt
