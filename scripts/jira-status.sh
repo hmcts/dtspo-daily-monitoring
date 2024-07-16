@@ -41,8 +41,6 @@ OPEN_OAT_ISSUES_COUNT=$(jq -r .total <<< "${OPEN_OAT_ISSUES_RESULT}")
 AUTO_WITHDRAWN_ISSUES_RESULT=$(curl   -u $JIRA_USERNAME:$JIRA_PASSWORD -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
    --data '{"jql":"project = DTSPO AND IssueType in (\"BAU Task\", \"Task\") AND Labels in (auto-withdrawn) AND status changed to (Withdrawn) ON -'${PREVIOUS_DAYS}'d","startAt":0,"maxResults":200,"fields":["assignee"]},"expand":"names"')
 
-AUTO_WITHDRAWN_ISSUES_NUMBERS=$(jq -r '.issues[].key' <<< "${AUTO_WITHDRAWN_ISSUES_RESULT}")
-
 AUTO_WITHDRAWN_ISSUES_COUNT=$(jq -r .total <<< "${AUTO_WITHDRAWN_ISSUES_RESULT}")
 
 UNASSIGNED_STATUS=":red_circle:"
@@ -82,9 +80,6 @@ printf "> %s *%s* Open OAT issues\n" "$OPEN_OAT_ISSUES_STATUS" "$OPEN_OAT_ISSUES
 
 if [ -n "$AUTO_WITHDRAWN_ISSUES_COUNT" ]; then
   printf ">\n>\n>:o: *%s issues automatically withdrawn yesterday:* \n>\n" "$AUTO_WITHDRAWN_ISSUES_COUNT" >> slack-message.txt
-  while IFS= read -r number; do
-    printf "> https://tools.hmcts.net/jira/browse/%s \n>\n" "$number" >> slack-message.txt
-  done <<< "${AUTO_WITHDRAWN_ISSUES_NUMBERS}" 
 else
   printf ">\n>\n>:green_circle:  *No issues were automatically withdrawn yesterday:* \n>\n" >> slack-message.txt
 fi
