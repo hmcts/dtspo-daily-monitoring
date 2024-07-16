@@ -79,10 +79,10 @@ printf "> %s *%s* Open Patching issues\n" "$OPEN_PATCHING_ISSUES_STATUS" "$OPEN_
 printf "> %s *%s* Open OAT issues\n" "$OPEN_OAT_ISSUES_STATUS" "$OPEN_OAT_ISSUES_COUNT" >> slack-message.txt
 
 if [ -n "$AUTO_WITHDRAWN_ISSUES_COUNT" ]; then
-  printf ">\n>\n>:hourglass_flowing_sand:  *%s inactive issues automatically withdrawn yesterday:* \n>\n" "$AUTO_WITHDRAWN_ISSUES_COUNT" >> slack-message.txt
+  printf ">\n>\n>:hourglass_flowing_sand:  *%s issues automatically withdrawn yesterday:* \n>\n" "$AUTO_WITHDRAWN_ISSUES_COUNT" >> slack-message.txt
   printf "> <https://tools.hmcts.net/jira/issues/?jql=project%%20%%3D%%20DTSPO%%20AND%%20IssueType%%20in%%20(%%22BAU%%20Task%%22)%%20AND%%20Labels%%20in%%20(auto-withdrawn)%%20AND%%20status%%20changed%%20to%%20(Withdrawn)%%20ON%%20-${PREVIOUS_DAYS}d|_*View withdrawn issues*_> \n>\n" >> slack-message.txt
 else
-  printf ">\n>\n>:hourglass_flowing_sand:  *No inactive issues were automatically withdrawn yesterday:* \n>\n" >> slack-message.txt
+  printf ">\n>\n>:hourglass_flowing_sand:  *No issues were automatically withdrawn yesterday:* \n>\n" >> slack-message.txt
 fi
 
 printf ">\n>\n>:tada:  *%s issues closed yesterday:* \n>\n" "$CLOSED_ISSUES_COUNT" >> slack-message.txt
