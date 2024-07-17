@@ -178,6 +178,12 @@ parameters:
         resource_group: 'bau-bais_prod_network_rg'  
         front_door_name: 'hmcts-heritage-prod'
         min_cert_exp_days: '14'
+  - name: postgres_subscriptions
+    type: object
+    default:
+      - subscription: 'DCD-CNP-PROD'
+      - subscription: 'DTS-SHAREDSERVICES-PROD'
+      - subscription: 'DTS-HERITAGE-INTSVC-PROD'
 
 variables:
   - name: SPSecretNumDays
@@ -335,6 +341,14 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/github_pages_checks.sh
+      - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
+        - task: AzureCLI@2
+          displayName: 'Checking PostgreSQL Flexible Storage Status: ${{ postgres_sub.subscription }}'
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/postgres-flexible-storage.sh
+            azureSubscription: ${{ postgres_sub.subscription }}
+            arguments: ${{ postgres_sub.subscription }}
       - task: Bash@3
         displayName: 'Send slack message - pull request'
         condition: |
