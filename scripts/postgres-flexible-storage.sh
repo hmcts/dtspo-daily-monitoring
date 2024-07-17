@@ -7,6 +7,7 @@ POSTGRES_FLEXIBLE_INSTANCES=$(az postgres flexible-server list --subscription $S
 printf "\n\n:database: PostgreSQL Flexible Server Storage Usage: $SUBSCRIPTION \n\n" >>slack-message.txt
 
 COUNT=$(echo $POSTGRES_FLEXIBLE_INSTANCES | jq '. | length')
+STORAGE_SAFE_COUNT=0
 
 for ((INDEX = 0; INDEX < $COUNT; INDEX++)); do
   INSTANCE_ID=$(echo $POSTGRES_FLEXIBLE_INSTANCES | jq -r '.['$INDEX'].id')
@@ -18,6 +19,8 @@ for ((INDEX = 0; INDEX < $COUNT; INDEX++)); do
   elif [ $STORAGE_USED -gt 80 ]; then
     echo "> :yellow_circle: <$INSTANCE_URL|_*$INSTANCE_NAME*_> is running above 80% storage capacity at *$STORAGE_USED%*" >>slack-message.txt
   else
-    echo "> :green_circle: <$INSTANCE_URL|_*$INSTANCE_NAME*_> is below 80% storage capacity at *$STORAGE_USED%*" >>slack-message.txt
+    STORAGE_SAFE_COUNT=$(($STORAGE_SAFE_COUNT+1))
   fi
 done
+
+echo "> :green_circle: $STORAGE_SAFE_COUNT PostgreSQL Flexible Servers are running below 80% storage capacity." >>slack-message.txt
