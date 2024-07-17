@@ -78,7 +78,7 @@ printf "> %s *%s* Unassigned BAU issues\n" "$UNASSIGNED_STATUS" "$UNASSIGNED_ISS
 printf "> %s *%s* Open Patching issues\n" "$OPEN_PATCHING_ISSUES_STATUS" "$OPEN_PATCHING_ISSUES_COUNT" >> slack-message.txt
 printf "> %s *%s* Open OAT issues\n" "$OPEN_OAT_ISSUES_STATUS" "$OPEN_OAT_ISSUES_COUNT" >> slack-message.txt
 
-if [ -n "$AUTO_WITHDRAWN_ISSUES_COUNT" ]; then
+if [ "$AUTO_WITHDRAWN_ISSUES_COUNT" != "0" ]; then
   printf ">\n>\n>:hourglass_flowing_sand:  *%s issues automatically withdrawn yesterday:* \n>\n" "$AUTO_WITHDRAWN_ISSUES_COUNT" >> slack-message.txt
   printf "> <https://tools.hmcts.net/jira/issues/?jql=project%%20%%3D%%20DTSPO%%20AND%%20IssueType%%20in%%20(%%22BAU%%20Task%%22)%%20AND%%20Labels%%20in%%20(auto-withdrawn)%%20AND%%20status%%20changed%%20to%%20(Withdrawn)%%20ON%%20-${PREVIOUS_DAYS}d|_*View withdrawn issues*_> \n>\n" >> slack-message.txt
 else
