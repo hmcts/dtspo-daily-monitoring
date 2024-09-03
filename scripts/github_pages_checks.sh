@@ -115,7 +115,7 @@ function findExpiredUrls() {
 
     if [ -n "$EXPIREDFOUNDURLs" ]; then
 
-        local URLS=$(printf "%s\n\n" "$NULLFOUNDURLs" | tr -d '"')
+        local URLS=$(printf "%s\n\n" "$EXPIREDFOUNDURLs" | tr -d '"')
         post_message $slackBotToken $slackChannelName "\n>:red_circle: Pages found which have an expired review date! \n\n"
         post_threaded_reply $slackBotToken $slackChannelName "$URLS" $TS #$TS is an output of the post_message function
     fi
