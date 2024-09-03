@@ -51,7 +51,7 @@ do
     esac
 done
 
-if [ -z "$slackBotToken" && ()]; then
+if [ -z "$slackBotToken" ]; then
         echo "------------------------"
         echo 'Please supply a Slack token' >&2
         echo "------------------------"
