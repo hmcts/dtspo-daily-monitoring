@@ -347,6 +347,10 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/github_pages_checks.sh
+          ${{ if and(eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true)) }}:
+            arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --pullRequestNumber ${{ variables.pull_request_number }} --githubToken $(github-management-api-token)
+          ${{ else }}:
+            arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName ${{ variables.main_channel }}
       - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
         - task: AzureCLI@2
           displayName: 'Checking PostgreSQL Flexible Storage Status: ${{ postgres_sub.subscription }}'
@@ -355,19 +359,19 @@ jobs:
             scriptPath: scripts/postgres-flexible-storage.sh
             azureSubscription: ${{ postgres_sub.subscription }}
             arguments: ${{ postgres_sub.subscription }}
-      - task: Bash@3
-        displayName: 'Send slack message - pull request'
-        condition: |
-          and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true))
-        inputs:
-          targetType: filePath
-          filePath: scripts/send-slack-message-pr.sh
-          arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.pull_request_number }} $(github-management-api-token)
-      - task: Bash@3
-        displayName: 'Send slack message - master branch'
-        condition: |
-          and(succeeded(), eq(variables['isMain'], true))
-        inputs:
-          targetType: filePath
-          filePath: scripts/send-slack-message.sh
-          arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.main_channel }}
+      # - task: Bash@3
+      #   displayName: 'Send slack message - pull request'
+      #   condition: |
+      #     and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true))
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/send-slack-message-pr.sh
+      #     arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.pull_request_number }} $(github-management-api-token)
+      # - task: Bash@3
+      #   displayName: 'Send slack message - master branch'
+      #   condition: |
+      #     and(succeeded(), eq(variables['isMain'], true))
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/send-slack-message.sh
+      #     arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.main_channel }}
