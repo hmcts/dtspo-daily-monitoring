@@ -102,7 +102,7 @@ function findNullUrls() {
     NULLFOUNDURLs=$(jq -rc '. | select(.review_by == null) | "<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$NULLFOUNDURLs" ]; then
-        post_message $slackBotToken $slackChannelName ">:red_circle: Pages found with no review date set: \n\n"
+        post_message $slackBotToken $slackChannelName ">:red_circle: Pages found with no review date set! \n\n"
         post_threaded_reply $slackBotToken $slackChannelName "$NULLFOUNDURLs" $TS #$TS is an output of the post_message function
     fi
 }
@@ -114,8 +114,10 @@ function findExpiredUrls() {
     EXPIREDFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$CURRENTDATE'") | "<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$EXPIREDFOUNDURLs" ]; then
-        post_message $slackBotToken $slackChannelName "\n>:red_circle: Pages found which have an expired review date: \n\n"
-        post_threaded_reply $slackBotToken $slackChannelName "$EXPIREDFOUNDURLs" $TS #$TS is an output of the post_message function
+
+        local URLS=$(echo "%s\n\n" "$NULLFOUNDURLs" | tr -d '"')
+        post_message $slackBotToken $slackChannelName "\n>:red_circle: Pages found which have an expired review date! \n\n"
+        post_threaded_reply $slackBotToken $slackChannelName "$URLS" $TS #$TS is an output of the post_message function
     fi
 }
 
@@ -127,7 +129,7 @@ function findExpiringUrls() {
     EXPIRINGFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$EXPIRETHRESHOLD'" and .review_by > "'$CURRENTDATE'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$EXPIRINGFOUNDURLs" ]; then
-        post_message $slackBotToken $slackChannelName  "\n>:yellow_circle: Pages found which require a review in the next 13 days: \n\n"
+        post_message $slackBotToken $slackChannelName  "\n>:yellow_circle: Pages found which require a review in the next 13 days! \n\n"
         post_threaded_reply $slackBotToken $slackChannelName "$EXPIRINGFOUNDURLs" $TS
     fi
 }

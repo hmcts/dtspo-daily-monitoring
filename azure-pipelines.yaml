@@ -336,12 +336,12 @@ jobs:
       #     scriptPath: scripts/service-principals.sh
       #     azureSubscription: ${{ variables.dev_service_connection }}
       #     arguments: ${{ variables.SPSecretNumDays }}
-      - task: Bash@3
-        displayName: 'Checking JIRA status'
-        inputs:
-          targetType: filePath
-          filePath: scripts/jira-status.sh
-          arguments: $(jira-username) $(jira-password)
+      # - task: Bash@3
+      #   displayName: 'Checking JIRA status'
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/jira-status.sh
+      #     arguments: $(jira-username) $(jira-password)
       - script: echo "isMain = $(isMain)"
         displayName: 'Check isMain'
       - script: echo "isAutoTriggered = $(isAutoTriggered)"
