@@ -351,10 +351,9 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/github_pages_checks.sh
-          ${{ if and(eq(variables['isMain'], False), eq(variables['isAutoTriggered'], True)) }}:
-            arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --pullRequestNumber ${{ variables.pull_request_number }} --githubToken $(github-management-api-token)
-          ${{ else }}:
-            arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName ${{ variables.main_channel }}
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --pullRequestNumber ${{ variables.pull_request_number }} --githubToken $(github-management-api-token)
+          # ${{ else }}:
+          #   arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName ${{ variables.main_channel }}
       # - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
       #   - task: AzureCLI@2
       #     displayName: 'Checking PostgreSQL Flexible Storage Status: ${{ postgres_sub.subscription }}'

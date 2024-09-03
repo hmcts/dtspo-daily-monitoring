@@ -31,14 +31,13 @@ post_message() {
     local channel_name=$2
     local message=$3
 
-    RESPONSE=$(curl -s -X POST -H "Authorization: Bearer $slack_token" \
-    -H "Content-Type: application/json" \
-    -d "{
-        "channel": "${channel_name}",
-        "username": "Plato",
-        "text": "${message}",
-        "icon_emoji": ":plato:"
-    }" https://slack.com/api/chat.postMessage)
+    payload="{\"channel\": \"${channel_name}\", \"username\": \"Plato\", \"text\": \"${message}\", \"icon_emoji\": \":plato:\"}"
+
+    RESPONSE=$(curl -s -H "Content-Type: application/json" \
+    --data "${payload}" \
+    -H "Authorization: Bearer ${slack_token}" \
+    -H application/json \
+    -X POST https://slack.com/api/chat.postMessage)
 
     # Extract the timestamp of the posted message
     TS=$(echo $RESPONSE | jq -r '.ts')
@@ -52,11 +51,12 @@ post_threaded_reply() {
     local message=$3
     local parent_ts=$4
 
-    curl -s -X POST -H "Authorization: Bearer $slack_token" \
-    -H "Content-Type: application/json" \
-    -d "{
-        "channel": "${channel_name}",
-        "text": "${message}",
-        "thread_ts": "${parent_ts}",
-    }" https://slack.com/api/chat.postMessage
+    payload="{\"channel\": \"${channel_name}\", \"username\": \"Plato\", \"text\": \"${message}\", \"thread_ts\": \"${parent_ts}\", \"icon_emoji\": \":plato:\"}"
+
+    curl -s -H "Content-Type: application/json" \
+    --data "${payload}" \
+    -H "Authorization: Bearer ${slack_token}" \
+    -H application/json \
+    -X POST https://slack.com/api/chat.postMessage
+
 }
