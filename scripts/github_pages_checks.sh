@@ -102,8 +102,10 @@ function findNullUrls() {
     NULLFOUNDURLs=$(jq -rc '. | select(.review_by == null) | "<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$NULLFOUNDURLs" ]; then
+        local URLS=$(printf "%s\n\n" "$NULLFOUNDURLs" | tr -d '"')
+
         post_message $slackBotToken $slackChannelName ">:red_circle: Pages found with no review date set! \n\n"
-        post_threaded_reply $slackBotToken $slackChannelName "$NULLFOUNDURLs" $TS #$TS is an output of the post_message function
+        post_threaded_reply $slackBotToken $slackChannelName "$URLS" $TS #$TS is an output of the post_message function
     fi
 }
 
