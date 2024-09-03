@@ -80,8 +80,8 @@ declare -a PAGES
 # check if this is a PR run i.e. did we supply githubToken and pullRequestNumber via CI
 # If true the Slack Channel Name will be set to the GitHub user of the PR
 if isPR "$githubToken" "$pullRequestNumber"; then
-    echo "This is a Pull Request. PR Channel Name: $PR_slackChannelName"
-    slackChannelName=$PR_slackChannelName
+    echo "This is a Pull Request. PR Channel Name: $PR_CHANNEL_NAME"
+    slackChannelName=$PR_CHANNEL_NAME
 fi
 
 
