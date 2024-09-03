@@ -2,7 +2,7 @@
 name: Daily monitoring for platform operations
 trigger: none
 pr:
- - master
+  - master
 schedules:
   - cron: '45 6,8,11,13 * * Mon-Fri'
     displayName: Runs 8 AM, 10 AM, 1 PM & 3 PM Mon-Fri
@@ -336,21 +336,21 @@ jobs:
       #     scriptPath: scripts/service-principals.sh
       #     azureSubscription: ${{ variables.dev_service_connection }}
       #     arguments: ${{ variables.SPSecretNumDays }}
-      # - task: Bash@3
-      #   displayName: 'Checking JIRA status'
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/jira-status.sh
-      #     arguments: $(jira-username) $(jira-password)
+      - task: Bash@3
+        displayName: 'Checking JIRA status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/jira-status.sh
+          arguments: $(jira-username) $(jira-password)
       - task: Bash@3
         displayName: "Checking GitHub Pages review status"
         inputs:
           targetType: filePath
           filePath: scripts/github_pages_checks.sh
-          ${{ if and(eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true)) }}:
+          ${{ if and(eq(variables['isMain'], False), eq(variables['isAutoTriggered'], True)) }}:
             arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --pullRequestNumber ${{ variables.pull_request_number }} --githubToken $(github-management-api-token)
-          ${{ else }}:
-            arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName ${{ variables.main_channel }}
+          # ${{ else }}:
+          #   arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName ${{ variables.main_channel }}
       # - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
       #   - task: AzureCLI@2
       #     displayName: 'Checking PostgreSQL Flexible Storage Status: ${{ postgres_sub.subscription }}'
@@ -359,14 +359,14 @@ jobs:
       #       scriptPath: scripts/postgres-flexible-storage.sh
       #       azureSubscription: ${{ postgres_sub.subscription }}
       #       arguments: ${{ postgres_sub.subscription }}
-      # - task: Bash@3
-      #   displayName: 'Send slack message - pull request'
-      #   condition: |
-      #     and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true))
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/send-slack-message-pr.sh
-      #     arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.pull_request_number }} $(github-management-api-token)
+      - task: Bash@3
+        displayName: 'Send slack message - pull request'
+        condition: |
+          and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true))
+        inputs:
+          targetType: filePath
+          filePath: scripts/send-slack-message-pr.sh
+          arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.pull_request_number }} $(github-management-api-token)
       # - task: Bash@3
       #   displayName: 'Send slack message - master branch'
       #   condition: |
