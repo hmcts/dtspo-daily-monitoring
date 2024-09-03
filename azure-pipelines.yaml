@@ -342,6 +342,10 @@ jobs:
           targetType: filePath
           filePath: scripts/jira-status.sh
           arguments: $(jira-username) $(jira-password)
+      - script: echo "isMain = $(isMain)"
+        displayName: 'Check isMain'
+      - script: echo "isAutoTriggered = $(isAutoTriggered)"
+        displayName: 'Check isAutoTriggered'
       - task: Bash@3
         displayName: "Checking GitHub Pages review status"
         inputs:
@@ -349,8 +353,8 @@ jobs:
           filePath: scripts/github_pages_checks.sh
           ${{ if and(eq(variables['isMain'], False), eq(variables['isAutoTriggered'], True)) }}:
             arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --pullRequestNumber ${{ variables.pull_request_number }} --githubToken $(github-management-api-token)
-          # ${{ else }}:
-          #   arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName ${{ variables.main_channel }}
+          ${{ else }}:
+            arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName ${{ variables.main_channel }}
       # - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
       #   - task: AzureCLI@2
       #     displayName: 'Checking PostgreSQL Flexible Storage Status: ${{ postgres_sub.subscription }}'
