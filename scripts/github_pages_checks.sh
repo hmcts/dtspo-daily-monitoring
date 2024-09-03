@@ -5,7 +5,7 @@
 # Note, if you are running this script on MacOS, the BSD date command works differently. Use `gdate` to get the same output as below.
 
 ### Setup script environment
-set -euo pipefail
+set -euox pipefail
 
 # Source central functions script
 source scripts/common-functions.sh
@@ -79,10 +79,11 @@ declare -a PAGES
 
 # check if this is a PR run i.e. did we supply githubToken and pullRequestNumber via CI
 # If true the Slack Channel Name will be set to the GitHub user of the PR
-if [ $(isPR $githubToken $pullRequestNumber) ]; then
+if isPR "$githubToken" "$pullRequestNumber"; then
     echo "This is a Pull Request. PR Channel Name: $PR_slackChannelName"
     slackChannelName=$PR_slackChannelName
 fi
+
 
 # scrapeURLs will loop over each URL found in the URLS array and replace the short form URLs in the records
 # with a complete URL that it will then save into an array called PAGES
