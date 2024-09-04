@@ -239,7 +239,7 @@ jobs:
 
       - script: |
           echo $(main_channel)
-          echo $(variable.main_channel)
+          echo $(variables.main_channel)
         displayName: "Print main_channel value"
 
       - task: Bash@3
