@@ -368,13 +368,13 @@ jobs:
       #     scriptPath: scripts/service-principals.sh
       #     azureSubscription: ${{ variables.service_connection }}
       #     arguments: ${{ variables.SPSecretNumDays }}
-      # - task: AzureCLI@2
-      #   displayName: 'Service Principal Check - Dev Tenant'
-      #   inputs:
-      #     scriptType: bash
-      #     scriptPath: scripts/service-principals.sh
-      #     azureSubscription: ${{ variables.dev_service_connection }}
-      #     arguments: ${{ variables.SPSecretNumDays }}
+      - task: AzureCLI@2
+        displayName: 'Service Principal Check - Dev Tenant'
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/service-principals.sh
+          azureSubscription: ${{ variables.dev_service_connection }}
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
       - task: Bash@3
         displayName: 'Checking JIRA status'
         inputs:
@@ -388,19 +388,19 @@ jobs:
           filePath: scripts/github_pages_checks.sh
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
 
-      # - task: Bash@3
-      #   displayName: 'Send slack message - pull request'
-      #   condition: |
-      #     and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true))
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/send-slack-message-pr.sh
-      #     arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.pull_request_number }} $(github-management-api-token)
-      # - task: Bash@3
-      #   displayName: 'Send slack message - master branch'
-      #   condition: |
-      #     and(succeeded(), eq(variables['isMain'], true))
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/send-slack-message.sh
-      #     arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.main_channel }}
+      - task: Bash@3
+        displayName: 'Send slack message - pull request'
+        condition: |
+          and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true))
+        inputs:
+          targetType: filePath
+          filePath: scripts/send-slack-message-pr.sh
+          arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.pull_request_number }} $(github-management-api-token)
+      - task: Bash@3
+        displayName: 'Send slack message - master branch'
+        condition: |
+          and(succeeded(), eq(variables['isMain'], true))
+        inputs:
+          targetType: filePath
+          filePath: scripts/send-slack-message.sh
+          arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.main_channel }}
