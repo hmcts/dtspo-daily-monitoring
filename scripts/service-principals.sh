@@ -73,12 +73,12 @@ fi
 
 AZ_APP_COUNT=$(jq -r '. | length' <<< "${AZ_APP_RESULT}")
 
-declare -a expiredApps
-declare -a expiringAppsSoon
-declare -a expiringAppsUrgent
+declare -a expiredApps=()
+declare -a expiringAppsSoon=()
+declare -a expiringAppsUrgent=()
 
 if [[ $AZ_APP_COUNT == 0 ]]; then
-    slackNotification $slackBotToken $slackChannelName ":green_circle: No Service Principals Secrets are expiring in $checkDays days"
+    slackNotification $slackBotToken $slackChannelName "> :green_circle: No Service Principals Secrets are expiring in $checkDays days"
     exit 0
 else
     echo "$AZ_APP_RESULT" | jq -c -r '.[]'  | while read i; do
@@ -100,17 +100,17 @@ else
     done
 fi
 
-if [ ${expiredApps[@]} -gt 0 ]; then
-    slackNotification $slackBotToken $slackChannelName  ":red_circle: Expired Service Principals found!"
+if [ ${#expiredApps[@]} -gt 0 ]; then
+    slackNotification $slackBotToken $slackChannelName  "> :red_circle: Expired Service Principals found!"
     slackThreadResponse $slackBotToken $slackChannelName "$(IFS=$'\n'; echo "${expiredApps[*]}")" $TS
 fi
 
-if [ ${expiringAppsSoon[@]} -gt 0 ]; then
-    slackNotification $slackBotToken $slackChannelName  ":yellow_circle: Service Principals expiring soon!"
+if [ ${#expiringAppsSoon[@]} -gt 0 ]; then
+    slackNotification $slackBotToken $slackChannelName  "> :yellow_circle: Service Principals expiring soon!"
     slackThreadResponse $slackBotToken $slackChannelName "$(IFS=$'\n'; echo "${expiringAppsSoon[*]}")" $TS
 fi
 
-if [ ${expiringAppsUrgent[@]} -gt 0 ]; then
-    slackNotification $slackBotToken $slackChannelName  ":red_circle: Service Principals expiring very soon!"
+if [ ${#expiringAppsUrgent[@]} -gt 0 ]; then
+    slackNotification $slackBotToken $slackChannelName  "> :red_circle: Service Principals expiring very soon!"
     slackThreadResponse $slackBotToken $slackChannelName "$(IFS=$'\n'; echo "${expiringAppsUrgent[*]}")" $TS
 fi
