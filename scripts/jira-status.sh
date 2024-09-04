@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ### Setup script environment
-set -euo pipefail
+set -euox pipefail
 
 # Source central functions script
 source scripts/common-functions.sh
@@ -47,7 +47,7 @@ do
     esac
 done
 
-if [ -z "$slackBotToken" || -z "$slackChannelName" || -z "$jiraUsername" || -z "$jiraPassword" ]; then
+if [ -z "$slackBotToken" ] || [ -z "$slackChannelName" ] || [ -z "$jiraUsername" ] || [ -z "$jiraPassword" ]; then
         echo "------------------------"
         echo 'Please supply all of Slack token, Slack channel name, Jira username and Jira password' >&2
         echo "------------------------"
@@ -90,7 +90,7 @@ OPEN_OAT_ISSUES_RESULT=$(curl   -u $jiraUsername:$jiraPassword -X POST -H "Conte
 OPEN_OAT_ISSUES_COUNT=$(jq -r .total <<< "${OPEN_OAT_ISSUES_RESULT}")
 
 AUTO_WITHDRAWN_ISSUES_RESULT=$(curl   -u $jiraUsername:$jiraPassword -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
-   --data '{"jql":"project = DTSPO AND IssueType in (\"BAU Task\") AND Labels in (auto-withdrawn) AND status changed to (Withdrawn) ON -'${PREVIOUS_DAYS}'d","startAt":0,"maxResults":200,"fields":["assignee"]},"expand":"names"')
+  --data '{"jql":"project = DTSPO AND IssueType in (\"BAU Task\") AND Labels in (auto-withdrawn) AND status changed to (Withdrawn) ON -'${PREVIOUS_DAYS}'d","startAt":0,"maxResults":200,"fields":["assignee"]},"expand":"names"')
 
 AUTO_WITHDRAWN_ISSUES_COUNT=$(jq -r .total <<< "${AUTO_WITHDRAWN_ISSUES_RESULT}")
 
@@ -124,10 +124,10 @@ fi
 
 slackNotification $slackBotToken $slackChannelName ":jira: <https://bit.ly/3mzE5DL|_*BAU Tickets Status*_> "
 
-openIssues=$(printf "> %s *%s* Open BAU issues\n" "$OPEN_ISSUES_STATUS" "$OPEN_ISSUES_COUNT")
-unassignedIssues=$(printf "> %s *%s* Unassigned BAU issues\n" "$UNASSIGNED_STATUS" "$UNASSIGNED_ISSUES_COUNT")
-patchingIssues=$(printf "> %s *%s* Open Patching issues\n" "$OPEN_PATCHING_ISSUES_STATUS" "$OPEN_PATCHING_ISSUES_COUNT")
-oatIssues=$(printf "> %s *%s* Open OAT issues\n" "$OPEN_OAT_ISSUES_STATUS" "$OPEN_OAT_ISSUES_COUNT")
+openIssues=$(printf "%s *%s* Open BAU issues\n" "$OPEN_ISSUES_STATUS" "$OPEN_ISSUES_COUNT")
+unassignedIssues=$(printf "%s *%s* Unassigned BAU issues\n" "$UNASSIGNED_STATUS" "$UNASSIGNED_ISSUES_COUNT")
+patchingIssues=$(printf "%s *%s* Open Patching issues\n" "$OPEN_PATCHING_ISSUES_STATUS" "$OPEN_PATCHING_ISSUES_COUNT")
+oatIssues=$(printf "%s *%s* Open OAT issues\n" "$OPEN_OAT_ISSUES_STATUS" "$OPEN_OAT_ISSUES_COUNT")
 
 slackNotification $slackBotToken $slackChannelName $openIssues
 slackNotification $slackBotToken $slackChannelName $unassignedIssues
@@ -135,18 +135,18 @@ slackNotification $slackBotToken $slackChannelName $patchingIssues
 slackNotification $slackBotToken $slackChannelName $oatIssues
 
 if [ "$AUTO_WITHDRAWN_ISSUES_COUNT" != "0" ]; then
-  withdrawnIssues=$(printf ":hourglass_flowing_sand:  *%s issues automatically withdrawn yesterday:* \n>\n" "$AUTO_WITHDRAWN_ISSUES_COUNT")
+  withdrawnIssues=$(printf ":hourglass_flowing_sand:  *%s issues automatically withdrawn yesterday:* " "$AUTO_WITHDRAWN_ISSUES_COUNT")
   slackNotification $slackBotToken $slackChannelName $withdrawnIssues
   slackNotification $slackBotToken $slackChannelName "<https://tools.hmcts.net/jira/issues/?jql=project%%20%%3D%%20DTSPO%%20AND%%20IssueType%%20in%%20(%%22BAU%%20Task%%22)%%20AND%%20Labels%%20in%%20(auto-withdrawn)%%20AND%%20status%%20changed%%20to%%20(Withdrawn)%%20ON%%20-${PREVIOUS_DAYS}d|_*View withdrawn issues*_> "
 else
   slackNotification $slackBotToken $slackChannelName ":hourglass_flowing_sand:  *No issues were automatically withdrawn yesterday:*"
 fi
 
-closedIssues=$(printf ">\n>\n>:tada:  *%s issues closed yesterday:* \n>\n" "$CLOSED_ISSUES_COUNT")
+closedIssues=$(printf ":tada:  *%s issues closed yesterday:*" "$CLOSED_ISSUES_COUNT")
 slackNotification $slackBotToken $slackChannelName $closedIssues
 slackThreadResponse $slackBotToken $slackChannelName "$CLOSED_ISSUES_USER" $TS
 
-currentlyAssigned=$(printf ">\n>\n>:fire: *Current Assigned tickets:* \n>\n")
+currentlyAssigned=$(printf ":fire: *Current Assigned tickets:*")
 slackNotification $slackBotToken $slackChannelName $currentlyAssigned
 slackThreadResponse $slackBotToken $slackChannelName "$ASSIGNED_ISSUES_RESULT" $TS
 
