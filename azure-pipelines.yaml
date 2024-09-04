@@ -361,13 +361,13 @@ jobs:
       #   inputs:
       #     targetType: filePath
       #     filePath: scripts/check-toffee-plum.sh
-      # - task: AzureCLI@2
-      #   displayName: 'Service Principal Check'
-      #   inputs:
-      #     scriptType: bash
-      #     scriptPath: scripts/service-principals.sh
-      #     azureSubscription: ${{ variables.service_connection }}
-      #     arguments: ${{ variables.SPSecretNumDays }}
+      - task: AzureCLI@2
+        displayName: 'Service Principal Check'
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/service-principals.sh
+          azureSubscription: ${{ variables.service_connection }}
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays  ${{ variables.SPSecretNumDays }}
       - task: AzureCLI@2
         displayName: 'Service Principal Check - Dev Tenant'
         inputs:
