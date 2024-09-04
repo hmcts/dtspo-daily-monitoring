@@ -5,7 +5,7 @@
 # Note, if you are running this script on MacOS, the BSD date command works differently. Use `gdate` to get the same output as below.
 
 ### Setup script environment
-set -euox pipefail
+set -euo pipefail
 
 # Source central functions script
 source scripts/common-functions.sh
@@ -104,8 +104,8 @@ function findNullUrls() {
     if [ -n "$NULLFOUNDURLs" ]; then
         local URLS=$(printf "%s\n\n" "$NULLFOUNDURLs" | tr -d '"')
 
-        post_message $slackBotToken $slackChannelName ">:red_circle: Pages found with no review date set! \n\n"
-        post_threaded_reply $slackBotToken $slackChannelName "$URLS" $TS #$TS is an output of the post_message function
+        slackNotification $slackBotToken $slackChannelName ">:red_circle: Pages found with no review date set! \n\n"
+        slackThreadResponse $slackBotToken $slackChannelName "$URLS" $TS #$TS is an output of the slackNotification function
     fi
 }
 
@@ -118,8 +118,8 @@ function findExpiredUrls() {
     if [ -n "$EXPIREDFOUNDURLs" ]; then
 
         local URLS=$(printf "%s\n\n" "$EXPIREDFOUNDURLs" | tr -d '"')
-        post_message $slackBotToken $slackChannelName "\n>:red_circle: Pages found which have an expired review date! \n\n"
-        post_threaded_reply $slackBotToken $slackChannelName "$URLS" $TS #$TS is an output of the post_message function
+        slackNotification $slackBotToken $slackChannelName "\n>:red_circle: Pages found which have an expired review date! \n\n"
+        slackThreadResponse $slackBotToken $slackChannelName "$URLS" $TS #$TS is an output of the slackNotification function
     fi
 }
 
@@ -131,14 +131,14 @@ function findExpiringUrls() {
     EXPIRINGFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$EXPIRETHRESHOLD'" and .review_by > "'$CURRENTDATE'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$EXPIRINGFOUNDURLs" ]; then
-        post_message $slackBotToken $slackChannelName  "\n>:yellow_circle: Pages found which require a review in the next 13 days! \n\n"
-        post_threaded_reply $slackBotToken $slackChannelName "$EXPIRINGFOUNDURLs" $TS
+        slackNotification $slackBotToken $slackChannelName  "\n>:yellow_circle: Pages found which require a review in the next 13 days! \n\n"
+        slackThreadResponse $slackBotToken $slackChannelName "$EXPIRINGFOUNDURLs" $TS
     fi
 }
 
 function findGoodUrls() {
     if [[ -z "$EXPIRINGFOUNDURLs" && -z "$EXPIREDFOUNDURLs" ]]; then
-        post_message $slackBotToken $slackChannelName "\n>:green_circle: All pages have acceptable review dates! :smile: \n\n"
+        slackNotification $slackBotToken $slackChannelName "\n>:green_circle: All pages have acceptable review dates! :smile: \n\n"
     fi
 }
 
@@ -146,7 +146,7 @@ function findGoodUrls() {
 scrapeUrls
 
 # Post initial header message
-post_message $slackBotToken $slackChannelName "\n\n:github: :document_it: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> status: \n\n"
+slackNotification $slackBotToken $slackChannelName "\n\n:github: :document_it: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> status: \n\n"
 
 # Run checks on scraped pages to find the review dates and outcomes for each.
 findNullUrls

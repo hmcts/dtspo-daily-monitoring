@@ -26,7 +26,7 @@ isPR(){
 }
 
 # Post a message to a Slack channel
-post_message() {
+slackNotification() {
     local slack_token=$1
     local channel_name=$2
     local message=$3
@@ -45,7 +45,7 @@ post_message() {
 }
 
 # Post a threaded reply to a Slack message
-post_threaded_reply() {
+slackThreadResponse() {
     local slack_token=$1
     local channel_name=$2
     local message=$3
