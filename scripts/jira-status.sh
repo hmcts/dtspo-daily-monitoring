@@ -129,24 +129,24 @@ unassignedIssues=$(printf "%s *%s* Unassigned BAU issues\n" "$UNASSIGNED_STATUS"
 patchingIssues=$(printf "%s *%s* Open Patching issues\n" "$OPEN_PATCHING_ISSUES_STATUS" "$OPEN_PATCHING_ISSUES_COUNT")
 oatIssues=$(printf "%s *%s* Open OAT issues\n" "$OPEN_OAT_ISSUES_STATUS" "$OPEN_OAT_ISSUES_COUNT")
 
-slackNotification $slackBotToken $slackChannelName $openIssues
-slackNotification $slackBotToken $slackChannelName $unassignedIssues
-slackNotification $slackBotToken $slackChannelName $patchingIssues
-slackNotification $slackBotToken $slackChannelName $oatIssues
+slackNotification $slackBotToken $slackChannelName ${openIssues}
+slackNotification $slackBotToken $slackChannelName ${unassignedIssues}
+slackNotification $slackBotToken $slackChannelName ${patchingIssues}
+slackNotification $slackBotToken $slackChannelName ${oatIssues}
 
 if [ "$AUTO_WITHDRAWN_ISSUES_COUNT" != "0" ]; then
-  withdrawnIssues=$(printf ":hourglass_flowing_sand:  *%s issues automatically withdrawn yesterday:* " "$AUTO_WITHDRAWN_ISSUES_COUNT")
-  slackNotification $slackBotToken $slackChannelName $withdrawnIssues
+  withdrawnIssues=$(printf ":hourglass_flowing_sand: *%s issues automatically withdrawn yesterday:* " "${AUTO_WITHDRAWN_ISSUES_COUNT}")
+  slackNotification $slackBotToken $slackChannelName ${withdrawnIssues}
   slackNotification $slackBotToken $slackChannelName "<https://tools.hmcts.net/jira/issues/?jql=project%%20%%3D%%20DTSPO%%20AND%%20IssueType%%20in%%20(%%22BAU%%20Task%%22)%%20AND%%20Labels%%20in%%20(auto-withdrawn)%%20AND%%20status%%20changed%%20to%%20(Withdrawn)%%20ON%%20-${PREVIOUS_DAYS}d|_*View withdrawn issues*_> "
 else
-  slackNotification $slackBotToken $slackChannelName ":hourglass_flowing_sand:  *No issues were automatically withdrawn yesterday:*"
+  slackNotification $slackBotToken $slackChannelName ":hourglass_flowing_sand: *No issues were automatically withdrawn yesterday:*"
 fi
 
-closedIssues=$(printf ":tada:  *%s issues closed yesterday:*" "$CLOSED_ISSUES_COUNT")
-slackNotification $slackBotToken $slackChannelName $closedIssues
+closedIssues=$(printf ":tada: *%s issues closed yesterday:*" "$CLOSED_ISSUES_COUNT")
+slackNotification $slackBotToken $slackChannelName ${closedIssues}
 slackThreadResponse $slackBotToken $slackChannelName "$CLOSED_ISSUES_USER" $TS
 
 currentlyAssigned=$(printf ":fire: *Current Assigned tickets:*")
-slackNotification $slackBotToken $slackChannelName $currentlyAssigned
+slackNotification $slackBotToken $slackChannelName ${currentlyAssigned}
 slackThreadResponse $slackBotToken $slackChannelName "$ASSIGNED_ISSUES_RESULT" $TS
 

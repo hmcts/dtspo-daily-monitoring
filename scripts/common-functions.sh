@@ -26,7 +26,6 @@ slackNotification() {
 
     # Extract the timestamp of the posted message
     TS=$(echo $RESPONSE | jq -r '.ts')
-    echo "Message posted with timestamp: $TS"
 }
 
 # Post a threaded reply to a Slack message
