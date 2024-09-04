@@ -81,7 +81,7 @@ if [[ $AZ_APP_COUNT == 0 ]]; then
     slackNotification $slackBotToken $slackChannelName "> :green_circle: No Service Principals Secrets are expiring in $checkDays days"
     exit 0
 else
-    jq -c '.[]' <<< $AZ_APP_RESULT | while read app; do
+    jq -c '.[]' <<< "$AZ_APP_RESULT" | while read -r app; do
         displayName=$(jq -r '.displayName' <<< "$app")
         appId=$(jq -r '.appId' <<< "$app")
         endDateTime=$(jq -r '.passwordCredentials[0].endDateTime' <<< "$app")
