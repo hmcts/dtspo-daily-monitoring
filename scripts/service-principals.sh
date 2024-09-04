@@ -5,7 +5,7 @@
 # Note, if you are running this script on MacOS, the BSD date command works differently. Use `gdate` to get the same output as below.
 
 ### Setup script environment
-set -euo pipefail
+set -euox pipefail
 
 # Source central functions script
 source scripts/common-functions.sh
