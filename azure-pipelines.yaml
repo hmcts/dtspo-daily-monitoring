@@ -233,14 +233,10 @@ jobs:
             GITHUB_USER=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${GH_TOKEN}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/hmcts/dtspo-daily-monitoring/pulls/$PR_NUMBER"  | jq -r '.user.login')
             PR_CHANNEL_NAME=$(curl -s https://raw.githubusercontent.com/hmcts/github-slack-user-mappings/master/slack.json | jq --arg GITHUB_USER "$GITHUB_USER" -r '.[][] | (select(.github | contains($GITHUB_USER)))' | jq -r '.slack')
             echo "##vso[task.setvariable variable=main_channel]$PR_CHANNEL_NAME"
+            echo "main_channel variable updated to: $PR_CHANNEL_NAME"
         env:
           GH_TOKEN: $(github-management-api-token)
           PR_NUMBER: ${{ variables.pull_request_number }}
-
-      - script: |
-          echo $(main_channel)
-          echo $(variables.main_channel)
-        displayName: "Print main_channel value"
 
       - task: Bash@3
         displayName: 'Create a slack message file'
@@ -370,12 +366,12 @@ jobs:
           targetType: filePath
           filePath: scripts/jira-status.sh
           arguments: $(jira-username) $(jira-password)
-      # - task: Bash@3
-      #   displayName: "Checking GitHub Pages review status"
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/github_pages_checks.sh
-      #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName ${{ variables.main_channel }}
+      - task: Bash@3
+        displayName: "Checking GitHub Pages review status"
+        inputs:
+          targetType: filePath
+          filePath: scripts/github_pages_checks.sh
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
 
       - task: Bash@3
         displayName: 'Send slack message - pull request'
