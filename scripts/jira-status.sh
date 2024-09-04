@@ -135,7 +135,7 @@ slackNotification $slackBotToken $slackChannelName "${patchingIssues}"
 slackNotification $slackBotToken $slackChannelName "${oatIssues}"
 
 if [ "$AUTO_WITHDRAWN_ISSUES_COUNT" != "0" ]; then
-  withdrawnIssues=$(printf ":hourglass_flowing_sand: *%s issues automatically withdrawn yesterday:* <https://tools.hmcts.net/jira/issues/?jql=project%20%3D%20DTSPO%20AND%20IssueType%20in%20(%22BAU%20Task%22)%20AND%20Labels%20in%20(auto-withdrawn)%20AND%20status%20changed%20to%20(Withdrawn)%20ON%20-${PREVIOUS_DAYS}d|_*View withdrawn issues*_>" "${AUTO_WITHDRAWN_ISSUES_COUNT}")
+  withdrawnIssues=$(printf ":hourglass_flowing_sand: *%s issues automatically withdrawn yesterday:* <https://tools.hmcts.net/jira/issues/?jql=project%%20%%3D%%20DTSPO%%20AND%%20IssueType%%20in%%20(%%22BAU%%20Task%%22)%%20AND%%20Labels%%20in%%20(auto-withdrawn)%%20AND%%20status%%20changed%%20to%%20(Withdrawn)%%20ON%%20-${PREVIOUS_DAYS}d|_*View withdrawn issues*_>" "${AUTO_WITHDRAWN_ISSUES_COUNT}")
   slackNotification $slackBotToken $slackChannelName "${withdrawnIssues}"
 else
   slackNotification $slackBotToken $slackChannelName ":hourglass_flowing_sand: *No issues were automatically withdrawn yesterday:*"
