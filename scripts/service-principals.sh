@@ -91,11 +91,11 @@ else
 
         APP_URL="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Credentials/appId/$appId"
         if [ $((date_diff)) -lt 0 ]; then
-            expiredApps+=($(printf "<$APP_URL|_* $displayName*_> has expired"))
+            expiredApps+=("$(printf "<%s|_* %s*_> has expired" "$APP_URL" "$displayName")")
         elif [[ $((date_diff)) -gt 7 ]]; then
-            expiringAppsSoon+=($(printf "<$APP_URL|_* $displayName*_> expires in $date_diff days"))
+            expiringAppsSoon+=("$(printf "<%s|_* %s*_> expires in %d days" "$APP_URL" "$displayName" "$date_diff")")
         else
-            expiringAppsUrgent+=($(printf"<$APP_URL|_* $displayName*_> expires in $date_diff days"))
+            expiringAppsUrgent+=("$(printf "<%s|_* %s*_> expires in %d days" "$APP_URL" "$displayName" "$date_diff")")
         fi
     done
 fi
