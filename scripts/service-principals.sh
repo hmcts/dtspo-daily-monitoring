@@ -71,34 +71,35 @@ else
     slackNotification $slackBotToken $slackChannelName ":azure-826: <https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status - HMCTS Dev Tenant*_>"
 fi
 
-AZ_APP_COUNT=$(jq -r '. | length' <<< "${AZ_APP_RESULT}")
+azAppCount=$(jq -r '. | length' <<< "${AZ_APP_RESULT}")
+azAppData=$(jq -c '.[]' <<< "$AZ_APP_RESULT")
 
 declare -a expiredApps=()
 declare -a expiringAppsSoon=()
 declare -a expiringAppsUrgent=()
 
-if [[ $AZ_APP_COUNT == 0 ]]; then
+if [[ $azAppCount == 0 ]]; then
     slackNotification $slackBotToken $slackChannelName "> :green_circle: No Service Principals Secrets are expiring in $checkDays days"
     exit 0
-else
-    jq -c '.[]' <<< "$AZ_APP_RESULT" | while read -r app; do
-        displayName=$(jq -r '.displayName' <<< "$app")
-        appId=$(jq -r '.appId' <<< "$app")
-        endDateTime=$(jq -r '.passwordCredentials[0].endDateTime' <<< "$app")
-
-        convert_date=$(date -d "$endDateTime" +%Y-%m-%d)
-        date_diff=$(( ($(date -d "$convert_date UTC" +%s) - $(date -d "UTC" +%s) )/(60*60*24) ))
-
-        APP_URL="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Credentials/appId/$appId"
-        if [ $((date_diff)) -lt 0 ]; then
-            expiredApps+=("$(printf "<%s|_* %s*_> has expired" "$APP_URL" "$displayName")")
-        elif [[ $((date_diff)) -gt 7 ]]; then
-            expiringAppsSoon+=("$(printf "<%s|_* %s*_> expires in %d days" "$APP_URL" "$displayName" "$date_diff")")
-        else
-            expiringAppsUrgent+=("$(printf "<%s|_* %s*_> expires in %d days" "$APP_URL" "$displayName" "$date_diff")")
-        fi
-    done
 fi
+
+while read -r app; do
+    displayName=$(jq -r '.displayName' <<< "$app")
+    appId=$(jq -r '.appId' <<< "$app")
+    endDateTime=$(jq -r '.passwordCredentials[0].endDateTime' <<< "$app")
+
+    convert_date=$(date -d "$endDateTime" +%Y-%m-%d)
+    date_diff=$(( ($(date -d "$convert_date UTC" +%s) - $(date -d "UTC" +%s) )/(60*60*24) ))
+
+    APP_URL="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Credentials/appId/$appId"
+    if [ $((date_diff)) -lt 0 ]; then
+        expiredApps+=("$(printf "<%s|_* %s*_> has expired" "${APP_URL}" "${displayName}")")
+    elif [[ $((date_diff)) -gt 7 ]]; then
+        expiringAppsSoon+=("$(printf "<%s|_* %s*_> expires in %d days" "$APP_URL" "$displayName" "$date_diff")")
+    else
+        expiringAppsUrgent+=("$(printf "<%s|_* %s*_> expires in %d days" "$APP_URL" "$displayName" "$date_diff")")
+    fi
+done <<< "$azAppData"
 
 echo "${expiredApps[@]}"
 echo "${expiringAppsSoon[@]}"
