@@ -91,26 +91,34 @@ else
 
         APP_URL="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Credentials/appId/$appId"
         if [ $((date_diff)) -lt 0 ]; then
-            expiredApps+=("<$APP_URL|_* $displayName*_> has expired")
+            expiredApps+=($(printf "<$APP_URL|_* $displayName*_> has expired"))
         elif [[ $((date_diff)) -gt 7 ]]; then
-            expiringAppsSoon+=("<$APP_URL|_* $displayName*_> expires in $date_diff days")
+            expiringAppsSoon+=($(printf "<$APP_URL|_* $displayName*_> expires in $date_diff days"))
         else
-            expiringAppsUrgent+=("<$APP_URL|_* $displayName*_> expires in $date_diff days")
+            expiringAppsUrgent+=($(printf"<$APP_URL|_* $displayName*_> expires in $date_diff days"))
         fi
     done
 fi
 
-if [ ${#expiredApps[@]} -gt 0 ]; then
+echo "${expiredApps[@]}"
+echo "${expiringAppsSoon[@]}"
+echo "${expiringAppsUrgent[@]}"
+
+echo "${#expiredApps[@]}"
+echo "${#expiringAppsSoon[@]}"
+echo "${#expiringAppsUrgent[@]}"
+
+if [ "${#expiredApps[@]}" -gt 0 ]; then
     slackNotification $slackBotToken $slackChannelName  "> :red_circle: Expired Service Principals found!"
     slackThreadResponse $slackBotToken $slackChannelName "$(IFS=$'\n'; echo "${expiredApps[*]}")" $TS
 fi
 
-if [ ${#expiringAppsSoon[@]} -gt 0 ]; then
+if [ "${#expiringAppsSoon[@]}" -gt 0 ]; then
     slackNotification $slackBotToken $slackChannelName  "> :yellow_circle: Service Principals expiring soon!"
     slackThreadResponse $slackBotToken $slackChannelName "$(IFS=$'\n'; echo "${expiringAppsSoon[*]}")" $TS
 fi
 
-if [ ${#expiringAppsUrgent[@]} -gt 0 ]; then
+if [ "${#expiringAppsUrgent[@]}" -gt 0 ]; then
     slackNotification $slackBotToken $slackChannelName  "> :red_circle: Service Principals expiring very soon!"
     slackThreadResponse $slackBotToken $slackChannelName "$(IFS=$'\n'; echo "${expiringAppsUrgent[*]}")" $TS
 fi
