@@ -244,7 +244,13 @@ jobs:
           targetType: 'inline'
           script: |
             echo "*Daily Monitoring Summary* \n \n">> slack-message.txt
-            echo "_:azure: *Scheduled Pipelines Status*_ \n">> slack-message.txt
+
+      # - task: Bash@3
+      #   displayName: 'ADO Pipeline status'
+      #   inputs:
+      #     targetType: 'inline'
+      #     script: |
+      #       echo "_:azure: *Scheduled Pipelines Status*_ \n">> slack-message.txt
       # - ${{ each ado_pipeline in parameters.ado_pipelines }}:
       #   - task: Bash@3
       #     displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
@@ -365,7 +371,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/jira-status.sh
-          arguments: $(jira-username) $(jira-password)
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --jiraUsername $(jira-username) --jiraPassword $(jira-password)
       - task: Bash@3
         displayName: "Checking GitHub Pages review status"
         inputs:
