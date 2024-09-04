@@ -48,15 +48,15 @@ do
     esac
 done
 
-if [ -z "$slackBotToken" || -z "$slackChannelName" || -z "$checkDays" ]; then
+if [ -z "$slackBotToken" ] || [ -z "$slackChannelName" ] || [ -z "$checkDays" ]; then
         echo "------------------------"
         echo 'Please supply all of Slack token, Slack channel name and Check Days' >&2
         echo "------------------------"
         exit 1
 fi
 
-TODAY_DATE=$(date_command +%Y-%m-%d)
-CHECK_DATE=$(date_command -d "+${checkDays} days" +%Y-%m-%d)
+TODAY_DATE=$(date +%Y-%m-%d)
+CHECK_DATE=$(date -d "+${checkDays} days" +%Y-%m-%d)
 DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains --query 'value[?isDefault].id' -o tsv)
 
 if [ $DOMAIN = "HMCTS.NET" ]; then
@@ -86,8 +86,8 @@ else
         appId=$(jq -r '.appId' <<< "$i")
         endDateTime=$(jq -r '.passwordCredentials[0].endDateTime' <<< "$i")
 
-        convert_date=$(date_command -d "$endDateTime" +%Y-%m-%d)
-        date_diff=$(( ($(date_command -d "$convert_date UTC" +%s) - $(date_command -d "UTC" +%s) )/(60*60*24) ))
+        convert_date=$(date -d "$endDateTime" +%Y-%m-%d)
+        date_diff=$(( ($(date -d "$convert_date UTC" +%s) - $(date -d "UTC" +%s) )/(60*60*24) ))
 
         APP_URL="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationMenuBlade/~/Credentials/appId/$appId"
         if [ $((date_diff)) -lt 0 ]; then
