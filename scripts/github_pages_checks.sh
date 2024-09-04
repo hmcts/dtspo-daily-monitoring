@@ -12,8 +12,6 @@ source scripts/common-functions.sh
 
 slackBotToken=
 slackChannelName=
-pullRequestNumber=
-githubToken=
 
 usage(){
 >&2 cat << EOF
@@ -23,14 +21,12 @@ Script to check GitHub page expiry
 Usage: $0
     [ -t | --slackBotToken ]
     [ -c | --slackChannelName ]
-    [ -p | --pullRequestNumber ]
-    [ -g | --githubToken ]
     [ -h | --help ]
 EOF
 exit 1
 }
 
-args=$(getopt -a -o t:c:p:g: --long slackBotToken:,slackChannelName:,pullRequestNumber:,githubToken:,help -- "$@")
+args=$(getopt -a -o t:c:p:g: --long slackBotToken:,slackChannelName:,help -- "$@")
 if [[ $? -gt 0 ]]; then
     usage
 fi
@@ -42,8 +38,6 @@ do
         -h | --help)              usage                    ; shift   ;;
         -t | --slackBotToken)     slackBotToken=$2         ; shift 2 ;;
         -c | --slackChannelName)  slackChannelName=$2      ; shift 2 ;;
-        -p | --pullRequestNumber) pullRequestNumber=$2     ; shift 2 ;;
-        -g | --githubToken)       githubToken=$2           ; shift 2 ;;
         # -- means the end of the arguments; drop this, and break out of the while loop
         --) shift; break ;;
         *) >&2 echo Unsupported option: $1
@@ -51,23 +45,11 @@ do
     esac
 done
 
-if [ -z "$slackBotToken" ]; then
+if [ -z "$slackBotToken" || -z "$slackChannelName" ]; then
         echo "------------------------"
-        echo 'Please supply a Slack token' >&2
+        echo 'Please supply a Slack token and a Slack channel name' >&2
         echo "------------------------"
         exit 1
-fi
-
-# Check if either slackChannelName or (pullRequestNumber and githubToken) are supplied
-if [ -n "$slackChannelName" ] && [ -z "$pullRequestNumber" ] && [ -z "$githubToken" ]; then
-    echo "Running on Main"
-elif [ -z "$slackChannelName" ] && [ -n "$pullRequestNumber" ] && [ -n "$githubToken" ]; then
-    echo "Running on PR"
-else
-    echo "------------------------"
-    echo "Error: You must supply either slackChannelName OR both pullRequestNumber and githubToken."
-    echo "------------------------"
-    exit 1
 fi
 
 ### Script begins
@@ -76,14 +58,6 @@ EXPIRETHRESHOLD=$($date_command -u +"%Y-%m-%d" -d "+2 weeks") # 2w = 2 weeks
 
 declare -a URLS=("https://hmcts.github.io/api/pages.json" "https://hmcts.github.io/ops-runbooks/api/pages.json")
 declare -a PAGES
-
-# check if this is a PR run i.e. did we supply githubToken and pullRequestNumber via CI
-# If true the Slack Channel Name will be set to the GitHub user of the PR
-if isPR "$githubToken" "$pullRequestNumber"; then
-    echo "This is a Pull Request. PR Channel Name: $PR_CHANNEL_NAME"
-    slackChannelName=$PR_CHANNEL_NAME
-fi
-
 
 # scrapeURLs will loop over each URL found in the URLS array and replace the short form URLs in the records
 # with a complete URL that it will then save into an array called PAGES
