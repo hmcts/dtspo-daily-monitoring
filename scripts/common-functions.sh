@@ -11,19 +11,19 @@ elif [[ $platform == "Linux" ]]; then
 fi
 
 # Check if the values of githubToken and pullRequestNumber are supplied and if so return the name of the Github user as Slack Channel
-isPR(){
-    local githubToken=$1
-    local pullRequestNumber=$2
+# isPR(){
+#     local githubToken=$1
+#     local pullRequestNumber=$2
 
-    if [ -n "$githubToken" ] && [ -n "$pullRequestNumber" ]; then
-        GITHUB_USER=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${githubToken}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/hmcts/dtspo-daily-monitoring/pulls/$pullRequestNumber"  | jq -r '.user.login')
-        PR_CHANNEL_NAME=$(curl -s https://raw.githubusercontent.com/hmcts/github-slack-user-mappings/master/slack.json | jq --arg GITHUB_USER "$GITHUB_USER" -r '.[][] | (select(.github | contains($GITHUB_USER)))' | jq -r '.slack')
-        return 0
-    else
-        echo "This is not a Pull Request, check completed."
-        return 1
-    fi
-}
+#     if [ -n "$githubToken" ] && [ -n "$pullRequestNumber" ]; then
+#         GITHUB_USER=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${githubToken}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/hmcts/dtspo-daily-monitoring/pulls/$pullRequestNumber"  | jq -r '.user.login')
+#         PR_CHANNEL_NAME=$(curl -s https://raw.githubusercontent.com/hmcts/github-slack-user-mappings/master/slack.json | jq --arg GITHUB_USER "$GITHUB_USER" -r '.[][] | (select(.github | contains($GITHUB_USER)))' | jq -r '.slack')
+#         return 0
+#     else
+#         echo "This is not a Pull Request, check completed."
+#         return 1
+#     fi
+# }
 
 # Post a message to a Slack channel
 slackNotification() {
