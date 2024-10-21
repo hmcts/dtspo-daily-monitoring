@@ -243,12 +243,6 @@ jobs:
           targetType: filePath
           filePath: scripts/github-licenses.sh
           arguments: $(github-management-api-token)
-      - task: Bash@3
-        displayName: 'Github workflow status header'
-        inputs:
-          targetType: 'inline'
-          script: |
-           echo "\n:github: *GitHub Scheduled Workflow Status* \n\n" >> slack-message.txt
       - ${{ each gh_workflow in parameters.gh_workflows }}:
         - task: Bash@3
           displayName: 'Check Github workflow Runs'
