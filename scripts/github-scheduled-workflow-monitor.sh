@@ -91,11 +91,8 @@ else
                     
                     echo conclusion:${conclusion}
                     echo runstarted:${run_started_at}
-                    # Write slack message dependant on status and conclusion
-                    if [ "${conclusion}" = "success" ];
-                    then
-                        printf ":green_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
-                    elif [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
+                    # Write slack message dependant on status and conclusion, ignoring any success status to reduce daily checks bloat.                        
+                    if [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
                     then
                         printf ":yellow_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
                     else 
