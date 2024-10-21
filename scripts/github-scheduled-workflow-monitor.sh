@@ -12,6 +12,10 @@ run=$4
 # Github owner 
 owner=hmcts
 
+function header_check() {
+    if []
+}
+
 # Check if we need to intergoate a specific run or all of the runs for that workflow 
 if [[ -z "${run}" ]];
 then
@@ -50,10 +54,10 @@ then
                     echo wf_status:${workflow_status}
                     echo conclusion:${conclusion}
                     echo runstarted:${run_started_at}
-                    # Write slack message dependant on status and conclusion
+                    # Write slack message dependant on status and conclusion, ignoring any success status to reduce daily checks bloat.
                     if [ "${conclusion}" = "success" ];
                     then
-                        printf ":green_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
+                        printf ":green_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" 
                     elif [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
                     then
                         printf ":yellow_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
@@ -91,7 +95,10 @@ else
                     
                     echo conclusion:${conclusion}
                     echo runstarted:${run_started_at}
-                    # Write slack message dependant on status and conclusion, ignoring any success status to reduce daily checks bloat.                        
+                    # Write slack message dependant on status and conclusion, ignoring any success status to reduce daily checks bloat.
+                    if [ "${conclusion}" = "success" ];
+                    then
+                        printf ":green_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n"                        
                     if [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
                     then
                         printf ":yellow_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
