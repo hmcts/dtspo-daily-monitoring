@@ -12,10 +12,12 @@ run=$4
 # Github owner
 owner=hmcts
 
+header_set="false"
+
 function header() {
-    if [[ $header_set != true ]]; then
+    if [[ $header_set != "true" ]]; then
         echo "\n:github: *GitHub Scheduled Workflow Status* \n\n" >>slack-message.txt
-        header_set=true
+        header_set="true"
     else
         echo "Heading already set"
     fi
