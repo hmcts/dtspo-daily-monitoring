@@ -12,8 +12,13 @@ run=$4
 # Github owner 
 owner=hmcts
 
-function header_check() {
-    if []
+function header() {
+    if [[ $head_set != true ]]; then
+        echo "\n:github: *GitHub Scheduled Workflow Status* \n\n" >> slack-message.txt
+        head_set=true
+    else
+        echo "Heading already set"
+    fi
 }
 
 # Check if we need to intergoate a specific run or all of the runs for that workflow 
@@ -47,6 +52,7 @@ then
                 workflow_status="${workflow_status//\"}"
                 if [ -z ${workflow_status} ];
                 then
+                    header
                     printf ":red_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> Did not return a workflow status \n" >> slack-message.txt 
                 else
                     conclusion="${conclusion//\"}"
@@ -60,8 +66,10 @@ then
                         printf ":green_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" 
                     elif [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
                     then
+                        header
                         printf ":yellow_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
-                    else 
+                    else
+                        header
                         printf ":red_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
                     fi    
                  fi    
@@ -89,6 +97,7 @@ else
                 echo wf_status:${workflow_status}
                 if [ -z ${workflow_status} ];
                 then
+                    header
                     printf "> :red_circle: *$repo:* ${name}" >>slack-message.txt 
                 else     
                     conclusion="${conclusion//\"}"
@@ -101,9 +110,11 @@ else
                         printf ":green_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n"                        
                     if [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
                     then
+                        header
                         printf ":yellow_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
-                    else 
-                       printf ":red_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
+                    else
+                        header 
+                        printf ":red_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
                     fi    
                 fi
             done  <<< ${workflow_status}
