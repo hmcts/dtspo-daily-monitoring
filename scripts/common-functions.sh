@@ -34,6 +34,8 @@ slackNotification() {
     -H application/json \
     -X POST https://slack.com/api/chat.postMessage)
 
+    echo "Response = $RESPONSE"
+
     # Extract the timestamp of the posted message
     TS=$(echo $RESPONSE | jq -r '.ts')
 }
