@@ -45,11 +45,11 @@ do
     esac
 done
 
-if [ -z "$slackBotToken" || -z "$slackChannelName" ]; then
-        echo "------------------------"
-        echo 'Please supply a Slack token and a Slack channel name' >&2
-        echo "------------------------"
-        exit 1
+if [[ -z "$slackBotToken" || -z "$slackChannelName" ]]; then
+    echo "------------------------"
+    echo 'Please supply a Slack token and a Slack channel name' >&2
+    echo "------------------------"
+    exit 1
 fi
 
 ### Script begins

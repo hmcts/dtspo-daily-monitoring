@@ -17,10 +17,10 @@ slackNotification() {
     local header=$3
     local message=$4
 
-# Use jq with variables
+    # Use jq with variables
     headerPayload=$(jq --arg header "$header" \
                     --arg message "$message" \
-                    '.blocks[0].text.text |= $header | .blocks[2].text.text |= $message' header-block-template.json)
+                    '.blocks[0].text.text |= $header | .blocks[2].text.text |= $message' scripts/header-block-template.json)
 
     payload="{\"channel\": \"${channel_name}\", \"username\": \"Plato\", \"text\": \"${headerPayload}\", \"icon_emoji\": \":plato:\"}"
 
