@@ -24,7 +24,14 @@ slackNotification() {
 
     echo "Header = $headerPayload"
 
-    payload="{\"channel\": \"${channel_name}\", \"username\": \"Plato\", \"text\": \"${headerPayload}\", \"icon_emoji\": \":plato:\"}"
+    # payload="{\"channel\": \"${channel_name}\", \"username\": \"Plato\", \"text\": \"${headerPayload}\", \"icon_emoji\": \":plato:\"}"
+
+    # Construct the payload with blocks directly
+    payload=$(jq -n --arg channel "${channel_name}" \
+            --arg username "Plato" \
+            --arg icon_emoji ":plato:" \
+            --argjson blocks "$headerPayload" \
+            '{channel: $channel, username: $username, blocks: $blocks, icon_emoji: $icon_emoji}')
 
     echo "Payload = $payload"
 
