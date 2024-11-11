@@ -78,8 +78,8 @@ function findNullUrls() {
     if [ -n "$NULLFOUNDURLs" ]; then
         local URLS=$(printf "%s\n\n" "$NULLFOUNDURLs" | tr -d '"')
 
-        slackNotification $slackBotToken $slackChannelName "Review Now" ":red_circle: Pages found with no review date set! \n"
-        # slackThreadResponse $slackBotToken $slackChannelName "$URLS" $TS #$TS is an output of the slackNotification function
+        slackNotification $slackBotToken $slackChannelName "Review Now" ":red_circle: Pages found with no review date set!"
+        slackThreadResponse $slackBotToken $slackChannelName "$URLS" $TS #$TS is an output of the slackNotification function
     fi
 }
 
@@ -92,8 +92,8 @@ function findExpiredUrls() {
     if [ -n "$EXPIREDFOUNDURLs" ]; then
         local URLS=$(printf "%s\n\n" "$EXPIREDFOUNDURLs" | tr -d '"')
 
-        slackNotification $slackBotToken $slackChannelName "Review Now" ":red_circle: Pages found which have an expired review date! \n"
-        # slackThreadResponse $slackBotToken $slackChannelName "$URLS" $TS #$TS is an output of the slackNotification function
+        slackNotification $slackBotToken $slackChannelName "Review Now" ":red_circle: Pages found which have an expired review date!"
+        slackThreadResponse $slackBotToken $slackChannelName "$URLS" $TS #$TS is an output of the slackNotification function
     fi
 }
 
@@ -107,14 +107,14 @@ function findExpiringUrls() {
     if [ -n "$EXPIRINGFOUNDURLs" ]; then
         local URLS=$(printf "%s\n\n" "$EXPIRINGFOUNDURLs" | tr -d '"')
 
-        slackNotification $slackBotToken $slackChannelName  "Review soon" ":yellow_circle: Pages found which require a review in the next 13 days! \n"
-        # slackThreadResponse $slackBotToken $slackChannelName "$URLS" $TS
+        slackNotification $slackBotToken $slackChannelName  "Review soon" ":yellow_circle: Pages found which require a review in the next 13 days!"
+        slackThreadResponse $slackBotToken $slackChannelName "$URLS" $TS
     fi
 }
 
 function findGoodUrls() {
     if [[ -z "$EXPIRINGFOUNDURLs" && -z "$EXPIREDFOUNDURLs" ]]; then
-        slackNotification $slackBotToken $slackChannelName "All Reviewed" ":green_circle: All pages have acceptable review dates! :smile: \n"
+        slackNotification $slackBotToken $slackChannelName "All Reviewed" ":green_circle: All pages have acceptable review dates! :smile:"
     fi
 }
 
@@ -122,7 +122,7 @@ function findGoodUrls() {
 scrapeUrls
 
 # Post initial header message
-slackNotification $slackBotToken $slackChannelName "Documentation Review" ":github: :document_it: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> status"
+slackNotification $slackBotToken $slackChannelName "Documentation Review" ":github: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> Status :document_it:"
 
 # Run checks on scraped pages to find the review dates and outcomes for each.
 findNullUrls
