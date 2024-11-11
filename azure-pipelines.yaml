@@ -384,13 +384,13 @@ jobs:
       #     scriptPath: scripts/service-principals.sh
       #     azureSubscription: ${{ variables.dev_service_connection }}
       #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
-      # - task: Bash@3
-      #   displayName: 'Checking JIRA status'
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/jira-status.sh
-      #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --jiraUsername $(jira-username) --jiraPassword $(jira-password)
 
+      - task: Bash@3
+        displayName: 'Checking JIRA status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/jira-status.sh
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --jiraUsername $(jira-username) --jiraPassword $(jira-password)
       - task: Bash@3
         displayName: "Checking GitHub Pages review status"
         inputs:
