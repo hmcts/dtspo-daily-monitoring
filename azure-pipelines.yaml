@@ -239,7 +239,6 @@ jobs:
             echo "PR_CHANNEL_NAME=$PR_CHANNEL_NAME"
 
             echo "##vso[task.setvariable variable=main_channel]$PR_CHANNEL_NAME"
-            echo "main_channel variable updated to: $main_channel"
         env:
           GH_TOKEN: $(github-management-api-token)
           PR_NUMBER: ${{ variables.pull_request_number }}
@@ -252,6 +251,9 @@ jobs:
           script: |
             echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
             echo "main_channel variable updated to: $(main_channel)"
+
+      - script: |
+          echo "main_channel variable updated to: $(main_channel)"
 
       # - task: Bash@3
       #   displayName: 'Create a slack message file'
