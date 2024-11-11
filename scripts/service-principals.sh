@@ -114,12 +114,12 @@ if [ "${#expiredApps[@]}" -gt 0 ]; then
     slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Expired Service Principals found! \\n$(IFS=$'\n'; echo "${expiredApps[*]}")" $TS
 fi
 
-if [ "${#expiringAppsSoon[@]}" -gt 0 ]; then
-    # slackThreadResponse $slackBotToken $slackChannelName ":yellow_circle: Service Principals expiring soon!" $TS
-    slackThreadResponse $slackBotToken $slackChannelName ":yellow_circle: Service Principals expiring soon! \\n$(IFS=$'\n'; echo "${expiringAppsSoon[*]}")" $TS
-fi
-
 if [ "${#expiringAppsUrgent[@]}" -gt 0 ]; then
     # slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Service Principals expiring very soon!" $TS
     slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Service Principals expiring very soon! \\n$(IFS=$'\n'; echo "${expiringAppsUrgent[*]}")" $TS
+fi
+
+if [ "${#expiringAppsSoon[@]}" -gt 0 ]; then
+    # slackThreadResponse $slackBotToken $slackChannelName ":yellow_circle: Service Principals expiring soon!" $TS
+    slackThreadResponse $slackBotToken $slackChannelName ":yellow_circle: Service Principals expiring soon! \\n$(IFS=$'\n'; echo "${expiringAppsSoon[*]}")" $TS
 fi

@@ -73,12 +73,12 @@ function scrapeUrls() {
 # If found it will print a list of the pages found in a slack hyperlink format so it is clickable
 function findNullUrls() {
 
-    NULLFOUNDURLs=$(jq -rc '. | select(.review_by == null) | "<" + .url + "|" + .title + ">"' <<<$PAGES)
+    NULLFOUNDURLs=$(jq -rc '. | select(.review_by == null) | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$NULLFOUNDURLs" ]; then
         local URLS=$(printf "%s\n\n" "$NULLFOUNDURLs" | tr -d '"')
 
-        slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Pages found with no review date set! \\n > $URLS" $TS
+        slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Pages found with no review date set! \\n$URLS" $TS
         # slackThreadResponse $slackBotToken $slackChannelName "$URLS" $TS #$TS is an output of the slackNotification function
     fi
 }
@@ -87,12 +87,12 @@ function findNullUrls() {
 # If found it will print a list of the pages found in a slack hyperlink format so it is clickable
 function findExpiredUrls() {
 
-    EXPIREDFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$CURRENTDATE'") | "<" + .url + "|" + .title + ">"' <<<$PAGES)
+    EXPIREDFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$CURRENTDATE'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$EXPIREDFOUNDURLs" ]; then
         local URLS=$(printf "%s\n\n" "$EXPIREDFOUNDURLs" | tr -d '"')
 
-        slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Pages found which have an expired review date! \\n > $URLS" $TS
+        slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Pages found which have an expired review date! \\n$URLS" $TS
         # slackThreadResponse $slackBotToken $slackChannelName "$URLS" $TS #$TS is an output of the slackNotification function
     fi
 }
@@ -107,7 +107,7 @@ function findExpiringUrls() {
     if [ -n "$EXPIRINGFOUNDURLs" ]; then
         local URLS=$(printf "%s\n\n" "$EXPIRINGFOUNDURLs" | tr -d '"')
 
-        slackThreadResponse $slackBotToken $slackChannelName ":yellow_circle: Pages found which require a review in the next 13 days! \\n > $URLS" $TS
+        slackThreadResponse $slackBotToken $slackChannelName ":yellow_circle: Pages found which require a review in the next 13 days! \\n$URLS" $TS
         # slackThreadResponse $slackBotToken $slackChannelName "$URLS" $TS
     fi
 }
