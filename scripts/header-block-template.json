@@ -3,8 +3,7 @@
 		"type": "header",
 		"text": {
 			"type": "plain_text",
-			"text": "#HEADER#",
-			"emoji": true
+			"text": "#HEADER#"
 		}
 	},
 	{

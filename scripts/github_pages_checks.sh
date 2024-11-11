@@ -114,7 +114,7 @@ function findExpiringUrls() {
 
 function findGoodUrls() {
     if [[ -z "$EXPIRINGFOUNDURLs" && -z "$EXPIREDFOUNDURLs" ]]; then
-        slackNotification $slackBotToken $slackChannelName "All Reviewed" ":green_circle: All pages have acceptable review dates! :smile:"
+        slackNotification $slackBotToken $slackChannelName ":green_circle: All Reviewed" "All pages have acceptable review dates! :smile:"
     fi
 }
 

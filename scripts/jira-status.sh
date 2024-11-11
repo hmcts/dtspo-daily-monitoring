@@ -121,6 +121,14 @@ elif (( "$OPEN_OAT_ISSUES_COUNT" <= 20 )); then
   OPEN_OAT_ISSUES_STATUS=":yellow_circle:"
 fi
 
+# Check the statuses in priority order
+if [[ "$UNASSIGNED_STATUS" == ":red_circle:" || "$OPEN_ISSUES_STATUS" == ":red_circle:" || "$OPEN_PATCHING_ISSUES_STATUS" == ":red_circle:" || "$OPEN_OAT_ISSUES_STATUS" == ":red_circle:" ]]; then
+  STATUS=":red_circle:"
+elif [[ "$UNASSIGNED_STATUS" == ":yellow_circle:" || "$OPEN_ISSUES_STATUS" == ":yellow_circle:" || "$OPEN_PATCHING_ISSUES_STATUS" == ":yellow_circle:" || "$OPEN_OAT_ISSUES_STATUS" == ":yellow_circle:" ]]; then
+  STATUS=":yellow_circle:"
+elif [[ "$UNASSIGNED_STATUS" == ":green_circle:" || "$OPEN_ISSUES_STATUS" == ":green_circle:" || "$OPEN_PATCHING_ISSUES_STATUS" == ":green_circle:" || "$OPEN_OAT_ISSUES_STATUS" == ":green_circle:" ]]; then
+  STATUS=":green_circle:"
+fi
 
 openIssues=$(printf "%s *%s* Open BAU issues\n" "$OPEN_ISSUES_STATUS" "$OPEN_ISSUES_COUNT")
 unassignedIssues=$(printf "%s *%s* Unassigned BAU issues\n" "$UNASSIGNED_STATUS" "$UNASSIGNED_ISSUES_COUNT")
@@ -138,7 +146,7 @@ else
   withdrawnIssues=":hourglass_flowing_sand: *No issues were automatically withdrawn yesterday*"
 fi
 
-slackNotification $slackBotToken $slackChannelName "Jira Status" ":jira: <https://bit.ly/3mzE5DL|_*BAU Tickets Status*_>"
+slackNotification $slackBotToken $slackChannelName "$STATUS Jira Status" ":jira: <https://bit.ly/3mzE5DL|_*BAU Tickets Status*_>"
 
 slackThreadResponse $slackBotToken $slackChannelName "Open: ${openIssues}" $TS
 slackThreadResponse $slackBotToken $slackChannelName "Uassigned: ${unassignedIssues}" $TS
