@@ -398,14 +398,14 @@ jobs:
           filePath: scripts/github_pages_checks.sh
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
 
-      - task: Bash@3
-        displayName: 'Send slack message - pull request'
-        condition: |
-          and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true))
-        inputs:
-          targetType: filePath
-          filePath: scripts/send-slack-message-pr.sh
-          arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.pull_request_number }} $(github-management-api-token)
+      # - task: Bash@3
+      #   displayName: 'Send slack message - pull request'
+      #   condition: |
+      #     and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true))
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/send-slack-message-pr.sh
+      #     arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.pull_request_number }} $(github-management-api-token)
       # - task: Bash@3
       #   displayName: 'Send slack message - master branch'
       #   condition: |
