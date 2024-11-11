@@ -148,7 +148,7 @@ fi
 
 slackNotification $slackBotToken $slackChannelName "$STATUS Jira Status" ":jira: <https://bit.ly/3mzE5DL|_*BAU Tickets Status*_>"
 
-slackThreadResponse $slackBotToken $slackChannelName "Open: ${openIssues}\\nUassigned: ${unassignedIssues}\\nPatching: ${patchingIssues}\\nOAT: ${oatIssues}\\nWithdrawn: ${withdrawnIssues}" $TS
+slackThreadResponse $slackBotToken $slackChannelName "${openIssues}\\n${unassignedIssues}\\n${patchingIssues}\\n${oatIssues}\\n${withdrawnIssues}" $TS
 
 slackNotification $slackBotToken $slackChannelName "Jira Ticket Status" " "
 

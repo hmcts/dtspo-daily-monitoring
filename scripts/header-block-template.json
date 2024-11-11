@@ -7,14 +7,14 @@
 		}
 	},
 	{
-		"type": "divider"
-	},
-	{
 		"type": "section",
 		"text": {
 			"type": "mrkdwn",
 			"text": "#CONTENT#"
 		}
+	},
+	{
+		"type": "divider"
 	}
 ]
 
