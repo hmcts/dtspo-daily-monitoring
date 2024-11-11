@@ -78,7 +78,7 @@ function findNullUrls() {
     if [ -n "$NULLFOUNDURLs" ]; then
         local URLS=$(printf "%s\n\n" "$NULLFOUNDURLs" | tr -d '"')
 
-        slackNotification $slackBotToken $slackChannelName "No Review Date Found" ":red_circle: Pages found with no review date set!"
+        slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Pages found with no review date set!" $TS
         slackThreadResponse $slackBotToken $slackChannelName "$URLS" $TS #$TS is an output of the slackNotification function
     fi
 }
@@ -92,7 +92,7 @@ function findExpiredUrls() {
     if [ -n "$EXPIREDFOUNDURLs" ]; then
         local URLS=$(printf "%s\n\n" "$EXPIREDFOUNDURLs" | tr -d '"')
 
-        slackNotification $slackBotToken $slackChannelName "Expired Pages" ":red_circle: Pages found which have an expired review date!"
+        slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Pages found which have an expired review date!" $TS
         slackThreadResponse $slackBotToken $slackChannelName "$URLS" $TS #$TS is an output of the slackNotification function
     fi
 }
@@ -107,7 +107,7 @@ function findExpiringUrls() {
     if [ -n "$EXPIRINGFOUNDURLs" ]; then
         local URLS=$(printf "%s\n\n" "$EXPIRINGFOUNDURLs" | tr -d '"')
 
-        slackNotification $slackBotToken $slackChannelName  "Expiring Pages" ":yellow_circle: Pages found which require a review in the next 13 days!"
+        slackThreadResponse $slackBotToken $slackChannelName ":yellow_circle: Pages found which require a review in the next 13 days!" $TS
         slackThreadResponse $slackBotToken $slackChannelName "$URLS" $TS
     fi
 }
