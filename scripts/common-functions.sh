@@ -14,9 +14,15 @@ fi
 slackNotification() {
     local slack_token=$1
     local channel_name=$2
-    local message=$3
+    local header=$3
+    local message=$4
 
-    payload="{\"channel\": \"${channel_name}\", \"username\": \"Plato\", \"text\": \"${message}\", \"icon_emoji\": \":plato:\"}"
+# Use jq with variables
+    headerPayload=$(jq --arg header "$header" \
+                    --arg message "$message" \
+                    '.blocks[0].text.text |= $header | .blocks[2].text.text |= $message' header-block-template.json)
+
+    payload="{\"channel\": \"${channel_name}\", \"username\": \"Plato\", \"text\": \"${headerPayload}\", \"icon_emoji\": \":plato:\"}"
 
     RESPONSE=$(curl -s -H "Content-Type: application/json" \
     --data "${payload}" \

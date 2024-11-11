@@ -122,7 +122,7 @@ function findGoodUrls() {
 scrapeUrls
 
 # Post initial header message
-slackNotification $slackBotToken $slackChannelName ":github: :document_it: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> status:"
+slackNotification $slackBotToken $slackChannelName "Documentation Review" ":github: :document_it: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> status"
 
 # Run checks on scraped pages to find the review dates and outcomes for each.
 findNullUrls
