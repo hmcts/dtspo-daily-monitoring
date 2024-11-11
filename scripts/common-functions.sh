@@ -22,7 +22,11 @@ slackNotification() {
                     --arg message "$message" \
                     '.blocks[0].text.text |= $header | .blocks[2].text.text |= $message' scripts/header-block-template.json)
 
+    echo "Header = $headerPayload"
+
     payload="{\"channel\": \"${channel_name}\", \"username\": \"Plato\", \"text\": \"${headerPayload}\", \"icon_emoji\": \":plato:\"}"
+
+    echo "Payload = $payload"
 
     RESPONSE=$(curl -s -H "Content-Type: application/json" \
     --data "${payload}" \
