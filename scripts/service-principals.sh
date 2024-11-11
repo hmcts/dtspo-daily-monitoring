@@ -65,12 +65,10 @@ else
     AZ_APP_RESULT=$( az ad app list --display-name "DTS Operations Bootstrap GA" --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
 fi
 
-slackNotification $slackBotToken $slackChannelName ":azure-826: Service Principal Checks" " "
-
 if [ $DOMAIN = "HMCTS.NET" ]; then
-    slackThreadResponse $slackBotToken $slackChannelName ":azure-826: <https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status*_>" $TS
+    slackNotification $slackBotToken $slackChannelName ":azure-826: Service Principal Checks - HMCTS" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status*_>"
 else
-    slackThreadResponse $slackBotToken $slackChannelName ":azure-826: <https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status - HMCTS Dev Tenant*_>" $TS
+    slackNotification $slackBotToken $slackChannelName ":azure-826: Service Principal Checks - HMCTS Dev" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status - HMCTS Dev Tenant*_>"
 fi
 
 azAppCount=$(jq -r '. | length' <<< "${AZ_APP_RESULT}")
@@ -112,16 +110,16 @@ echo "${#expiringAppsSoon[@]}"
 echo "${#expiringAppsUrgent[@]}"
 
 if [ "${#expiredApps[@]}" -gt 0 ]; then
-    slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Expired Service Principals found!" $TS
-    slackThreadResponse $slackBotToken $slackChannelName "$(IFS=$'\n'; echo "${expiredApps[*]}")" $TS
+    # slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Expired Service Principals found!" $TS
+    slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Expired Service Principals found! $(IFS=$'\n'; echo "${expiredApps[*]}")" $TS
 fi
 
 if [ "${#expiringAppsSoon[@]}" -gt 0 ]; then
-    slackThreadResponse $slackBotToken $slackChannelName ":yellow_circle: Service Principals expiring soon!" $TS
-    slackThreadResponse $slackBotToken $slackChannelName "$(IFS=$'\n'; echo "${expiringAppsSoon[*]}")" $TS
+    # slackThreadResponse $slackBotToken $slackChannelName ":yellow_circle: Service Principals expiring soon!" $TS
+    slackThreadResponse $slackBotToken $slackChannelName ":yellow_circle: Service Principals expiring soon! $(IFS=$'\n'; echo "${expiringAppsSoon[*]}")" $TS
 fi
 
 if [ "${#expiringAppsUrgent[@]}" -gt 0 ]; then
-    slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Service Principals expiring very soon!" $TS
-    slackThreadResponse $slackBotToken $slackChannelName "$(IFS=$'\n'; echo "${expiringAppsUrgent[*]}")" $TS
+    # slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Service Principals expiring very soon!" $TS
+    slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Service Principals expiring very soon!" $(IFS=$'\n'; echo "${expiringAppsUrgent[*]}")" $TS
 fi
