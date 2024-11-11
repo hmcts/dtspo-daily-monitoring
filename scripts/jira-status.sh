@@ -146,13 +146,13 @@ else
   withdrawnIssues=":hourglass_flowing_sand: *No issues were automatically withdrawn yesterday*"
 fi
 
-slackNotification $slackBotToken $slackChannelName "$STATUS Jira Status" ":jira: <https://bit.ly/3mzE5DL|_*BAU Tickets Status*_>"
+slackNotification $slackBotToken $slackChannelName "$STATUS Jira Status" ":jira: <https://bit.ly/3mzE5DL|_*BAU Tickets Status*_>\\nOpen: ${openIssues}\\nUassigned: ${unassignedIssues}\\nPatching: ${patchingIssues}\\nOAT: ${oatIssues}\\nWithdrawn: ${withdrawnIssues}"
 
-slackThreadResponse $slackBotToken $slackChannelName "Open: ${openIssues}" $TS
-slackThreadResponse $slackBotToken $slackChannelName "Uassigned: ${unassignedIssues}" $TS
-slackThreadResponse $slackBotToken $slackChannelName "Patching: ${patchingIssues}" $TS
-slackThreadResponse $slackBotToken $slackChannelName "OAT: ${oatIssues}" $TS
-slackThreadResponse $slackBotToken $slackChannelName "Withdrawn: ${withdrawnIssues}" $TS
+# slackThreadResponse $slackBotToken $slackChannelName "Open: ${openIssues}" $TS
+# slackThreadResponse $slackBotToken $slackChannelName "Uassigned: ${unassignedIssues}" $TS
+# slackThreadResponse $slackBotToken $slackChannelName "Patching: ${patchingIssues}" $TS
+# slackThreadResponse $slackBotToken $slackChannelName "OAT: ${oatIssues}" $TS
+# slackThreadResponse $slackBotToken $slackChannelName "Withdrawn: ${withdrawnIssues}" $TS
 
 slackNotification $slackBotToken $slackChannelName "Jira Ticket Status" " "
 
