@@ -1,22 +1,21 @@
-{
-	"blocks": [
-		{
-			"type": "header",
-			"text": {
-				"type": "plain_text",
-				"text": "#HEADER#",
-				"emoji": true
-			}
-		},
-		{
-			"type": "divider"
-		},
-		{
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": "#CONTENT#"
-			}
+[
+	{
+		"type": "header",
+		"text": {
+			"type": "plain_text",
+			"text": "#HEADER#",
+			"emoji": true
 		}
-	]
-}
+	},
+	{
+		"type": "divider"
+	},
+	{
+		"type": "section",
+		"text": {
+			"type": "mrkdwn",
+			"text": "#CONTENT#"
+		}
+	}
+]
+
