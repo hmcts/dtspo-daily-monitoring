@@ -22,8 +22,6 @@ slackNotification() {
                     --arg message "$message" \
                     '.[0].text.text |= $header | .[2].text.text |= $message' scripts/header-block-template.json)
 
-    echo "Header = $headerPayload"
-
     # Construct the payload with blocks directly
     payload=$(jq -n --arg channel "${channel_name}" \
             --arg username "Plato" \
@@ -31,15 +29,11 @@ slackNotification() {
             --argjson blocks "$headerPayload" \
             '{channel: $channel, username: $username, blocks: $blocks, icon_emoji: $icon_emoji}')
 
-    echo "Payload = $payload"
-
     RESPONSE=$(curl -s -H "Content-Type: application/json" \
     --data "${payload}" \
     -H "Authorization: Bearer ${slack_token}" \
     -H application/json \
     -X POST https://slack.com/api/chat.postMessage)
-
-    echo "Response = $RESPONSE"
 
     # Extract the timestamp of the posted message
     TS=$(echo $RESPONSE | jq -r '.ts')
