@@ -127,8 +127,6 @@ unassignedIssues=$(printf "%s *%s* Unassigned BAU issues\n" "$UNASSIGNED_STATUS"
 patchingIssues=$(printf "%s *%s* Open Patching issues\n" "$OPEN_PATCHING_ISSUES_STATUS" "$OPEN_PATCHING_ISSUES_COUNT")
 oatIssues=$(printf "%s *%s* Open OAT issues\n" "$OPEN_OAT_ISSUES_STATUS" "$OPEN_OAT_ISSUES_COUNT")
 
-slackNotification $slackBotToken $slackChannelName "Jira Status" ":jira: <https://bit.ly/3mzE5DL|_*BAU Tickets Status*_> \n Open: ${openIssues} \n Uassigned: ${unassignedIssues} \n Patching: ${patchingIssues} \n OAT: ${oatIssues}"
-
 # slackNotification $slackBotToken $slackChannelName "Open" "${openIssues}"
 # slackNotification $slackBotToken $slackChannelName "Uassigned" "${unassignedIssues}"
 # slackNotification $slackBotToken $slackChannelName "Patching" "${patchingIssues}"
@@ -142,7 +140,7 @@ fi
 
 slackNotification $slackBotToken $slackChannelName "Jira Status" ":jira: <https://bit.ly/3mzE5DL|_*BAU Tickets Status*_> \n Open: ${openIssues} \n Uassigned: ${unassignedIssues} \n Patching: ${patchingIssues} \n OAT: ${oatIssues} \n Withdrawn: ${withdrawnIssues}"
 
-slackNotification $slackBotToken $slackChannelName "Jira Ticket Status"
+slackNotification $slackBotToken $slackChannelName "Jira Ticket Status" ""
 
 closedIssues=$(printf ":tada: *%s issues closed yesterday:*" "$CLOSED_ISSUES_COUNT")
 slackThreadResponse $slackBotToken $slackChannelName "${closedIssues}" $TS
