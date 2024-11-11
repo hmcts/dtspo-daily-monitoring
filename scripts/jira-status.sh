@@ -138,9 +138,15 @@ else
   withdrawnIssues=":hourglass_flowing_sand: *No issues were automatically withdrawn yesterday*"
 fi
 
-slackNotification $slackBotToken $slackChannelName "Jira Status" ":jira: <https://bit.ly/3mzE5DL|_*BAU Tickets Status*_> \n Open: ${openIssues} \n Uassigned: ${unassignedIssues} \n Patching: ${patchingIssues} \n OAT: ${oatIssues} \n Withdrawn: ${withdrawnIssues}"
+slackNotification $slackBotToken $slackChannelName "Jira Status" ":jira: <https://bit.ly/3mzE5DL|_*BAU Tickets Status*_>"
 
-slackNotification $slackBotToken $slackChannelName "Jira Ticket Status" ""
+slackThreadResponse $slackBotToken $slackChannelName "Open: ${openIssues}" $TS
+slackThreadResponse $slackBotToken $slackChannelName "Uassigned: ${unassignedIssues}" $TS
+slackThreadResponse $slackBotToken $slackChannelName "Patching: ${patchingIssues}" $TS
+slackThreadResponse $slackBotToken $slackChannelName "OAT: ${oatIssues}" $TS
+slackThreadResponse $slackBotToken $slackChannelName "Withdrawn: ${withdrawnIssues}" $TS
+
+slackNotification $slackBotToken $slackChannelName "Jira Ticket Status" " "
 
 closedIssues=$(printf ":tada: *%s issues closed yesterday:*" "$CLOSED_ISSUES_COUNT")
 slackThreadResponse $slackBotToken $slackChannelName "${closedIssues}" $TS

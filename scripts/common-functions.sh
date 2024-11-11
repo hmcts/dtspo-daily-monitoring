@@ -19,12 +19,10 @@ slackNotification() {
 
     # Use jq with variables
     headerPayload=$(jq --arg header "$header" \
-                    --arg message "$(printf '%s' "$message")" \
+                    --arg message "$message" \
                     '.[0].text.text |= $header | .[2].text.text |= $message' scripts/header-block-template.json)
 
     echo "Header = $headerPayload"
-
-    # payload="{\"channel\": \"${channel_name}\", \"username\": \"Plato\", \"text\": \"${headerPayload}\", \"icon_emoji\": \":plato:\"}"
 
     # Construct the payload with blocks directly
     payload=$(jq -n --arg channel "${channel_name}" \
