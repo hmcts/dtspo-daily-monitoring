@@ -102,10 +102,13 @@ for APP in ${APPS[@]}; do
     check_status $APP
 done
 
+echo $failures_exist_toffee
+echo $failures_exist_plum
+
 if [[ $failures_exist_toffee || $failures_exist_plum ]]; then
-    status=":red_circle"
+    status=":red_circle:"
 else
-    status=":green_circle"
+    status=":green_circle:"
 fi
 
 # Send initial header message
