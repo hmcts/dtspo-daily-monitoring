@@ -396,7 +396,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
-          arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.main_channel }}
+          arguments: $(dtspo-daily-checks-slack-bot-token) $(main_channel)"
       - task: Bash@3
         displayName: 'Send slack message - master branch'
         condition: |
@@ -404,4 +404,4 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
-          arguments: $(dtspo-daily-checks-slack-bot-token) ${{ variables.main_channel }}
+          arguments: $(dtspo-daily-checks-slack-bot-token) $(main_channel)"
