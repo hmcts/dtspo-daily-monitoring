@@ -105,7 +105,7 @@ done
 echo $failures_exist_toffee
 echo $failures_exist_plum
 
-if [[ $failures_exist_toffee || $failures_exist_plum ]]; then
+if [[ $failures_exist_toffee == true || $failures_exist_plum == true ]]; then
     status=":red_circle:"
 else
     status=":green_circle:"
