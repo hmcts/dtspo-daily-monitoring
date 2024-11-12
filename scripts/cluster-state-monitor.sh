@@ -73,9 +73,9 @@ while read subscription; do
 done < <(jq -c '.[]' <<< $SUBSCRIPTIONS)
 
 if [ $failures_exist ]; then
-    status=":red_circle"
+    status=":red_circle:"
 else
-    status=":green_circle"
+    status=":green_circle:"
 fi
 
 # Send initial header message
