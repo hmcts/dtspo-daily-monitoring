@@ -325,6 +325,7 @@ jobs:
             scriptPath: scripts/postgres-flexible-storage.sh
             azureSubscription: ${{ postgres_sub.subscription }}
             arguments: ${{ postgres_sub.subscription }}
+
       - task: Bash@3
         displayName: 'Checking Github Licenses'
         inputs:
@@ -356,11 +357,6 @@ jobs:
           scriptType: bash
           scriptPath: scripts/cluster-state-monitor.sh
           azureSubscription: ${{ variables.ado_service_connection }}
-      - task: Bash@3
-        displayName: 'Check Toffee/Plum Status'
-        inputs:
-          targetType: filePath
-          filePath: scripts/check-toffee-plum.sh
 
       - task: AzureCLI@2
         displayName: 'Service Principal Check'
@@ -387,6 +383,20 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/github_pages_checks.sh
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+
+      - task: AzureCLI@2
+        displayName: 'Get Provisioning State'
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/cluster-state-monitor.sh
+          azureSubscription: ${{ variables.ado_service_connection }}
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      - task: Bash@3
+        displayName: 'Check Toffee/Plum Status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/check-toffee-plum.sh
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
 
       - task: Bash@3
