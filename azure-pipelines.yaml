@@ -397,7 +397,9 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/check-toffee-plum.sh
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
 
       - task: Bash@3
         displayName: 'Send slack message - pull request'
