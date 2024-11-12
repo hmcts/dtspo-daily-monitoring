@@ -126,7 +126,7 @@ fi
 
 # Check Plum failures and if exist, add to thread
 if [ ${#failure_msg_plum[@]} -eq 0 ]; then
-    slackThreadResponse $slackBotToken $slackChannelName ">:green_circle: All Toffee deployments are healthy" $TS
+    slackThreadResponse $slackBotToken $slackChannelName ">:green_circle: All Plum deployments are healthy" $TS
 else
     # Loop through each failure
     for failure in "${failure_msg_plum[@]}"; do
