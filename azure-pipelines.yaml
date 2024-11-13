@@ -344,19 +344,7 @@ jobs:
       #     targetType: filePath
       #     filePath: scripts/servicenow-status.sh
       #     arguments: $(service-now-username)  $(service-now-password)
-      # - task: Bash@3
-      #   displayName: 'Checking Jenkins status'
-      #   continueOnError: true
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/jenkins-status.sh
-      #     arguments: $(jenkins-api-user) $(jenkins-api-token) ${{ variables.jenkins_url }}
-      # - task: AzureCLI@2
-      #   displayName: 'Get Provisioning State'
-      #   inputs:
-      #     scriptType: bash
-      #     scriptPath: scripts/cluster-state-monitor.sh
-      #     azureSubscription: ${{ variables.ado_service_connection }}
+
 
       # - task: AzureCLI@2
       #   displayName: 'Service Principal Check'
@@ -384,23 +372,29 @@ jobs:
       #     targetType: filePath
       #     filePath: scripts/github_pages_checks.sh
       #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
-
-      - task: AzureCLI@2
-        displayName: 'Get Provisioning State'
-        inputs:
-          scriptType: bash
-          scriptPath: scripts/cluster-state-monitor.sh
-          azureSubscription: ${{ variables.ado_service_connection }}
-          arguments: >
-            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
-            --slackChannelName $(main_channel)
+      # - task: AzureCLI@2
+      #   displayName: 'Get Provisioning State'
+      #   inputs:
+      #     scriptType: bash
+      #     scriptPath: scripts/cluster-state-monitor.sh
+      #     azureSubscription: ${{ variables.ado_service_connection }}
+      #     arguments: >
+      #       --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+      #       --slackChannelName $(main_channel)
+      # - task: Bash@3
+      #   displayName: 'Check Toffee/Plum Status'
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/check-toffee-plum.sh
+      #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
 
       - task: Bash@3
-        displayName: 'Check Toffee/Plum Status'
+        displayName: 'Checking Jenkins status'
+        continueOnError: true
         inputs:
           targetType: filePath
-          filePath: scripts/check-toffee-plum.sh
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+          filePath: scripts/jenkins-status.sh
+          arguments: $(jenkins-api-user) $(jenkins-api-token) ${{ variables.jenkins_url }}
 
       - task: Bash@3
         displayName: 'Send slack message - pull request'
