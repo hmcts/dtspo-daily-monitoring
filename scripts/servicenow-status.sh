@@ -57,8 +57,8 @@ if [[ -z "$slackBotToken" || -z "$slackChannelName" || -z "$snowUsername" || -z 
         echo 'Please supply all of: '
         echo '- Slack token'
         echo '- Slack channel name'
-        echo '- Service Now Username'
-        echo '- Service Now Password'
+        echo '- ServiceNow Username'
+        echo '- ServiceNow Password'
         echo "------------------------"
     } >&2
     exit 1
