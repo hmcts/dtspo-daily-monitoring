@@ -28,7 +28,7 @@ EOF
 exit 1
 }
 
-args=$(getopt -a -o t:c:p:g: --long slackBotToken:,slackChannelName:,help -- "$@")
+args=$(getopt -a -o t:c:j:t:u:h: --long slackBotToken:,slackChannelName:,jenkinsUsername:,jenkinsApiToken:,jenkinsURL:,help -- "$@")
 if [[ $? -gt 0 ]]; then
     usage
 fi
