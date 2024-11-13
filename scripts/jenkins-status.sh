@@ -72,17 +72,11 @@ elif (( "$BUILD_QUEUE_COUNT" <= 125 )); then
   BUILD_QUEUE_STATUS=":yellow_circle:"
 fi
 
-printf ">_%s  Build Queue :_ *%s* :sign-queue: \n" "$BUILD_QUEUE_STATUS" "$BUILD_QUEUE_COUNT" >> slack-message.txt
-
-# Post initial header message
-slackNotification $slackBotToken $slackChannelName ":jenkins: Jenkins Status" "$BUILD_QUEUE_STATUS _Build Queue :_ *$BUILD_QUEUE_COUNT* :sign-queue:"
-
-slackThreadResponse $slackBotToken $slackChannelName "_Dashboard Status:_" $TS
-
 DASHBOARD_RESULT=$( curl -u $jenkinsUsername:$jenkinsApiToken "$jenkinsURL/view/Platform/api/json?depth=1")
 
 count=$(jq -r '.jobs | length' <<< $DASHBOARD_RESULT)
 
+BUILD_STATUS_RESULTS=()
 for ((i=0; i< ${count}; i++)); do
     URL=$(jq -r '.jobs['$i'].url' <<< "$DASHBOARD_RESULT")
     COLOR=$(jq -r '.jobs['$i'].color' <<< "$DASHBOARD_RESULT")
@@ -94,7 +88,23 @@ for ((i=0; i< ${count}; i++)); do
     elif [[ "$COLOR" == "blue" ]]; then
     BUILD_STATUS=":green_circle:"
     fi
-  slackThreadResponse $slackBotToken $slackChannelName "$BUILD_STATUS <$URL|$FULL_DISPLAY_NAME> \n" $TS
+
+    BUILD_STATUS_RESULTS+=("$BUILD_STATUS <$URL|$FULL_DISPLAY_NAME>")
 done
 
+CHECK_STATUS=":green_circle:"
+for result in "${BUILD_STATUS_RESULTS[@]}"; do
+    if [[ "$result" == *"red_circle"* ]]; then
+      CHECK_STATUS=":red_circle:"
+      break
+    elif [[ "$result" == *"yellow_circle"* ]]; then
+      CHECK_STATUS=":yellow_circle:"
+    fi
+done
 
+# Post initial header message
+slackNotification $slackBotToken $slackChannelName ":jenkins: $CHECK_STATUS Jenkins Status" "$BUILD_QUEUE_STATUS _Build Queue :_ *$BUILD_QUEUE_COUNT* :sign-queue:"
+# Dashboard status heading
+slackThreadResponse $slackBotToken $slackChannelName "_Dashboard Status:_" $TS
+#Pipeline Status
+slackThreadResponse $slackBotToken $slackChannelName "$(printf "%s\n" "${BUILD_STATUS_RESULTS[@]}")" $TS
