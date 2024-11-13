@@ -94,7 +94,7 @@ elif [[ "$OPEN_INCIDENTS_STATUS" == "yellow_circle" || "$OPEN_PROBLEMS_STATUS" =
 fi
 
 # Post initial header message
-slackNotification $slackBotToken $slackChannelName ":service-now: $CHECK_STATUS Service Now Check" "<https://mojcppprod.service-now.com/|_*ServiceNow Status*_"
+slackNotification $slackBotToken $slackChannelName ":service-now: $CHECK_STATUS Service Now Check" "<https://mojcppprod.service-now.com/|_*ServiceNow Status*_>"
 # Dashboard status heading
 slackThreadResponse $slackBotToken $slackChannelName "$OPEN_INCIDENTS_STATUS There are $OPEN_INCIDENTS_COUNT open incidents" $TS
 #Pipeline Status
