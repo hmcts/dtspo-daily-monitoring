@@ -394,7 +394,12 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/jenkins-status.sh
-          arguments: $(jenkins-api-user) $(jenkins-api-token) ${{ variables.jenkins_url }}
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --jenkinsUsername $(jenkins-api-user)
+            --jenkinsApiToken $(jenkins-api-token)
+            --jenkinsURL ${{ variables.jenkins_url }}
 
       - task: Bash@3
         displayName: 'Send slack message - pull request'

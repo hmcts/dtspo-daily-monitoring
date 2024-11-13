@@ -1,10 +1,68 @@
-set -ex
+#!/usr/bin/env bash
 
-JENKINS_USERNAME=$1
-JENKINS_API_TOKEN=$2
-JENKINS_URL=$3
+### Setup script environment
+set -exuo pipefail
 
-BUILD_QUEUE_RESULT=$( curl -u "$JENKINS_USERNAME":"$JENKINS_API_TOKEN" "$JENKINS_URL/queue/api/json")
+# Source central functions script
+source scripts/common-functions.sh
+
+slackBotToken=
+slackChannelName=
+jenkinsUsername=
+jenkinsApiToken=
+jenkinsURL=
+
+usage(){
+>&2 cat << EOF
+------------------------------------------------
+Script to check GitHub page expiry
+------------------------------------------------
+Usage: $0
+    [ -t | --slackBotToken ]
+    [ -c | --slackChannelName ]
+    [ -j | --jenkinsUsername ]
+    [ -t | --jenkinsApiToken ]
+    [ -u | --jenkinsURL ]
+    [ -h | --help ]
+EOF
+exit 1
+}
+
+args=$(getopt -a -o t:c:p:g: --long slackBotToken:,slackChannelName:,help -- "$@")
+if [[ $? -gt 0 ]]; then
+    usage
+fi
+
+eval set -- ${args}
+while :
+do
+    case $1 in
+        -h | --help)              usage                    ; shift   ;;
+        -t | --slackBotToken)     slackBotToken=$2         ; shift 2 ;;
+        -c | --slackChannelName)  slackChannelName=$2      ; shift 2 ;;
+        -j | --jenkinsUsername)   jenkinsUsername=$2       ; shift 2 ;;
+        -t | --jenkinsApiToken)   jenkinsApiToken=$2       ; shift 2 ;;
+        -u | --jenkinsURL)        jenkinsURL=$2            ; shift 2 ;;
+        # -- means the end of the arguments; drop this, and break out of the while loop
+        --) shift; break ;;
+        *) >&2 echo Unsupported option: $1
+            usage ;;
+    esac
+done
+
+if [[ -z "$slackBotToken" || -z "$slackChannelName" || -z "$jenkinsUsername" || -z "$jenkinsApiToken" || -z "$jenkinsURL" ]]; then
+    echo "------------------------"
+    echo 'Please supply all of: '
+    echo '- Slack token'
+    echo '- Slack channel name'
+    echo '- Jenkins Username'
+    echo '- Jenkins API Token'
+    echo '- Jenkins URL'
+    echo "------------------------"
+    exit 1
+fi
+
+BUILD_QUEUE_RESULT=$( curl -u "$jenkinsUsername":"$jenkinsApiToken" "$jenkinsURL/queue/api/json")
 BUILD_QUEUE_COUNT=$(jq -r '.items | length' <<< "$BUILD_QUEUE_RESULT")
 
 BUILD_QUEUE_STATUS=":red_circle:"
@@ -21,7 +79,7 @@ slackNotification $slackBotToken $slackChannelName ":jenkins: Jenkins Status" "$
 
 slackThreadResponse $slackBotToken $slackChannelName "_Dashboard Status:_" $TS
 
-DASHBOARD_RESULT=$( curl -u $JENKINS_USERNAME:$JENKINS_API_TOKEN "$JENKINS_URL/view/Platform/api/json?depth=1")
+DASHBOARD_RESULT=$( curl -u $jenkinsUsername:$jenkinsApiToken "$jenkinsURL/view/Platform/api/json?depth=1")
 
 count=$(jq -r '.jobs | length' <<< $DASHBOARD_RESULT)
 
