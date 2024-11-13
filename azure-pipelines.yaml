@@ -338,14 +338,8 @@ jobs:
       #     targetType: filePath
       #     filePath: scripts/ld-license.sh
       #     arguments: $(launchdarkly-access-token)
-      # - task: Bash@3
-      #   displayName: 'Checking servicenow status'
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/servicenow-status.sh
-      #     arguments: $(service-now-username)  $(service-now-password)
 
-
+      # All checks below use common-functions.sh slack notifications, these are setup to use block type Slack headers and threads
       # - task: AzureCLI@2
       #   displayName: 'Service Principal Check'
       #   inputs:
@@ -387,19 +381,25 @@ jobs:
       #     targetType: filePath
       #     filePath: scripts/check-toffee-plum.sh
       #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      # - task: Bash@3
+      #   displayName: 'Checking Jenkins status'
+      #   continueOnError: true
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/jenkins-status.sh
+      #     arguments: >
+      #       --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+      #       --slackChannelName $(main_channel)
+      #       --jenkinsUsername $(jenkins-api-user)
+      #       --jenkinsApiToken $(jenkins-api-token)
+      #       --jenkinsURL ${{ variables.jenkins_url }}
 
       - task: Bash@3
-        displayName: 'Checking Jenkins status'
-        continueOnError: true
+        displayName: 'Checking servicenow status'
         inputs:
           targetType: filePath
-          filePath: scripts/jenkins-status.sh
-          arguments: >
-            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
-            --slackChannelName $(main_channel)
-            --jenkinsUsername $(jenkins-api-user)
-            --jenkinsApiToken $(jenkins-api-token)
-            --jenkinsURL ${{ variables.jenkins_url }}
+          filePath: scripts/servicenow-status.sh
+          arguments: $(service-now-username)  $(service-now-password)
 
       - task: Bash@3
         displayName: 'Send slack message - pull request'

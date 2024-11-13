@@ -51,14 +51,16 @@ do
 done
 
 if [[ -z "$slackBotToken" || -z "$slackChannelName" || -z "$jenkinsUsername" || -z "$jenkinsApiToken" || -z "$jenkinsURL" ]]; then
-    echo "------------------------"
-    echo 'Please supply all of: '
-    echo '- Slack token'
-    echo '- Slack channel name'
-    echo '- Jenkins Username'
-    echo '- Jenkins API Token'
-    echo '- Jenkins URL'
-    echo "------------------------"
+    {
+      echo "------------------------"
+      echo 'Please supply all of: '
+      echo '- Slack token'
+      echo '- Slack channel name'
+      echo '- Jenkins Username'
+      echo '- Jenkins API Token'
+      echo '- Jenkins URL'
+      echo "------------------------"
+    } >&2
     exit 1
 fi
 
