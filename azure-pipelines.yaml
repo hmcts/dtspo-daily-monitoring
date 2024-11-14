@@ -215,6 +215,13 @@ jobs:
     pool:
       name: 'hmcts-cftptl-agent-pool'
     steps:
+      - task: AzureKeyVault@1
+        displayName: 'Get secrets from Keyvault'
+        inputs:
+          azureSubscription:  "DTS-CFTPTL-INTSVC"
+          keyVaultName:   "cftptl-intsvc"
+          secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,github-management-api-token,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token'
+
       - task: Bash@3
         displayName: 'Set Channel Name'
         condition: and(succeeded(), eq(variables['isMain'], true))
@@ -228,14 +235,8 @@ jobs:
         inputs:
           targetType: inline
           script: |
-            echo PR Number is: $PULL_REQUEST_NUMBER
-
             GITHUB_USER=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GITHUB_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/hmcts/dtspo-daily-monitoring/pulls/$PULL_REQUEST_NUMBER"  | jq -r '.user.login')
-            echo $GITHUB_USER
-
             PR_CHANNEL_NAME=$(curl -s https://raw.githubusercontent.com/hmcts/github-slack-user-mappings/master/slack.json | jq --arg GITHUB_USER "$GITHUB_USER" -r '.[][] | (select(.github | contains($GITHUB_USER)))' | jq -r '.slack')
-            echo $PR_CHANNEL_NAME
-
             echo "##vso[task.setvariable variable=main_channel]$PR_CHANNEL_NAME"
         env:
           GITHUB_TOKEN: $(github-management-api-token)
@@ -245,12 +246,6 @@ jobs:
           echo "main_channel set to: $(main_channel)"
         displayName: 'Show main channel name'
 
-      - task: AzureKeyVault@1
-        displayName: 'Get secrets from Keyvault'
-        inputs:
-          azureSubscription:  "DTS-CFTPTL-INTSVC"
-          keyVaultName:   "cftptl-intsvc"
-          secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,github-management-api-token,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token'
       - task: Bash@3
         displayName: 'Create a slack message file'
         inputs:
