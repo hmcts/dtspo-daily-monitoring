@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 
-# This script will curl the output of the pages found in the URLS array and use JQ to parse the output for specific information
-# The URLs must return valid JSON for JQ to parse it and be of a similar format to those found below i.e. GitHub pages API output.
-# Note, if you are running this script on MacOS, the BSD date command works differently. Use `gdate` to get the same output as below.
-
 ### Setup script environment
 set -euo pipefail
 

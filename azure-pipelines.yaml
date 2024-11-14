@@ -382,6 +382,12 @@ jobs:
       #     filePath: scripts/check-toffee-plum.sh
       #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: Bash@3
+        displayName: 'Check Toffee/Plum Status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/ophan-resource-status.sh
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      - task: Bash@3
         displayName: 'Checking Jenkins status'
         continueOnError: true
         inputs:

@@ -107,4 +107,4 @@ done
 # Post initial header message
 slackNotification $slackBotToken $slackChannelName ":jenkins: $CHECK_STATUS Jenkins Status" "$BUILD_QUEUE_STATUS _Build Queue :_ *$BUILD_QUEUE_COUNT* :sign-queue:"
 #Dashboard Status
-slackThreadResponse $slackBotToken $slackChannelName "_Dashboard Status:_ \n $(printf "%s\n" "${BUILD_STATUS_RESULTS[@]}")" $TS
+slackThreadResponse $slackBotToken $slackChannelName "_Dashboard Status:_\n$(printf "%s\n" "${BUILD_STATUS_RESULTS[@]}")" $TS
