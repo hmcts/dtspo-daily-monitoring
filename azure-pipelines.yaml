@@ -381,8 +381,6 @@ jobs:
       # This step is used only for checks that do not use common-functions yet
       - task: Bash@3
         displayName: 'Send slack message'
-        condition: |
-          and(succeeded(), eq(variables['isMain'], true))
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
