@@ -27,7 +27,7 @@ EOF
 exit 1
 }
 
-args=$(getopt -a -o t:c:u:p: --long slackBotToken:,slackChannelName:,help -- "$@")
+args=$(getopt -a -o t:c:h: --long slackBotToken:,slackChannelName:,help -- "$@")
 if [[ $? -gt 0 ]]; then
     usage
 fi
@@ -46,7 +46,7 @@ do
     esac
 done
 
-if [[ -z "$slackBotToken" || -z "$slackChannelName" || -z "$snowUsername" || -z "$snowPassword" ]]; then
+if [[ -z "$slackBotToken" || -z "$slackChannelName" ]]; then
     {
         echo "------------------------"
         echo 'Please supply all of: '

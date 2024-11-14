@@ -382,7 +382,7 @@ jobs:
       #     filePath: scripts/check-toffee-plum.sh
       #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: Bash@3
-        displayName: 'Check Toffee/Plum Status'
+        displayName: 'Check Orphaned Resource Status'
         inputs:
           targetType: filePath
           filePath: scripts/ophan-resource-status.sh
