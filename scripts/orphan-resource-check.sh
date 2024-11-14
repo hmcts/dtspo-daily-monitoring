@@ -70,7 +70,7 @@ else
 fi
 
 # Post initial header message
-slackNotification $slackBotToken $slackChannelName "$STATUS Orphaned Resource Status" "$deletedResourceCount resources failed to delete, <https://github.com/hmcts/dtspo-orphan-resources-cleanup/actions|*_Orphaned Delete Pipeline_*>"
+slackNotification $slackBotToken $slackChannelName "$STATUS Orphaned Resource Status" "$deletedResourceCount resources failed to delete, <https://github.com/hmcts/dtspo-orphan-resources-cleanup/actions|*_Orphaned Resource Pipeline_*>"
 
 # If there are more than 0 objects, print the object values into an array and send as a thread to slack
 if [ "$deletedResourceCount" -gt 0 ]; then
