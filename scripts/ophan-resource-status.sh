@@ -79,6 +79,6 @@ if [ "$deletedResourceCount" -gt 0 ]; then
     failedDeletes=$(jq --arg status "$STATUS" -r '.[].message | gsub("A resource failed to delete!\\\\nTo see why, you can run: az resource delete --ids "; "") | gsub("--verbose\\\\n"; "") | $status + " " + .' <<< "$jsonData")
 
     # Send to slack thread
-    slackThreadResponse $slackBotToken $slackChannelName "The following resources failed to delete, you can find more information by running \n 'az resource delete --ids "RESOURCE ID" --verbose'" $TS
+    slackThreadResponse $slackBotToken $slackChannelName "The following resources failed to delete, you can find more information by running \n 'az resource delete --ids (RESOURCE ID) --verbose'" $TS
     slackThreadResponse $slackBotToken $slackChannelName "$failedDeletes" $TS
 fi
