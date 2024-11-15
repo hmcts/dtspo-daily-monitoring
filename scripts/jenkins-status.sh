@@ -21,14 +21,14 @@ usage(){
         [ -t | --slackBotToken ]
         [ -c | --slackChannelName ]
         [ -j | --jenkinsUsername ]
-        [ -t | --jenkinsApiToken ]
+        [ -a | --jenkinsApiToken ]
         [ -u | --jenkinsURL ]
         [ -h | --help ]
     EOF
     exit 1
 }
 
-args=$(getopt -a -o t:c:j:t:u:h: --long slackBotToken:,slackChannelName:,jenkinsUsername:,jenkinsApiToken:,jenkinsURL:,help -- "$@")
+args=$(getopt -a -o t:c:j:a:u:h: --long slackBotToken:,slackChannelName:,jenkinsUsername:,jenkinsApiToken:,jenkinsURL:,help -- "$@")
 if [[ $? -gt 0 ]]; then
     usage
 fi
