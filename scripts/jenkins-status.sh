@@ -13,7 +13,7 @@ jenkinsApiToken=
 jenkinsURL=
 
 usage(){
-    >&2 cat << EOF
+>&2 cat << EOF
     ------------------------------------------------
     Script to check GitHub page expiry
     ------------------------------------------------
@@ -24,8 +24,8 @@ usage(){
         [ -a | --jenkinsApiToken ]
         [ -u | --jenkinsURL ]
         [ -h | --help ]
-    EOF
-    exit 1
+EOF
+exit 1
 }
 
 args=$(getopt -a -o t:c:j:a:u:h: --long slackBotToken:,slackChannelName:,jenkinsUsername:,jenkinsApiToken:,jenkinsURL:,help -- "$@")
