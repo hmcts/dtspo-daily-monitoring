@@ -1,0 +1,19 @@
+[
+	{
+		"type": "header",
+		"text": {
+			"type": "plain_text",
+			"text": "#HEADER#"
+		}
+	},
+	{
+		"type": "section",
+		"text": {
+			"type": "mrkdwn",
+			"text": "#CONTENT#"
+		}
+	},
+	{
+		"type": "divider"
+	}
+]
