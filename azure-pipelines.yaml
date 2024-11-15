@@ -384,7 +384,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
-          arguments: $(dtspo-daily-checks-slack-bot-token) $(main_channel)"
+          arguments: $(dtspo-daily-checks-slack-bot-token) $(main_channel)
       # All new checks using headers and threads should be below this to ensure the original slack notification is sent first
       - task: Bash@3
         displayName: 'Orphaned Resource Status Check'
