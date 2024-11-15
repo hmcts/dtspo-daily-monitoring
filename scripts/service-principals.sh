@@ -68,10 +68,7 @@ declare -a expiringAppsSoon=()
 declare -a expiringAppsUrgent=()
 STATUS=":green_circle:"
 
-if [[ $azAppCount == 0 ]]; then
-    slackThreadResponse $slackBotToken $slackChannelName ":green_circle: No Service Principals Secrets are expiring in $checkDays days" $TS
-    exit 0
-else
+if [[ $azAppCount -gt 0 ]]; then
     azAppData=$(jq -c '.[]' <<< "$AZ_APP_RESULT")
 
     while read -r app; do
@@ -105,14 +102,25 @@ else
     slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - HMCTS Dev" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status - HMCTS Dev Tenant*_>"
 fi
 
-if [ "${#expiredApps[@]}" -gt 0 ]; then
-    slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Expired Service Principals found! \\n$(IFS=$'\n'; echo "${expiredApps[*]}")" $TS
-fi
+if [[ $azAppCount == 0 ]]; then
+    slackThreadResponse $slackBotToken $slackChannelName ":green_circle: No Service Principals Secrets are expiring in $checkDays days" $TS
+    exit 0
+else
+    local message=""
 
-if [ "${#expiringAppsUrgent[@]}" -gt 0 ]; then
-    slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Service Principals expiring very soon! \\n$(IFS=$'\n'; echo "${expiringAppsUrgent[*]}")" $TS
-fi
+    if [ "${#expiredApps[@]}" -gt 0 ]; then
+        message+=":red_circle: Expired Service Principals found! \\n$(IFS=$'\n'; echo "${expiredApps[*]}")\\n"
+    fi
 
-if [ "${#expiringAppsSoon[@]}" -gt 0 ]; then
-    slackThreadResponse $slackBotToken $slackChannelName ":yellow_circle: Service Principals expiring soon! \\n$(IFS=$'\n'; echo "${expiringAppsSoon[*]}")" $TS
+    if [ "${#expiringAppsUrgent[@]}" -gt 0 ]; then
+        message+=":red_circle: Service Principals expiring very soon! \\n$(IFS=$'\n'; echo "${expiringAppsUrgent[*]}")\\n"
+    fi
+
+    if [ "${#expiringAppsSoon[@]}" -gt 0 ]; then
+        message+=":yellow_circle: Service Principals expiring soon! \\n$(IFS=$'\n'; echo "${expiringAppsSoon[*]}")\\n"
+    fi
+
+    if [ -n "$message" ]; then
+        slackThreadResponse "$slackBotToken" "$slackChannelName" "$message" "$TS"
+    fi
 fi
