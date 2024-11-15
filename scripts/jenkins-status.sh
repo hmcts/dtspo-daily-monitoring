@@ -13,19 +13,19 @@ jenkinsApiToken=
 jenkinsURL=
 
 usage(){
->&2 cat << EOF
-------------------------------------------------
-Script to check GitHub page expiry
-------------------------------------------------
-Usage: $0
-    [ -t | --slackBotToken ]
-    [ -c | --slackChannelName ]
-    [ -j | --jenkinsUsername ]
-    [ -t | --jenkinsApiToken ]
-    [ -u | --jenkinsURL ]
-    [ -h | --help ]
-EOF
-exit 1
+    >&2 cat << EOF
+    ------------------------------------------------
+    Script to check GitHub page expiry
+    ------------------------------------------------
+    Usage: $0
+        [ -t | --slackBotToken ]
+        [ -c | --slackChannelName ]
+        [ -j | --jenkinsUsername ]
+        [ -t | --jenkinsApiToken ]
+        [ -u | --jenkinsURL ]
+        [ -h | --help ]
+    EOF
+    exit 1
 }
 
 args=$(getopt -a -o t:c:j:t:u:h: --long slackBotToken:,slackChannelName:,jenkinsUsername:,jenkinsApiToken:,jenkinsURL:,help -- "$@")
