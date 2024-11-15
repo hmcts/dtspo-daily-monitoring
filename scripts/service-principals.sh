@@ -109,15 +109,15 @@ else
     message=""
 
     if [ "${#expiredApps[@]}" -gt 0 ]; then
-        message+=":red_circle: Expired Service Principals found! \\n$(IFS=$'\n'; echo "${expiredApps[*]}")\\n"
+        message+=":red_circle: Expired Service Principals found! \\n$(IFS=$'\n'; echo "${expiredApps[*]}")\\n\\n"
     fi
 
     if [ "${#expiringAppsUrgent[@]}" -gt 0 ]; then
-        message+=":red_circle: Service Principals expiring very soon! \\n$(IFS=$'\n'; echo "${expiringAppsUrgent[*]}")\\n"
+        message+=":red_circle: Service Principals expiring very soon! \\n$(IFS=$'\n'; echo "${expiringAppsUrgent[*]}")\\n\\n"
     fi
 
     if [ "${#expiringAppsSoon[@]}" -gt 0 ]; then
-        message+=":yellow_circle: Service Principals expiring soon! \\n$(IFS=$'\n'; echo "${expiringAppsSoon[*]}")\\n"
+        message+=":yellow_circle: Service Principals expiring soon! \\n$(IFS=$'\n'; echo "${expiringAppsSoon[*]}")\\n\\n"
     fi
 
     if [ -n "$message" ]; then
