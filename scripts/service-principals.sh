@@ -106,7 +106,7 @@ if [[ $azAppCount == 0 ]]; then
     slackThreadResponse $slackBotToken $slackChannelName ":green_circle: No Service Principals Secrets are expiring in $checkDays days" $TS
     exit 0
 else
-    local message=""
+    message=""
 
     if [ "${#expiredApps[@]}" -gt 0 ]; then
         message+=":red_circle: Expired Service Principals found! \\n$(IFS=$'\n'; echo "${expiredApps[*]}")\\n"
