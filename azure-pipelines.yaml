@@ -327,12 +327,6 @@ jobs:
             scriptPath: scripts/cert-check.sh
             azureSubscription: ${{ frontdoor.subscription }}
             arguments: ${{ frontdoor.subscription }} ${{ frontdoor.resource_group }} ${{ frontdoor.front_door_name }} ${{ frontdoor.min_cert_exp_days }}
-      - task: Bash@3
-        displayName: 'Checking JIRA status'
-        inputs:
-          targetType: filePath
-          filePath: scripts/jira-status.sh
-          arguments: $(jira-username) $(jira-password)
       - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
         - task: AzureCLI@2
           displayName: 'Checking PostgreSQL Flexible Storage Status: ${{ postgres_sub.subscription }}'
@@ -388,6 +382,12 @@ jobs:
           targetType: filePath
           filePath: scripts/github_pages_checks.sh
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      - task: Bash@3
+        displayName: 'Checking JIRA status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/jira-status.sh
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --jiraUsername $(jira-username) --jiraPassword $(jira-password)
       - task: AzureCLI@2
         displayName: 'Get Provisioning State'
         inputs:
