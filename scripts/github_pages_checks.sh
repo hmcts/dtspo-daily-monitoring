@@ -55,6 +55,7 @@ fi
 ### Script begins
 CURRENTDATE=$($date_command +"%Y-%m-%d") # 2w = 2 weeks
 EXPIRETHRESHOLD=$($date_command -u +"%Y-%m-%d" -d "+2 weeks") # 2w = 2 weeks
+STATUS=":green_circle:"
 
 declare -a URLS=("https://hmcts.github.io/api/pages.json" "https://hmcts.github.io/ops-runbooks/api/pages.json")
 declare -a PAGES
@@ -69,11 +70,15 @@ function scrapeUrls() {
     done
 }
 
+function reviewURLs() {
+    NULLFOUNDURLs=$(jq -rc '. | select(.review_by == null) | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
+    EXPIREDFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$CURRENTDATE'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
+    EXPIRINGFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$EXPIRETHRESHOLD'" and .review_by > "'$CURRENTDATE'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
+}
+
 # findNullUrls will search through all records for a review_by field set to null i.e. when no date has been set on that page
 # If found it will print a list of the pages found in a slack hyperlink format so it is clickable
 function findNullUrls() {
-
-    NULLFOUNDURLs=$(jq -rc '. | select(.review_by == null) | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$NULLFOUNDURLs" ]; then
         local URLS=$(printf "%s\n\n" "$NULLFOUNDURLs" | tr -d '"')
@@ -87,8 +92,6 @@ function findNullUrls() {
 # If found it will print a list of the pages found in a slack hyperlink format so it is clickable
 function findExpiredUrls() {
 
-    EXPIREDFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$CURRENTDATE'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
-
     if [ -n "$EXPIREDFOUNDURLs" ]; then
         local URLS=$(printf "%s\n\n" "$EXPIREDFOUNDURLs" | tr -d '"')
 
@@ -101,8 +104,6 @@ function findExpiredUrls() {
 # If found it will print a list of the pages found in a slack hyperlink format so it is clickable.
 # If none found it will print an all green message stating so.
 function findExpiringUrls() {
-
-    EXPIRINGFOUNDURLs=$(jq -c '. | select(.review_by != null and .review_by < "'$EXPIRETHRESHOLD'" and .review_by > "'$CURRENTDATE'") | "> "+"<" + .url + "|" + .title + ">"' <<<$PAGES)
 
     if [ -n "$EXPIRINGFOUNDURLs" ]; then
         local URLS=$(printf "%s\n\n" "$EXPIRINGFOUNDURLs" | tr -d '"')
@@ -120,9 +121,16 @@ function findGoodUrls() {
 
 # Scrape sites in list for pages to review
 scrapeUrls
+reviewURLs
+
+if [[ -n "$NULLFOUNDURLs"  || -n "$EXPIREDFOUNDURLs" ]]; then
+    STATUS=":red_circle:"
+elif [[ -n "$EXPIRINGFOUNDURLs" ]]; then
+    STATUS=":yellow_circle:"
+fi
 
 # Post initial header message
-slackNotification $slackBotToken $slackChannelName "Documentation Review" ":github: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> Status :document_it:"
+slackNotification $slackBotToken $slackChannelName "$STATUS Documentation Review" ":github: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> Status :document_it:"
 
 # Run checks on scraped pages to find the review dates and outcomes for each.
 findNullUrls
