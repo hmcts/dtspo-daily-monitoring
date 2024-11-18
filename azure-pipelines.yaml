@@ -291,12 +291,6 @@ jobs:
           targetType: filePath
           filePath: scripts/servicenow-status.sh
           arguments: $(service-now-username)  $(service-now-password)
-      - task: AzureCLI@2
-        displayName: 'Get Provisioning State'
-        inputs:
-          scriptType: bash
-          scriptPath: scripts/cluster-state-monitor.sh
-          azureSubscription: ${{ variables.ado_service_connection }}
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'Get AKS Cluster Status'
@@ -305,11 +299,6 @@ jobs:
             scriptPath: scripts/aks-node-count.sh
             azureSubscription: ${{ cluster.subscription }}
             arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
-      - task: Bash@3
-        displayName: 'Check Toffee/Plum Status'
-        inputs:
-          targetType: filePath
-          filePath: scripts/check-toffee-plum.sh
       - task: Bash@3
         displayName: 'Recovery Services Vaults header'
         inputs:
@@ -398,4 +387,17 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/github_pages_checks.sh
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      - task: AzureCLI@2
+        displayName: 'Get Provisioning State'
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/cluster-state-monitor.sh
+          azureSubscription: ${{ variables.ado_service_connection }}
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      - task: Bash@3
+        displayName: 'Check Toffee/Plum Status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/check-toffee-plum.sh
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
