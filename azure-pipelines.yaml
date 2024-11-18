@@ -285,12 +285,6 @@ jobs:
           targetType: filePath
           filePath: scripts/ld-license.sh
           arguments: $(launchdarkly-access-token)
-      - task: Bash@3
-        displayName: 'Checking servicenow status'
-        inputs:
-          targetType: filePath
-          filePath: scripts/servicenow-status.sh
-          arguments: $(service-now-username)  $(service-now-password)
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'Get AKS Cluster Status'
@@ -401,3 +395,13 @@ jobs:
           targetType: filePath
           filePath: scripts/check-toffee-plum.sh
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      - task: Bash@3
+        displayName: 'Checking servicenow status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/servicenow-status.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --snowUsername $(service-now-username)
+            --snowPassword $(service-now-password)
