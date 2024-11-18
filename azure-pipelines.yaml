@@ -339,12 +339,6 @@ jobs:
             azureSubscription: ${{ frontdoor.subscription }}
             arguments: ${{ frontdoor.subscription }} ${{ frontdoor.resource_group }} ${{ frontdoor.front_door_name }} ${{ frontdoor.min_cert_exp_days }}
       - task: Bash@3
-        displayName: 'Checking JIRA status'
-        inputs:
-          targetType: filePath
-          filePath: scripts/jira-status.sh
-          arguments: $(jira-username) $(jira-password)
-      - task: Bash@3
         displayName: "Checking GitHub Pages review status"
         inputs:
           targetType: filePath
@@ -398,3 +392,9 @@ jobs:
           scriptPath: scripts/service-principals.sh
           azureSubscription: ${{ variables.service_connection }}
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
+      - task: Bash@3
+        displayName: 'Checking JIRA status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/jira-status.sh
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --jiraUsername $(jira-username) --jiraPassword $(jira-password)
