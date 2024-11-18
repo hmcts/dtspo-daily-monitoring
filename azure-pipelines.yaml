@@ -338,20 +338,6 @@ jobs:
             scriptPath: scripts/cert-check.sh
             azureSubscription: ${{ frontdoor.subscription }}
             arguments: ${{ frontdoor.subscription }} ${{ frontdoor.resource_group }} ${{ frontdoor.front_door_name }} ${{ frontdoor.min_cert_exp_days }}
-      - task: AzureCLI@2
-        displayName: 'Service Principal Check'
-        inputs:
-          scriptType: bash
-          scriptPath: scripts/service-principals.sh
-          azureSubscription: ${{ variables.service_connection }}
-          arguments: ${{ variables.SPSecretNumDays }}
-      - task: AzureCLI@2
-        displayName: 'Service Principal Check - Dev Tenant'
-        inputs:
-          scriptType: bash
-          scriptPath: scripts/service-principals.sh
-          azureSubscription: ${{ variables.dev_service_connection }}
-          arguments: ${{ variables.SPSecretNumDays }}
       - task: Bash@3
         displayName: 'Checking JIRA status'
         inputs:
@@ -393,6 +379,20 @@ jobs:
             --jenkinsUsername $(jenkins-api-user)
             --jenkinsApiToken $(jenkins-api-token)
             --jenkinsURL ${{ variables.jenkins_url }}
+      - task: AzureCLI@2
+        displayName: 'Service Principal Check - Dev Tenant'
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/service-principals.sh
+          azureSubscription: ${{ variables.dev_service_connection }}
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
+      - task: AzureCLI@2
+        displayName: 'Service Principal Check'
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/service-principals.sh
+          azureSubscription: ${{ variables.service_connection }}
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
       - task: Bash@3
         displayName: "Checking GitHub Pages review status"
         inputs:
