@@ -1,5 +1,55 @@
 #!/usr/bin/env bash
 
+### Setup script environment
+set -euo pipefail
+
+# Source central functions script
+source scripts/common-functions.sh
+
+slackBotToken=
+slackChannelName=
+failures_exist_toffee="false"
+failures_exist_plum="false"
+
+usage(){
+>&2 cat << EOF
+------------------------------------------------
+Script to check GitHub page expiry
+------------------------------------------------
+Usage: $0
+    [ -t | --slackBotToken ]
+    [ -c | --slackChannelName ]
+    [ -h | --help ]
+EOF
+exit 1
+}
+
+args=$(getopt -a -o t:c:p:g: --long slackBotToken:,slackChannelName:,help -- "$@")
+if [[ $? -gt 0 ]]; then
+    usage
+fi
+
+eval set -- ${args}
+while :
+do
+    case $1 in
+        -h | --help)              usage                    ; shift   ;;
+        -t | --slackBotToken)     slackBotToken=$2         ; shift 2 ;;
+        -c | --slackChannelName)  slackChannelName=$2      ; shift 2 ;;
+        # -- means the end of the arguments; drop this, and break out of the while loop
+        --) shift; break ;;
+        *) >&2 echo Unsupported option: $1
+            usage ;;
+    esac
+done
+
+if [[ -z "$slackBotToken" || -z "$slackChannelName" ]]; then
+    echo "------------------------"
+    echo 'Please supply a Slack token and a Slack channel name' >&2
+    echo "------------------------"
+    exit 1
+fi
+
 function add_environments() {
     if [[ "$1" == "Toffee" ]]; then
         ENVIRONMENTS=("Sandbox" "Test" "ITHC" "Demo" "Staging" "Prod")
@@ -21,10 +71,10 @@ function status_code() {
 
 function failure_check() {
     if [[ $statuscode != 200 ]] && [[ $1 == "Toffee" ]]; then
-        failure_msg_toffee+="\n>:red_circle:  <$url| $ENV> is unhealthy"
+        failure_msg_toffee+=">:red_circle:  <$url| $ENV> is unhealthy"
         failures_exist_toffee="true"
     elif [[ $statuscode != 200 ]] && [[ $1 == "Plum" ]]; then
-        failure_msg_plum+="\n>:red_circle:  <$url| $ENV> is unhealthy"
+        failure_msg_plum+=">:red_circle:  <$url| $ENV> is unhealthy"
         failures_exist_plum="true"
     fi
 }
@@ -41,37 +91,45 @@ function check_status() {
     uptime $1
 }
 
-function format_failure() {
-    local app=$1
-    local failure_exist=$2
-    local failure_msg=$3
-
-    printf "\n*$app Status:*" >>slack-message.txt
-    if [[ $failure_exist ]]; then
-        printf '%s\n' "${failure_msg[@]}" >>slack-message.txt
-    else
-        printf "\n>:green_circle:  All environments in ${app} are healthy" >>slack-message.txt
-    fi
-}
-
-function format_status() {
-    if [[ $failures_exist_toffee || $failures_exist_plum ]]; then
-        format_failure "Toffee" $failures_exist_toffee "${failure_msg_toffee[@]}"
-        format_failure "Plum" $failures_exist_plum "${failure_msg_plum[@]}"
-    else
-        printf "\n>:green_circle:  All environments are healthy" >>slack-message.txt
-    fi
-}
-
 # hold any failure messages
 failure_msg_toffee=()
 failure_msg_plum=()
 
 APPS=("Toffee" "Plum")
-printf "\n:detective-pikachu: _*Check Toffee/Plum Status*_ \n" >>slack-message.txt
+
 # Check app status first
 for APP in ${APPS[@]}; do
     check_status $APP
 done
-# format the output, if toffee or plum experience faults
-format_status
+
+echo $failures_exist_toffee
+echo $failures_exist_plum
+
+if [[ $failures_exist_toffee == true || $failures_exist_plum == true ]]; then
+    status=":red_circle:"
+else
+    status=":green_circle:"
+fi
+
+# Send initial header message
+slackNotification $slackBotToken $slackChannelName "$status Toffee/Plum Status Checks" " "
+
+# Check Toffee failures and if exist, add to thread
+if [ ${#failure_msg_toffee[@]} -eq 0 ]; then
+    slackThreadResponse $slackBotToken $slackChannelName ">:green_circle: All Toffee deployments are healthy" $TS
+else
+    # Loop through each failure
+    for failure in "${failure_msg_toffee[@]}"; do
+        slackThreadResponse $slackBotToken $slackChannelName "$failure" $TS
+    done
+fi
+
+# Check Plum failures and if exist, add to thread
+if [ ${#failure_msg_plum[@]} -eq 0 ]; then
+    slackThreadResponse $slackBotToken $slackChannelName ">:green_circle: All Plum deployments are healthy" $TS
+else
+    # Loop through each failure
+    for failure in "${failure_msg_plum[@]}"; do
+        slackThreadResponse $slackBotToken $slackChannelName "$failure" $TS
+    done
+fi
