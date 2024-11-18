@@ -121,19 +121,20 @@ elif (( "$OPEN_OAT_ISSUES_COUNT" <= 20 )); then
   OPEN_OAT_ISSUES_STATUS=":yellow_circle:"
 fi
 
+
+# If any of the unassigned or open checks return red set the overall status to red, if no reds but any yellow then yellow otherwise leave as green
 jiraStatus=":green_circle:"
-# Check the statuses in priority order
 if [[ "$UNASSIGNED_STATUS" == ":red_circle:" || "$OPEN_ISSUES_STATUS" == ":red_circle:" || "$OPEN_PATCHING_ISSUES_STATUS" == ":red_circle:" || "$OPEN_OAT_ISSUES_STATUS" == ":red_circle:" ]]; then
   jiraStatus=":red_circle:"
 elif [[ "$UNASSIGNED_STATUS" == ":yellow_circle:" || "$OPEN_ISSUES_STATUS" == ":yellow_circle:" || "$OPEN_PATCHING_ISSUES_STATUS" == ":yellow_circle:" || "$OPEN_OAT_ISSUES_STATUS" == ":yellow_circle:" ]]; then
   jiraStatus=":yellow_circle:"
 fi
 
+# If the number of tickets closed is less than 5 or 10 set the status accordingly otherwise leave as green
 ticketStatus=":green_circle:"
-# Check the statuses in priority order
 if [[ "$CLOSED_ISSUES_COUNT" -lt 5 ]]; then
   ticketStatus=":red_circle:"
-elif [[ "$CLOSED_ISSUES_COUNT" -lt 18 ]]; then
+elif [[ "$CLOSED_ISSUES_COUNT" -lt 10 ]]; then
   ticketStatus=":yellow_circle:"
 fi
 
@@ -152,11 +153,11 @@ slackNotification $slackBotToken $slackChannelName "$jiraStatus Jira Status" ":j
 
 slackThreadResponse $slackBotToken $slackChannelName "${openIssues}\\n${unassignedIssues}\\n${patchingIssues}\\n${oatIssues}\\n${withdrawnIssues}" $TS
 
-closedIssues=$(printf ":tada: *%s issues closed yesterday:*" "$CLOSED_ISSUES_COUNT")
+closedIssues=$(printf ":tada: *%s issues closed yesterday*" "$CLOSED_ISSUES_COUNT")
 
 slackNotification $slackBotToken $slackChannelName "$ticketStatus Jira Ticket Status" "${closedIssues}"
 
-slackThreadResponse $slackBotToken $slackChannelName "${closedIssues}" $TS
+slackThreadResponse $slackBotToken $slackChannelName "${closedIssues}:" $TS
 slackThreadResponse $slackBotToken $slackChannelName "$CLOSED_ISSUES_USER" $TS
 
 currentlyAssigned=$(printf ":fire: *Current Assigned tickets:*")
