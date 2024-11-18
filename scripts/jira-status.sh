@@ -133,7 +133,7 @@ ticketStatus=":green_circle:"
 # Check the statuses in priority order
 if [[ "$CLOSED_ISSUES_COUNT" -lt 5 ]]; then
   ticketStatus=":red_circle:"
-elif [[ "$CLOSED_ISSUES_COUNT" -lt 10 ]]; then
+elif [[ "$CLOSED_ISSUES_COUNT" -lt 18 ]]; then
   ticketStatus=":yellow_circle:"
 fi
 
@@ -152,7 +152,7 @@ slackNotification $slackBotToken $slackChannelName "$jiraStatus Jira Status" ":j
 
 slackThreadResponse $slackBotToken $slackChannelName "${openIssues}\\n${unassignedIssues}\\n${patchingIssues}\\n${oatIssues}\\n${withdrawnIssues}" $TS
 
-closedIssues=$(printf "*%s issues closed yesterday:*" "$CLOSED_ISSUES_COUNT")
+closedIssues=$(printf ":tada: *%s issues closed yesterday:*" "$CLOSED_ISSUES_COUNT")
 
 slackNotification $slackBotToken $slackChannelName "$ticketStatus Jira Ticket Status" "${closedIssues}"
 
