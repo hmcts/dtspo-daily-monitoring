@@ -13,13 +13,13 @@ failedState=()
 
 usage(){
 >&2 cat << EOF
-------------------------------------------------
-Script to check GitHub page expiry
-------------------------------------------------
-Usage: $0
-    [ -t | --slackBotToken ]
-    [ -c | --slackChannelName ]
-    [ -h | --help ]
+    ------------------------------------------------
+    Script to check GitHub page expiry
+    ------------------------------------------------
+    Usage: $0
+        [ -t | --slackBotToken ]
+        [ -c | --slackChannelName ]
+        [ -h | --help ]
 EOF
 exit 1
 }
@@ -72,18 +72,20 @@ while read subscription; do
 
 done < <(jq -c '.[]' <<< $SUBSCRIPTIONS)
 
-if [ $failures_exist ]; then
-    status=":red_circle:"
+if [ -n "${failures_exist+x}" ]; then # Check if variable exists
+    if [ "$failures_exist" == "true" ]; then #Check if the value is "true"
+        checkStatus=":red_circle:"
+    fi
 else
-    status=":green_circle:"
+    checkStatus=":green_circle:"  # Default to green if the variable doesn't exist
 fi
 
 # Send initial header message
-slackNotification $slackBotToken $slackChannelName "$status AKS Cluster State Checks" " "
+slackNotification $slackBotToken $slackChannelName "$checkStatus AKS Cluster State Checks" " "
 
 # Check Toffee failures and if exist, add to thread
 if [ ${#failedState[@]} -eq 0 ]; then
-    slackThreadResponse $slackBotToken $slackChannelName "\n>:green_circle:  All clusters have a provisioning state of: Succeeded" $TS
+    slackThreadResponse $slackBotToken $slackChannelName ">:green_circle:  All clusters have a provisioning state of: Succeeded" $TS
 else
     # Loop through each failure
     for failure in "${failedState[@]}"; do
