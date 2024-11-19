@@ -77,4 +77,4 @@ fi
 printf "\n:github: <https://github.com/orgs/hmcts/people|_*GitHub License Status*_> \n\n" >> slack-message.txt
 printf "> %s *%s* out of *%s* licenses left \n" "$LICENSE_STATUS" "$LICENSES_LEFT" "$TOTAL_LICENSES" >> slack-message.txt
 
-slackNotification $slackBotToken $slackChannelName ":github: $LICENSE_STATUS"  "<https://github.com/orgs/hmcts/people|_*GitHub License Status*_> _*$LICENSES_LEFT*_ out of *"$TOTAL_LICENSES"* licenses left"
+slackNotification $slackBotToken $slackChannelName ":github: $LICENSE_STATUS GitHub License Check"  "<https://github.com/orgs/hmcts/people|_*GitHub Licenses*_> _*$LICENSES_LEFT*_ out of *"$TOTAL_LICENSES"* licenses left"
