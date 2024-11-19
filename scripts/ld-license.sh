@@ -73,4 +73,4 @@ elif ((  "$LICENSES_LEFT" >= 10 )); then
   LICENSE_STATUS=":yellow_circle:"
 fi
 
-slackNotification $slackBotToken $slackChannelName ":launchdarkly: $LICENSE_STATUS"  "<https://app.launchdarkly.com/settings/members|_*LaunchDarkly License Status*_> _*$LICENSES_LEFT*_ out of *"$TOTAL_LICENSES"* licenses left"
+slackNotification $slackBotToken $slackChannelName ":launchdarkly: $LICENSE_STATUS"  "<https://app.launchdarkly.com/settings/members|_*LaunchDarkly License Status*_> _*$LICENSES_LEFT*_ out of *$TOTAL_LICENSES* licenses left"
