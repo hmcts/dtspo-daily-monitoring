@@ -27,7 +27,7 @@ slackNotification() {
             --arg username "Plato" \
             --arg icon_emoji ":plato:" \
             --argjson blocks "$headerPayload" \
-            '{channel: $channel, username: $username, blocks: $blocks, icon_emoji: $icon_emoji}')
+            '{channel: $channel, username: $username, blocks: $blocks, icon_emoji: $icon_emoji, unfurl_links: false}')
 
     RESPONSE=$(curl -s -H "Content-Type: application/json" \
     --data "${payload}" \
