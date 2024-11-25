@@ -4,7 +4,7 @@
 # This will then be sent to Slack in the Daily Checks channel for easier monitoring by all teams.
 
 ### Setup script environment
-set -euo pipefail
+set -euox pipefail
 
 # Source central functions script
 source scripts/common-functions.sh
