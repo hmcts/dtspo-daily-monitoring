@@ -141,19 +141,15 @@ fi
 
 # Final output
 
-# # Check if a header has already been created by check if `slackMessageTS` variable has already been set at the pipeline level (set by slackNotification function from previous iterations of the each loop)
-# if [ -z "${slackMessageTS}" ]; then
-#   slackNotification $slackBotToken $slackChannelName ":database: $STATUS PostgreSQL Flexible Server Storage Usage" " " true
-#   slackThreadResponse "$slackBotToken" "$slackChannelName" "$slackThread" "$TS"
-# else
-#   # Send threaded response to existing header using pipelie variable
-#   slackThreadResponse "$slackBotToken" "$slackChannelName" "$slackThread" "${slackMessageTS}"
-# fi
-echo $criticalCapacityResourcesCount
-echo $highCapacityResourcesCount
-echo $lowCapacityStorageUsageCount
-echo $resourcesInUnreadyStateCount
-echo $slackThread
+# Check if a header has already been created by check if `slackMessageTS` variable has already been set at the pipeline level (set by slackNotification function from previous iterations of the each loop)
+if [ -z "${slackMessageTS}" ]; then
+  slackNotification $slackBotToken $slackChannelName ":database: $STATUS PostgreSQL Flexible Server Storage Usage" " " true
+  slackThreadResponse "$slackBotToken" "$slackChannelName" "$slackThread" "$TS"
+else
+  # Send threaded response to existing header using pipelie variable
+  slackThreadResponse "$slackBotToken" "$slackChannelName" "$slackThread" "${slackMessageTS}"
+fi
+
 
 
 
