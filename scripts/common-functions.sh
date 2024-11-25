@@ -16,6 +16,7 @@ slackNotification() {
     local channel_name=$2
     local header=$3
     local message=$4
+    local saveToPipeline=${5:-false}
 
     # Use jq with variables
     headerPayload=$(jq --arg header "$header" \
@@ -37,6 +38,12 @@ slackNotification() {
 
     # Extract the timestamp of the posted message
     TS=$(echo $RESPONSE | jq -r '.ts')
+
+    # Check if saveToPipeline is true
+    if [ "$saveToPipeline" = true ]; then
+        # Output the header timestamp value to the console and set it as a pipeline variable
+        echo "##vso[task.setvariable variable=slackMessageTS]$TS"
+    fi
 }
 
 # Post a threaded reply to a Slack message
