@@ -4,7 +4,7 @@
 # This will then be sent to Slack in the Daily Checks channel for easier monitoring by all teams.
 
 ### Setup script environment
-set -euox pipefail
+set -euo pipefail
 
 # Source central functions script
 source scripts/common-functions.sh
@@ -88,22 +88,28 @@ for ((INDEX = 0; INDEX < $COUNT; INDEX++)); do
   INSTANCE_NAME=$(echo $POSTGRES_FLEXIBLE_INSTANCES | jq -r '.['$INDEX'].name')
   INSTANCE_STATE=$(echo $POSTGRES_FLEXIBLE_INSTANCES | jq -r '.['$INDEX'].state')
 
+  echo "----- Processing: $INSTANCE_NAME -----"
+
   # If instance state is ready then run checks, if not add this to the `resourcesInUnreadyState` array for printing later
   if [ "$INSTANCE_STATE" == "Ready" ]; then
     INSTANCE_URL="https://portal.azure.com/#@HMCTS.NET/resource$INSTANCE_ID"
     STORAGE_USED=$(az monitor metrics list --resource "$INSTANCE_ID" --metric storage_percent --offset 0d6h --interval 6h | jq -r ".value[0].timeseries[0].data[0].average // 0 | round")
     if [ "$STORAGE_USED" -gt 95 ]; then
-      criticalCapacityResources+=("$(printf "<%s|_*%s*_> is at *%s*\\n" "${INSTANCE_URL}" "${INSTANCE_NAME}" "${STORAGE_USED}")")
-      ((criticalCapacityResourcesCount++))
+      echo "Storage capacity is currently at critical level"
+      criticalCapacityResources+=("$(printf "<%s|_*%s*_> is at *%s*%%\\n" "${INSTANCE_URL}" "${INSTANCE_NAME}" "${STORAGE_USED}")")
+      criticalCapacityResourcesCount=$(($criticalCapacityResourcesCount+1))
     elif [ "$STORAGE_USED" -gt 80 ]; then
-      highCapacityResources+=("$(printf "<%s|_*%s*_> is at *%s*\\n" "${INSTANCE_URL}" "${INSTANCE_NAME}" "${STORAGE_USED}")")
-      ((highCapacityResourcesCount++))
+      echo "Storage capacity is currently at high level"
+      highCapacityResources+=("$(printf "<%s|_*%s*_> is at *%s*%%\\n" "${INSTANCE_URL}" "${INSTANCE_NAME}" "${STORAGE_USED}")")
+      highCapacityResourcesCount=$(($highCapacityResourcesCount+1))
     else
-      ((lowCapacityStorageUsageCount++))
+      echo "Storage capacity within acceptable limits"
+      lowCapacityStorageUsageCount=$(($lowCapacityStorageUsageCount+1))
     fi
   else
+    echo "Server is not in a ready state!!"
     resourcesInUnreadyState+=("$(printf "_*%s*_ is in *%s* state.\\n" "${INSTANCE_NAME}" "${INSTANCE_STATE}")")
-    ((resourcesInUnreadyStateCount++))
+    resourcesInUnreadyStateCount=$(($resourcesInUnreadyStateCount+1))
   fi
 done
 
@@ -117,7 +123,7 @@ elif [ $highCapacityResourcesCount -gt 0 ]; then
 fi
 
 # First message in the thread should show the number of servers in a good state
-slackThread+=$(printf ":tada: :green_circle: *%s* PostgreSQL Flexible Servers are running below 80% storage capacity.\\n" "${lowCapacityStorageUsageCount}")
+slackThread+=$(printf ":tada: :green_circle: *%s* PostgreSQL Flexible Servers are running below 80%% storage capacity.\\n" "${lowCapacityStorageUsageCount}")
 
 # Check if each of the arrays is empty, if not then add the relevant output to the slackThread variable to be sent to slack as a threaded update.
 if [ "${#resourcesInUnreadyState[@]}" -gt 0 ]; then
@@ -135,16 +141,19 @@ fi
 
 # Final output
 
-# Check if a header has already been created by check if `slackMessageTS` variable has already been set at the pipeline level (set by slackNotification function from previous iterations of the each loop)
-if [ -z "${slackMessageTS}" ]; then
-  slackNotification $slackBotToken $slackChannelName ":database: $STATUS PostgreSQL Flexible Server Storage Usage" " " true
-  slackThreadResponse "$slackBotToken" "$slackChannelName" "$slackThread" "$TS"
-else
-  # Send threaded response to existing header using pipelie variable
-  slackThreadResponse "$slackBotToken" "$slackChannelName" "$slackThread" "${slackMessageTS}"
-fi
-
-
+# # Check if a header has already been created by check if `slackMessageTS` variable has already been set at the pipeline level (set by slackNotification function from previous iterations of the each loop)
+# if [ -z "${slackMessageTS}" ]; then
+#   slackNotification $slackBotToken $slackChannelName ":database: $STATUS PostgreSQL Flexible Server Storage Usage" " " true
+#   slackThreadResponse "$slackBotToken" "$slackChannelName" "$slackThread" "$TS"
+# else
+#   # Send threaded response to existing header using pipelie variable
+#   slackThreadResponse "$slackBotToken" "$slackChannelName" "$slackThread" "${slackMessageTS}"
+# fi
+echo $criticalCapacityResourcesCount
+echo $highCapacityResourcesCount
+echo $lowCapacityStorageUsageCount
+echo $resourcesInUnreadyStateCount
+echo $slackThread
 
 
 
