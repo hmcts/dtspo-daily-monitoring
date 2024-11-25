@@ -4,7 +4,7 @@
 # This will then be sent to Slack in the Daily Checks channel for easier monitoring by all teams.
 
 ### Setup script environment
-set -euo pipefail
+set -eo pipefail
 
 # Source central functions script
 source scripts/common-functions.sh
@@ -149,8 +149,3 @@ else
   # Send threaded response to existing header using pipelie variable
   slackThreadResponse "$slackBotToken" "$slackChannelName" "$slackThread" "${slackMessageTS}"
 fi
-
-
-
-
-
