@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 # This script is used to send headers and message threads for checks that use each loops in Azure DevOps pipelines.
+# When using each loops in Azure DevOps the output of each iteration should store results in a file
+# That file can then be supplied to this script to send as a thread to Slack via this script
 
 ### Setup script environment
 set -eo pipefail
