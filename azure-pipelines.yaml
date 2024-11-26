@@ -309,14 +309,6 @@ jobs:
             scriptPath: scripts/cert-check.sh
             azureSubscription: ${{ frontdoor.subscription }}
             arguments: ${{ frontdoor.subscription }} ${{ frontdoor.resource_group }} ${{ frontdoor.front_door_name }} ${{ frontdoor.min_cert_exp_days }}
-      - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
-        - task: AzureCLI@2
-          displayName: 'Checking PostgreSQL Flexible Storage Status: ${{ postgres_sub.subscription }}'
-          inputs:
-            scriptType: bash
-            scriptPath: scripts/postgres-flexible-storage.sh
-            azureSubscription: ${{ postgres_sub.subscription }}
-            arguments: ${{ postgres_sub.subscription }}
       # This step is used only for checks that do not use common-functions yet
       - task: Bash@3
         displayName: 'Send slack message'
@@ -324,7 +316,7 @@ jobs:
           targetType: filePath
           filePath: scripts/send-slack-message.sh
           arguments: $(dtspo-daily-checks-slack-bot-token) $(main_channel)
-      # All new checks using headers and threads should be below this to ensure the original slack notification is sent first
+      # All new checks using headers and threads should be below this comment to ensure the original slack notification is sent first
       - task: Bash@3
         displayName: 'Orphaned Resource Status Check'
         continueOnError: true
@@ -405,3 +397,21 @@ jobs:
           targetType: filePath
           filePath: scripts/ld-license.sh
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(launchdarkly-access-token)
+      - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
+        - task: AzureCLI@2
+          displayName: 'Checking PostgreSQL Flexible Storage Status: ${{ postgres_sub.subscription }}'
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/postgres-flexible-storage.sh
+            azureSubscription: ${{ postgres_sub.subscription }}
+            arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --subscription ${{ postgres_sub.subscription }}
+      - task: Bash@3
+        displayName: "Send Postgres Status"
+        inputs:
+          targetType: filePath
+          filePath: scripts/loopedSlackHeader.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --inputFileName postgres-status.txt
+            --messageHeader ":database: PostgreSQL Flexible Server Storage Usage"
