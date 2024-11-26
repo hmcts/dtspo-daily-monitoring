@@ -95,7 +95,7 @@ checkCertExpirationDate() {
         days_left=$((seconds_left / 86400))
         if [[ $days_left -le 0 ]]; then
             results+=("$(printf ":red_circle: Certificate for *%s* : *%s* expired *%s* days ago! \\n" "${frontdoorName}" "${url}" "${days_left}")")
-        elif [[ $days_left -le min_cert_expiration_days ]]; then
+        elif [[ $days_left -le $minCertExpirationDays ]]; then
             results+=("$(printf ":yellow_circle: Certificate for *%s* : *%s* expires in *%s* days! \\n" "${frontdoorName}" "${url}" "${days_left}")")
         fi
     fi
