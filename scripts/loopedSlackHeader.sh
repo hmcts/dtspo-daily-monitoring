@@ -52,7 +52,7 @@ do
     esac
 done
 
-if [[ -z "$slackBotToken" || -z "$slackChannelName" || -z "$subscription" || -z "$messageHeader" ]]; then
+if [[ -z "$slackBotToken" || -z "$slackChannelName" || -z "$inputFileName" || -z "$messageHeader" ]]; then
     {
         echo "------------------------"
         echo 'Please supply all of: '
