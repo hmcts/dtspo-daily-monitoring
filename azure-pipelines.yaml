@@ -405,3 +405,13 @@ jobs:
             scriptPath: scripts/postgres-flexible-storage.sh
             azureSubscription: ${{ postgres_sub.subscription }}
             arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --subscription ${{ postgres_sub.subscription }}
+      - task: Bash@3
+        displayName: "Send Postgres Status"
+        inputs:
+          targetType: filePath
+          filePath: scripts/loopedSlackHeader.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --inputFileName postgres-status.txt
+            --messageHeader=":database: PostgreSQL Flexible Server Storage Usage"

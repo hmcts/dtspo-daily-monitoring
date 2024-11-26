@@ -16,7 +16,6 @@ slackNotification() {
     local channel_name=$2
     local header=$3
     local message=$4
-    local saveToPipeline=${5:-false}
 
     # Use jq with variables
     headerPayload=$(jq --arg header "$header" \
@@ -38,12 +37,6 @@ slackNotification() {
 
     # Extract the timestamp of the posted message
     TS=$(echo $RESPONSE | jq -r '.ts')
-
-    # Check if saveToPipeline is true
-    if [ "$saveToPipeline" = true ]; then
-        # Output the header timestamp value to the console and set it as a pipeline variable
-        echo "##vso[task.setvariable variable=slackMessageTS]$TS"
-    fi
 }
 
 # Post a threaded reply to a Slack message
@@ -60,5 +53,31 @@ slackThreadResponse() {
     -H "Authorization: Bearer ${slack_token}" \
     -H application/json \
     -X POST https://slack.com/api/chat.postMessage
+}
 
+# Post a message to a Slack channel
+slackMessageUpdate() {
+    local slack_token=$1
+    local channel_name=$2
+    local header=$3
+    local message=$4
+    local timeStamp=$5
+
+    # Use jq with variables
+    headerPayload=$(jq --arg header "$header" \
+                    --arg message "$message" \
+                    '.[0].text.text |= $header | .[1].text.text |= $message' scripts/header-block-template.json)
+
+    # Construct the payload with blocks directly
+    payload=$(jq -n --arg channel "${channel_name}" \
+            --arg ts "${timeStamp}" \
+            --argjson blocks "$headerPayload" \
+            '{channel: $channel, blocks: $blocks, ts: $ts, unfurl_links: false}')
+
+    # Send update to slack message
+    curl -s -H "Content-Type: application/json" \
+    --data "${payload}" \
+    -H "Authorization: Bearer ${slack_token}" \
+    -H application/json \
+    -X POST https://slack.com/api/chat.update
 }
