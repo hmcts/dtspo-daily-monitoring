@@ -403,7 +403,7 @@ jobs:
             --messageHeader ":database: PostgreSQL Flexible Server Storage Usage"
       - ${{ each frontdoor in parameters.certificates }}:
         - task: AzureCLI@2
-          displayName: 'Checking Certificate status'
+          displayName: 'Checking ${{ frontdoor.front_door_name }} Certificate status'
           inputs:
             scriptType: bash
             scriptPath: scripts/cert-check.sh
