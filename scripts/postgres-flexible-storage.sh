@@ -75,6 +75,7 @@ lowCapacityStorageUsageCount=0
 resourcesInUnreadyStateCount=0
 
 # Print initial message for the thread response to the initial heading message
+slackThread+="\\n\\n"
 slackThread+="PostgreSQL Flexible Server Storage Usage for subscription: $subscription\\n\\n"
 
 # Pull information back from Azure that can be used for checks
