@@ -123,7 +123,7 @@ elif [ $highCapacityResourcesCount -gt 0 ]; then
 fi
 
 # First message in the thread should show the number of servers in a good state
-slackThread+=$(printf ":tada: :green_circle: *%s* PostgreSQL Flexible Servers are running below 80%% storage capacity.\\n" "${lowCapacityStorageUsageCount}")
+slackThread+=$(printf ":tada: :green_circle: *%s* PostgreSQL Flexible Servers are running below 80%% storage capacity.\\n\\n" "${lowCapacityStorageUsageCount}")
 
 # Check if each of the arrays is empty, if not then add the relevant output to the slackThread variable to be sent to slack as a threaded update.
 if [ "${#resourcesInUnreadyState[@]}" -gt 0 ]; then
