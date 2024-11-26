@@ -143,4 +143,4 @@ fi
 # slackNotification $slackBotToken $slackChannelName ":database: $STATUS PostgreSQL Flexible Server Storage Usage" " "
 # slackThreadResponse "$slackBotToken" "$slackChannelName" "$slackThread" "$TS"
 
-echo $slackThread > postgres-status.txt
+echo $slackThread >> postgres-status.txt
