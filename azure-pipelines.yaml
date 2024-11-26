@@ -414,4 +414,4 @@ jobs:
             --slackBotToken $(dtspo-daily-checks-slack-bot-token)
             --slackChannelName $(main_channel)
             --inputFileName postgres-status.txt
-            --messageHeader=":database: PostgreSQL Flexible Server Storage Usage"
+            --messageHeader ":database: PostgreSQL Flexible Server Storage Usage"
