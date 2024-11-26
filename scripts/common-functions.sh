@@ -55,7 +55,7 @@ slackThreadResponse() {
     -X POST https://slack.com/api/chat.postMessage
 }
 
-# Post a message to a Slack channel
+# Update existing message in a Slack channel
 slackMessageUpdate() {
     local slack_token=$1
     local channel_name=$2
