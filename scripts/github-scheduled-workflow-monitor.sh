@@ -2,7 +2,7 @@
 # This script expects the following options:
 
 ### Setup script environment
-set -euox pipefail
+set -ex
 
 # Source central functions script
 source scripts/common-functions.sh
@@ -121,13 +121,13 @@ else
             else
                 if [ "${conclusion}" = "success" ]; then
                     echo "Workflow $name $conclusion"
-                    successfulWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s* \\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
+                    successfulWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s*\\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
                 elif [[ "${workflowStatus}" == "waiting" ]] || [[ "${workflowStatus}" == "pending" ]] || [[ "${workflowStatus}" == "in_progress" ]] || [[ "${workflowStatus}" == "queued" ]]; then
                     echo "Workflow $name $conclusion"
-                    pendingWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s* \\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
+                    pendingWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s*\\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
                 else
                     echo "Workflow $name $conclusion"
-                    failedWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s* \\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
+                    failedWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s*\\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
                 fi
             fi
         done
