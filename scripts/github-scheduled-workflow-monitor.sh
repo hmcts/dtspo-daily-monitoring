@@ -91,7 +91,7 @@ successfulWorkflows=()
 failedWorkflows=()
 pendingWorkflows=()
 
-jq -c '.[]' <<< "$workflows_response" | while read -r workflow; do
+jq -c '.' <<< "$workflows_response" | while read -r workflow; do
     id=$(echo "${workflow}" | jq -r '.id')
     name=$(echo "${workflow}" | jq -r '.name')
     workflow_status=$(fetch_workflow_runs "${id}")
@@ -99,7 +99,7 @@ jq -c '.[]' <<< "$workflows_response" | while read -r workflow; do
     echo "Workflow status for ${name}:"
     echo "${workflow_status}"
 
-    jq -c '.[]' <<< "$workflow_status" | while read -r status; do
+    jq -c '.' <<< "$workflow_status" | while read -r status; do
         workflowStatus=$(echo "${status}" | jq -r '.status')
         conclusion=$(echo "${status}" | jq -r '.conclusion')
         workflowURL=$(echo "${status}" | jq -r '.URL')
