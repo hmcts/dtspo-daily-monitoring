@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ### Setup script environment
-set -euox pipefail
+set -euo pipefail
 
 # Source central functions script
 source scripts/common-functions.sh

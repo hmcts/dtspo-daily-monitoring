@@ -60,7 +60,6 @@ if [[ -z "$slackBotToken" || -z "$slackChannelName" || -z "$subscription" ]]; th
 fi
 
 # Initialize variables
-STATUS=:green_circle:
 slackThread=""
 
 # Initialize arrays
@@ -114,15 +113,6 @@ for ((INDEX = 0; INDEX < $COUNT; INDEX++)); do
   fi
 done
 
-# Check the worst case status of each resource output, if the worst case is an unready server or critical capacity storage then set to red
-# If the worst status is high capacity then set to yellow
-# This is then shown on the header for quick glance checks in the slack output
-if [[ $resourcesInUnreadyStateCount -gt 0 || $criticalCapacityResourcesCount -gt 0 ]]; then
-    STATUS=":red_circle:"
-elif [ $highCapacityResourcesCount -gt 0 ]; then
-    STATUS=":yellow_circle:"
-fi
-
 # First message in the thread should show the number of servers in a good state
 slackThread+=$(printf ":tada: :green_circle: *%s* PostgreSQL Flexible Servers are running below 80%% storage capacity.\\n\\n" "${lowCapacityStorageUsageCount}")
 
@@ -139,9 +129,5 @@ fi
 if [ "${#highCapacityResources[@]}" -gt 0 ]; then
     slackThread+=":yellow_circle: Postgres Server(s) running above 80% storage capacity!: \\n$(IFS=$'\n'; echo "${highCapacityResources[*]}")\\n\\n"
 fi
-
-# Final output to Slack
-# slackNotification $slackBotToken $slackChannelName ":database: $STATUS PostgreSQL Flexible Server Storage Usage" " "
-# slackThreadResponse "$slackBotToken" "$slackChannelName" "$slackThread" "$TS"
 
 echo $slackThread >> postgres-status.txt

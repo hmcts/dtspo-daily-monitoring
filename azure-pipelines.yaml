@@ -246,157 +246,143 @@ jobs:
           echo "main_channel set to: $(main_channel)"
         displayName: 'Show main channel name'
 
-      - task: Bash@3
-        displayName: 'Create a slack message file'
-        inputs:
-          targetType: 'inline'
-          script: |
-            echo "*Daily Monitoring Summary* \n \n">> slack-message.txt
-            echo "_:azure: *Scheduled Pipelines Status*_ \n">> slack-message.txt
-      - ${{ each ado_pipeline in parameters.ado_pipelines }}:
-        - task: Bash@3
-          displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
-          inputs:
-            targetType: filePath
-            filePath: scripts/ado-pipeline-monitor.sh
-            arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  ${{ado_pipeline.timeForAmber}}  ${{ado_pipeline.timeForRed}}  "${{ado_pipeline.pipelineName}}" "${{ado_pipeline.branchName}}"
-      - task: Bash@3
-        displayName: 'Github workflow status header'
-        inputs:
-          targetType: 'inline'
-          script: |
-           echo "\n:github: *GitHub Scheduled Workflow Status* \n\n" >> slack-message.txt
-      - ${{ each gh_workflow in parameters.gh_workflows }}:
-        - task: Bash@3
-          displayName: 'Check Github workflow Runs'
-          inputs:
-            targetType: filePath
-            filePath: scripts/github-scheduled-workflow-monitor.sh
-            arguments: $(github-management-api-token) ${{gh_workflow.repo}} ${{gh_workflow.branch}} ${{gh_workflow.run}}
-      - ${{ each cluster in parameters.aks_clusters }}:
-        - task: AzureCLI@2
-          displayName: 'Get AKS Cluster Status'
-          inputs:
-            scriptType: bash
-            scriptPath: scripts/aks-node-count.sh
-            azureSubscription: ${{ cluster.subscription }}
-            arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
-      - task: Bash@3
-        displayName: 'Recovery Services Vaults header'
-        inputs:
-          targetType: 'inline'
-          script: |
-            echo "\n\n:azuremonitoring: _*Azure Backup Checks*_" >> slack-message.txt
-      - ${{ each backup_vault in parameters.recovery_services_vaults }}:
-        - task: AzureCLI@2
-          displayName: 'Check Backup Status'
-          inputs:
-            scriptType: bash
-            scriptPath: scripts/backup-monitor.sh
-            azureSubscription: ${{ backup_vault.subscription }}
-            arguments: ${{backup_vault.resourceGroup}} ${{backup_vault.vaultName}}
-      - task: Bash@3
-        displayName: 'Expiring SSL certificates header'
-        inputs:
-          targetType: 'inline'
-          script: |
-            echo "\n\n:ssl-cert: _*Expiring SSL Certificates*_\n\n" >> slack-message.txt
-      - ${{ each frontdoor in parameters.certificates }}:
-        - task: AzureCLI@2
-          displayName: 'Checking Certificate status'
-          inputs:
-            scriptType: bash
-            scriptPath: scripts/cert-check.sh
-            azureSubscription: ${{ frontdoor.subscription }}
-            arguments: ${{ frontdoor.subscription }} ${{ frontdoor.resource_group }} ${{ frontdoor.front_door_name }} ${{ frontdoor.min_cert_exp_days }}
-      # This step is used only for checks that do not use common-functions yet
-      - task: Bash@3
-        displayName: 'Send slack message'
-        inputs:
-          targetType: filePath
-          filePath: scripts/send-slack-message.sh
-          arguments: $(dtspo-daily-checks-slack-bot-token) $(main_channel)
-      # All new checks using headers and threads should be below this comment to ensure the original slack notification is sent first
-      - task: Bash@3
-        displayName: 'Orphaned Resource Status Check'
-        continueOnError: true
-        inputs:
-          targetType: filePath
-          filePath: scripts/orphan-resource-check.sh
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
-      - task: Bash@3
-        displayName: 'Checking Jenkins status'
-        continueOnError: true
-        inputs:
-          targetType: filePath
-          filePath: scripts/jenkins-status.sh
-          arguments: >
-            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
-            --slackChannelName $(main_channel)
-            --jenkinsUsername $(jenkins-api-user)
-            --jenkinsApiToken $(jenkins-api-token)
-            --jenkinsURL ${{ variables.jenkins_url }}
-      - task: AzureCLI@2
-        displayName: 'Service Principal Check - Dev Tenant'
-        inputs:
-          scriptType: bash
-          scriptPath: scripts/service-principals.sh
-          azureSubscription: ${{ variables.dev_service_connection }}
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
-      - task: AzureCLI@2
-        displayName: 'Service Principal Check'
-        inputs:
-          scriptType: bash
-          scriptPath: scripts/service-principals.sh
-          azureSubscription: ${{ variables.service_connection }}
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
-      - task: Bash@3
-        displayName: "Checking GitHub Pages review status"
-        inputs:
-          targetType: filePath
-          filePath: scripts/github_pages_checks.sh
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
-      - task: Bash@3
-        displayName: 'Checking JIRA status'
-        inputs:
-          targetType: filePath
-          filePath: scripts/jira-status.sh
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --jiraUsername $(jira-username) --jiraPassword $(jira-password)
-      - task: AzureCLI@2
-        displayName: 'Get Provisioning State'
-        inputs:
-          scriptType: bash
-          scriptPath: scripts/cluster-state-monitor.sh
-          azureSubscription: ${{ variables.ado_service_connection }}
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
-      - task: Bash@3
-        displayName: 'Check Toffee/Plum Status'
-        inputs:
-          targetType: filePath
-          filePath: scripts/check-toffee-plum.sh
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
-      - task: Bash@3
-        displayName: 'Checking servicenow status'
-        inputs:
-          targetType: filePath
-          filePath: scripts/servicenow-status.sh
-          arguments: >
-            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
-            --slackChannelName $(main_channel)
-            --snowUsername $(service-now-username)
-            --snowPassword $(service-now-password)
-      - task: Bash@3
-        displayName: 'Github Licenses check'
-        inputs:
-          targetType: filePath
-          filePath: scripts/github-licenses.sh
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(github-management-api-token)
-      - task: Bash@3
-        displayName: "Launchdarkly Licenses check"
-        inputs:
-          targetType: filePath
-          filePath: scripts/ld-license.sh
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(launchdarkly-access-token)
+      # - task: Bash@3
+      #   displayName: 'Create a slack message file'
+      #   inputs:
+      #     targetType: 'inline'
+      #     script: |
+      #       echo "*Daily Monitoring Summary* \n \n">> slack-message.txt
+      #       echo "_:azure: *Scheduled Pipelines Status*_ \n">> slack-message.txt
+      # - ${{ each ado_pipeline in parameters.ado_pipelines }}:
+      #   - task: Bash@3
+      #     displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
+      #     inputs:
+      #       targetType: filePath
+      #       filePath: scripts/ado-pipeline-monitor.sh
+      #       arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  ${{ado_pipeline.timeForAmber}}  ${{ado_pipeline.timeForRed}}  "${{ado_pipeline.pipelineName}}" "${{ado_pipeline.branchName}}"
+      # - task: Bash@3
+      #   displayName: 'Github workflow status header'
+      #   inputs:
+      #     targetType: 'inline'
+      #     script: |
+      #      echo "\n:github: *GitHub Scheduled Workflow Status* \n\n" >> slack-message.txt
+      # - ${{ each gh_workflow in parameters.gh_workflows }}:
+      #   - task: Bash@3
+      #     displayName: 'Check Github workflow Runs'
+      #     inputs:
+      #       targetType: filePath
+      #       filePath: scripts/github-scheduled-workflow-monitor.sh
+      #       arguments: $(github-management-api-token) ${{gh_workflow.repo}} ${{gh_workflow.branch}} ${{gh_workflow.run}}
+      # - ${{ each cluster in parameters.aks_clusters }}:
+      #   - task: AzureCLI@2
+      #     displayName: 'Get AKS Cluster Status'
+      #     inputs:
+      #       scriptType: bash
+      #       scriptPath: scripts/aks-node-count.sh
+      #       azureSubscription: ${{ cluster.subscription }}
+      #       arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
+      # - task: Bash@3
+      #   displayName: 'Expiring SSL certificates header'
+      #   inputs:
+      #     targetType: 'inline'
+      #     script: |
+      #       echo "\n\n:ssl-cert: _*Expiring SSL Certificates*_\n\n" >> slack-message.txt
+      # - ${{ each frontdoor in parameters.certificates }}:
+      #   - task: AzureCLI@2
+      #     displayName: 'Checking Certificate status'
+      #     inputs:
+      #       scriptType: bash
+      #       scriptPath: scripts/cert-check.sh
+      #       azureSubscription: ${{ frontdoor.subscription }}
+      #       arguments: ${{ frontdoor.subscription }} ${{ frontdoor.resource_group }} ${{ frontdoor.front_door_name }} ${{ frontdoor.min_cert_exp_days }}
+      # # This step is used only for checks that do not use common-functions yet
+      # - task: Bash@3
+      #   displayName: 'Send slack message'
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/send-slack-message.sh
+      #     arguments: $(dtspo-daily-checks-slack-bot-token) $(main_channel)
+      # # All new checks using headers and threads should be below this comment to ensure the original slack notification is sent first
+      # - task: Bash@3
+      #   displayName: 'Orphaned Resource Status Check'
+      #   continueOnError: true
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/orphan-resource-check.sh
+      #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      # - task: Bash@3
+      #   displayName: 'Checking Jenkins status'
+      #   continueOnError: true
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/jenkins-status.sh
+      #     arguments: >
+      #       --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+      #       --slackChannelName $(main_channel)
+      #       --jenkinsUsername $(jenkins-api-user)
+      #       --jenkinsApiToken $(jenkins-api-token)
+      #       --jenkinsURL ${{ variables.jenkins_url }}
+      # - task: AzureCLI@2
+      #   displayName: 'Service Principal Check - Dev Tenant'
+      #   inputs:
+      #     scriptType: bash
+      #     scriptPath: scripts/service-principals.sh
+      #     azureSubscription: ${{ variables.dev_service_connection }}
+      #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
+      # - task: AzureCLI@2
+      #   displayName: 'Service Principal Check'
+      #   inputs:
+      #     scriptType: bash
+      #     scriptPath: scripts/service-principals.sh
+      #     azureSubscription: ${{ variables.service_connection }}
+      #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
+      # - task: Bash@3
+      #   displayName: "Checking GitHub Pages review status"
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/github_pages_checks.sh
+      #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      # - task: Bash@3
+      #   displayName: 'Checking JIRA status'
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/jira-status.sh
+      #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --jiraUsername $(jira-username) --jiraPassword $(jira-password)
+      # - task: AzureCLI@2
+      #   displayName: 'Get Provisioning State'
+      #   inputs:
+      #     scriptType: bash
+      #     scriptPath: scripts/cluster-state-monitor.sh
+      #     azureSubscription: ${{ variables.ado_service_connection }}
+      #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      # - task: Bash@3
+      #   displayName: 'Check Toffee/Plum Status'
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/check-toffee-plum.sh
+      #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      # - task: Bash@3
+      #   displayName: 'Checking servicenow status'
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/servicenow-status.sh
+      #     arguments: >
+      #       --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+      #       --slackChannelName $(main_channel)
+      #       --snowUsername $(service-now-username)
+      #       --snowPassword $(service-now-password)
+      # - task: Bash@3
+      #   displayName: 'Github Licenses check'
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/github-licenses.sh
+      #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(github-management-api-token)
+      # - task: Bash@3
+      #   displayName: "Launchdarkly Licenses check"
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/ld-license.sh
+      #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(launchdarkly-access-token)
       - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
         - task: AzureCLI@2
           displayName: 'Checking PostgreSQL Flexible Storage Status: ${{ postgres_sub.subscription }}'
@@ -415,3 +401,21 @@ jobs:
             --slackChannelName $(main_channel)
             --inputFileName postgres-status.txt
             --messageHeader ":database: PostgreSQL Flexible Server Storage Usage"
+      - ${{ each backup_vault in parameters.recovery_services_vaults }}:
+        - task: AzureCLI@2
+          displayName: 'Check Backup Status'
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/backup-monitor.sh
+            azureSubscription: ${{ backup_vault.subscription }}
+            arguments: --resourceGroup ${{backup_vault.resourceGroup}} --backupVault ${{backup_vault.vaultName}}
+      - task: Bash@3
+        displayName: "Send Recovery Services Vaults Status"
+        inputs:
+          targetType: filePath
+          filePath: scripts/loopedSlackHeader.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --inputFileName azurebackup-status.txt
+            --messageHeader ":azuremonitoring: Azure Backup Checks"
