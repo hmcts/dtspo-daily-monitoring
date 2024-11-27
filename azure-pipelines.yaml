@@ -4,7 +4,7 @@ trigger: none
 pr:
   - master
 schedules:
-  - cron: '45 6,13 * * Mon-Fri'
+  - cron: '45 7,14 * * Mon-Fri'
     displayName: Runs 8 AM & 3 PM Mon-Fri
     branches:
       include:
