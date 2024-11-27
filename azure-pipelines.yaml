@@ -241,11 +241,11 @@ jobs:
         env:
           GITHUB_TOKEN: $(github-management-api-token)
           PULL_REQUEST_NUMBER: ${{ variables.pull_request_number }}
+      - script: |
+          echo "main_channel set to: $(main_channel)"
+        displayName: 'Show main channel name'
 
-      # - script: |
-      #     echo "main_channel set to: $(main_channel)"
-      #   displayName: 'Show main channel name'
-
+      ### Do not modify steps above this comment
       # - task: Bash@3
       #   displayName: 'Create a slack message file'
       #   inputs:
@@ -430,5 +430,5 @@ jobs:
           arguments: >
             --slackBotToken $(dtspo-daily-checks-slack-bot-token)
             --slackChannelName $(main_channel)
-            --inputFileName gh-workflow-status.txt
+            --inputFileName workflow-status.txt
             --messageHeader ":github: GitHub Scheduled Workflow Status"

@@ -5,7 +5,7 @@
 # That file can then be supplied to this script to send as a thread to Slack via this script
 
 ### Setup script environment
-set -eo pipefail
+set -exo pipefail
 
 # Source central functions script
 source scripts/common-functions.sh
