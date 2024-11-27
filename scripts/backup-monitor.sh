@@ -62,6 +62,8 @@ if [[ $rgExists == false ]]; then
 fi
 
 #Get backup items json from recovery services vault
+vaultId=$(az backup vault show --resource-group $resourceGroup --name $backupVault --query "id" -o tsv)
+vaultURL="https://portal.azure.com/#@HMCTS.NET/resource$vaultId"
 backupDetails=$( az backup item list --resource-group $resourceGroup --vault-name $backupVault --output json )
 
 # Initialize variables
@@ -74,22 +76,18 @@ failedBackups=()
 while read backup; do
     job_status=$(jq -r '.properties.lastBackupStatus' <<< "$backup")
     vm_name=$(jq -r '.properties.friendlyName' <<< "$backup")
-    vaultId=$(jq -r '.properties.vaultId' <<< "$backup")
-
-    #Pointing URL to public portal
-    parsed_vault_url=${vaultId/management.azure.com/portal.azure.com/#@HMCTS.NET/resource}
 
     #If backup job has failed, print vm name and vault name to slack message
     if [[ $job_status == "Failed" ]]; then
         echo "Backup failed for: $vm_name"
-        failedBackups+=("$(printf "Backup for %s in vault <%s|_*%s*_> with status of: *%s*\\n" "${vm_name}" "${parsed_vault_url}" "${backupVault}" "${job_status}")")
+        failedBackups+=("$(printf "Backup for %s in vault <%s|_*%s*_> with status of: *%s*\\n" "${vm_name}" "${vaultURL}" "${backupVault}" "${job_status}")")
     fi
 done < <(jq -c '.[]' <<< $backupDetails)
 
 if [ "${#failedBackups[@]}" -gt 0 ]; then
     slackThread+=":red_circle: Backups failed for the following VMs! \\n$(IFS=$'\n'; echo "${failedBackups[*]}")\\n\\n"
 else
-    slackThread+=":tada: :green_circle: No failed backups in <$parsed_vault_url|_*$backupVault*_>\\n\\n"
+    slackThread+=":tada: :green_circle: No failed backups in <$vaultURL|_*$backupVault*_>\\n\\n"
 fi
 
 echo $slackThread >> azurebackup-status.txt
