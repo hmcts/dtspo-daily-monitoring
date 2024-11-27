@@ -390,7 +390,7 @@ jobs:
       #       scriptType: bash
       #       scriptPath: scripts/postgres-flexible-storage.sh
       #       azureSubscription: ${{ postgres_sub.subscription }}
-      #       arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --subscription ${{ postgres_sub.subscription }}
+      #       arguments: --subscription ${{ postgres_sub.subscription }}
       # - task: Bash@3
       #   displayName: "Send Postgres Status"
       #   inputs:
@@ -409,8 +409,6 @@ jobs:
             scriptPath: scripts/cert-check.sh
             azureSubscription: ${{ frontdoor.subscription }}
             arguments: >
-              --slackBotToken $(dtspo-daily-checks-slack-bot-token)
-              --slackChannelName $(main_channel)
               --subscription ${{ frontdoor.subscription }}
               --resourceGroup ${{ frontdoor.resource_group }}
               --frontdoorName ${{ frontdoor.front_door_name }}
@@ -423,5 +421,5 @@ jobs:
           arguments: >
             --slackBotToken $(dtspo-daily-checks-slack-bot-token)
             --slackChannelName $(main_channel)
-            --inputFileName postgres-status.txt
+            --inputFileName cert-status.txt
             --messageHeader ":ssl-cert: SSL Certificates Checks"
