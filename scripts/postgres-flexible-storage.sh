@@ -9,8 +9,6 @@ set -eo pipefail
 # Source central functions script
 source scripts/common-functions.sh
 
-slackBotToken=
-slackChannelName=
 subscription=
 
 usage(){
@@ -19,15 +17,13 @@ usage(){
   Script to check GitHub page expiry
   ------------------------------------------------
   Usage: $0
-      [ -t | --slackBotToken ]
-      [ -c | --slackChannelName ]
       [ -s | --subscription ]
       [ -h | --help ]
 EOF
 exit 1
 }
 
-args=$(getopt -a -o t:c:s:h: --long slackBotToken:,slackChannelName:,subscription:,help -- "$@")
+args=$(getopt -a -o s:h: --long subscription:,help -- "$@")
 if [[ $? -gt 0 ]]; then
     usage
 fi
@@ -37,8 +33,6 @@ while :
 do
     case $1 in
         -h | --help)              usage                    ; shift   ;;
-        -t | --slackBotToken)     slackBotToken=$2         ; shift 2 ;;
-        -c | --slackChannelName)  slackChannelName=$2      ; shift 2 ;;
         -s | --subscription)      subscription=$2          ; shift 2 ;;
         # -- means the end of the arguments; drop this, and break out of the while loop
         --) shift; break ;;
@@ -47,14 +41,11 @@ do
     esac
 done
 
-if [[ -z "$slackBotToken" || -z "$slackChannelName" || -z "$subscription" ]]; then
+if [[ -z "$subscription" ]]; then
     {
-        echo "------------------------"
-        echo 'Please supply all of: '
-        echo '- Slack token'
-        echo '- Slack channel name'
-        echo '- Subscription'
-        echo "------------------------"
+        echo "---------------------------------"
+        echo 'Please supply a subscription name'
+        echo "---------------------------------"
     } >&2
     exit 1
 fi
