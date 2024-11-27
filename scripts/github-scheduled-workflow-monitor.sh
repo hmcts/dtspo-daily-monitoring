@@ -33,7 +33,7 @@ EOF
 exit 1
 }
 
-args=$(getopt -a -o t:c:p:g: --long slackBotToken:,slackChannelName:,help -- "$@")
+args=$(getopt -a -o t:g:b:r:h: --long githubToken:,githubRepo:,branch:,run:,help -- "$@")
 if [[ $? -gt 0 ]]; then
     usage
 fi
