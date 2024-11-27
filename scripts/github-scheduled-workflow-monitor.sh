@@ -2,7 +2,7 @@
 # This script expects the following options:
 
 ### Setup script environment
-set -euo pipefail
+set -euox pipefail
 
 # Source central functions script
 source scripts/common-functions.sh
@@ -92,7 +92,7 @@ fi
 # check if a response was made
 if [ -z "$workflows_response" ]; then
     echo "No workflows found or failed to fetch workflows." >&2
-    missingWorkflows+=("$(printf "No workflow found in repo: %s \\n" "${githubRepo}")")
+    missingWorkflows+=("$(printf "No workflow found in repo: %s / %s \\n" "${githubRepo}" "${run}")")
 else
 
     echo "WORKFLOW RESPONSE: ${workflows_response}"
