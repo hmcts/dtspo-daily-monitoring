@@ -295,20 +295,6 @@ jobs:
             scriptPath: scripts/backup-monitor.sh
             azureSubscription: ${{ backup_vault.subscription }}
             arguments: ${{backup_vault.resourceGroup}} ${{backup_vault.vaultName}}
-      - task: Bash@3
-        displayName: 'Expiring SSL certificates header'
-        inputs:
-          targetType: 'inline'
-          script: |
-            echo "\n\n:ssl-cert: _*Expiring SSL Certificates*_\n\n" >> slack-message.txt
-      - ${{ each frontdoor in parameters.certificates }}:
-        - task: AzureCLI@2
-          displayName: 'Checking Certificate status'
-          inputs:
-            scriptType: bash
-            scriptPath: scripts/cert-check.sh
-            azureSubscription: ${{ frontdoor.subscription }}
-            arguments: ${{ frontdoor.subscription }} ${{ frontdoor.resource_group }} ${{ frontdoor.front_door_name }} ${{ frontdoor.min_cert_exp_days }}
       # This step is used only for checks that do not use common-functions yet
       - task: Bash@3
         displayName: 'Send slack message'
@@ -404,14 +390,36 @@ jobs:
             scriptType: bash
             scriptPath: scripts/postgres-flexible-storage.sh
             azureSubscription: ${{ postgres_sub.subscription }}
-            arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --subscription ${{ postgres_sub.subscription }}
+            arguments: --subscription ${{ postgres_sub.subscription }}
       - task: Bash@3
         displayName: "Send Postgres Status"
         inputs:
           targetType: filePath
-          filePath: scripts/loopedSlackHeader.sh
+          filePath: scripts/send-slack-header-thread-each-loop.sh
           arguments: >
             --slackBotToken $(dtspo-daily-checks-slack-bot-token)
             --slackChannelName $(main_channel)
             --inputFileName postgres-status.txt
             --messageHeader ":database: PostgreSQL Flexible Server Storage Usage"
+      - ${{ each frontdoor in parameters.certificates }}:
+        - task: AzureCLI@2
+          displayName: 'Checking ${{ frontdoor.front_door_name }} Certificate status'
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/cert-check.sh
+            azureSubscription: ${{ frontdoor.subscription }}
+            arguments: >
+              --subscription ${{ frontdoor.subscription }}
+              --resourceGroup ${{ frontdoor.resource_group }}
+              --frontdoorName ${{ frontdoor.front_door_name }}
+              --minCertExpirationDays ${{ frontdoor.min_cert_exp_days }}
+      - task: Bash@3
+        displayName: "Send SSL Cert Status"
+        inputs:
+          targetType: filePath
+          filePath: scripts/send-slack-header-thread-each-loop.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --inputFileName cert-status.txt
+            --messageHeader ":ssl-cert: SSL Certificates Checks"

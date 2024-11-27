@@ -1,54 +1,114 @@
-#!/bin/bash
-az extension add --name front-door --yes
 
-# Check platform
-platform=$(uname)
+#!/usr/bin/env bash
 
-# Check and install missing packages
-if [[ $platform == "Darwin" ]]; then
-    date_command=$(which gdate)
-elif [[ $platform == "Linux" ]]; then
-    date_command=$(which date)
+### Setup script environment
+set -eu
+
+# Source central functions script
+source scripts/common-functions.sh
+
+subscription=
+resourceGroup=
+frontdoorName=
+minCertExpirationDays=14 # Minimum number days before a notification is sentdate_command
+
+usage(){
+>&2 cat << EOF
+------------------------------------------------
+Script to check GitHub page expiry
+------------------------------------------------
+Usage: $0
+    [ -s | --subscription ]
+    [ -r | --resourceGroup ]
+    [ -f | --frontdoorName ]
+    [ -e | --minCertExpirationDays ]
+    [ -h | --help ]
+EOF
+exit 1
+}
+
+args=$(getopt -a -o s:r:f:e:h: --long subscription:,resourceGroup:,frontdoorName:,minCertExpirationDays:,help -- "$@")
+if [[ $? -gt 0 ]]; then
+    usage
 fi
 
-# Azure CLI command to populate URL list
-subscription=$1
-resource_group=$2
-front_door_name=$3
+eval set -- ${args}
+while :
+do
+    case $1 in
+        -h | --help)                    usage                       ; shift   ;;
+        -c | --subscription)            subscription=$2             ; shift 2 ;;
+        -c | --resourceGroup)           resourceGroup=$2            ; shift 2 ;;
+        -c | --frontdoorName)           frontdoorName=$2            ; shift 2 ;;
+        -c | --minCertExpirationDays)   minCertExpirationDays=$2    ; shift 2 ;;
+        # -- means the end of the arguments; drop this, and break out of the while loop
+        --) shift; break ;;
+        *) >&2 echo Unsupported option: $1
+            usage ;;
+    esac
+done
 
-# Minimum number days before a notification is sent
-min_cert_expiration_days=$4
+if [[ -z "$subscription" || -z "$resourceGroup" || -z "$frontdoorName" ]]; then
+    {
+        echo "------------------------"
+        echo 'Please supply all of: '
+        echo '- Subscription'
+        echo '- Resource Group name'
+        echo '- Frontdoor name'
+        echo "------------------------"
+    } >&2
+    exit 1
+fi
 
-# Function to check certificate expiration
-check_certificate_expiration() {
-    url=$1
-    expiration_date=$(echo | openssl s_client -servername "${url}" -connect "${url}:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep "notAfter" | cut -d "=" -f 2) 
+# Ensure az module is available
+az extension add --name front-door --yes
+
+# Initialize variables
+slackThread=""
+
+# Print initial message for the thread response to the initial heading message
+slackThread+="\\n"
+slackThread+="Certificate checks for: $frontdoorName\\n\\n"
+
+# Initialize array
+results=()
+
+# Retrieve URLs from Azure for named Frontdoor instance
+urls=$(az afd custom-domain list --subscription "$subscription" --resource-group "$resourceGroup" --profile-name "$frontdoorName" --query "[].hostName" -o tsv)
+
+# Function to check certificate expiration date and save result to results() array.
+checkCertExpirationDate() {
+    local url=$1
+
+    echo "Processing $url"
+    expiration_date=$(echo | openssl s_client -servername "${url}" -connect "${url}:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep "notAfter" | cut -d "=" -f 2)
+
     if [[ -n $expiration_date ]]; then
         expiration_timestamp=$($date_command -d "${expiration_date}" +%s)
         current_timestamp=$($date_command +%s)
         seconds_left=$((expiration_timestamp - current_timestamp))
         days_left=$((seconds_left / 86400))
         if [[ $days_left -le 0 ]]; then
-             echo "> :red_circle: Certificate for (*${front_door_name}*) *${url}* has expired *${days_left}* days ago." >> slack-message.txt
-             has_results=true
-        elif [[ $days_left -le min_cert_expiration_days ]]; then
-             echo "> :yellow_circle: Certificate for (*${front_door_name}*) *${url}* expires in *${days_left}* days." >> slack-message.txt
-             has_results=true
+            results+=("$(printf ":red_circle: Certificate for *%s* : *%s* expired *%s* days ago! \\n" "${frontdoorName}" "${url}" "${days_left}")")
+        elif [[ $days_left -le $minCertExpirationDays ]]; then
+            results+=("$(printf ":yellow_circle: Certificate for *%s* : *%s* expires in *%s* days! \\n" "${frontdoorName}" "${url}" "${days_left}")")
         fi
+    else
+        echo "Expiration date not set"
     fi
 }
 
-# Azure CLI command to populate URL list
-
-urls=$(az afd custom-domain list --subscription "$subscription" --resource-group "$resource_group" --profile-name "$front_door_name" --query "[].hostName" -o tsv)
-
-# Check certificate expiration for each URL
-has_results=false
+# Loop over each URL to check its certificate expiration
 for url in $urls; do
-    check_certificate_expiration "${url}"
+    checkCertExpirationDate "${url}"
 done
 
-# If there are no results, append a message to indicate no expiring certificates 
-if [[ $has_results == false ]]; then
-    echo "> :green_circle: No certificates for (*${front_door_name}*) are expiring within the specified threshold." >> slack-message.txt
+# If results contains anything, save to slackThread variable, if nothing found save an all good status
+if [ "${#results[@]}" -gt 0 ]; then
+    slackThread+="These certificates need reviewed: \\n$(IFS=$'\n'; echo "${results[*]}")\\n\\n"
+else
+    slackThread+=":tada: :green_circle: No certificates for *${frontdoorName}* are expiring within the specified threshold.\\n\\n"
 fi
+
+# Save output to file
+echo $slackThread >> cert-status.txt
