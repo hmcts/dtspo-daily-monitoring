@@ -69,15 +69,15 @@ fi
 # Function to fetch workflow runs
 fetch_workflow_runs() {
     local workflow_id=$1
-    curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${token}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflow_id}/runs?per_page=1&branch=${branch}" | jq -r '.workflow_runs[] | {status: .status, conclusion: .conclusion, URL: .html_url, StartTime: .run_started_at}'
+    curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${githubToken}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${githubRepo}/actions/workflows/${workflow_id}/runs?per_page=1&branch=${branch}" | jq -r '.workflow_runs[] | {status: .status, conclusion: .conclusion, URL: .html_url, StartTime: .run_started_at}'
 }
 
 # Determine if run was a supplied value, if not then process all workflows in the repo
 # Output will be JSON formatted Id: Name: key/values.
 if [[ -z "${run}" ]]; then
-    workflows_response=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${token}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/${owner}/${repo}/actions/workflows | jq -r '.workflows[] | {id: .id, name: .name}')
+    workflows_response=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${githubToken}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/${owner}/${githubRepo}/actions/workflows | jq -r '.workflows[] | {id: .id, name: .name}')
 else
-    workflows_response=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${token}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${repo}/actions/workflows" | jq -r --arg workflow "$run" '[.workflows[]]| map(select(.name==$workflow)) | {id: .[].id, name: .[].name}')
+    workflows_response=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${githubToken}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${githubRepo}/actions/workflows" | jq -r --arg workflow "$run" '[.workflows[]]| map(select(.name==$workflow)) | {id: .[].id, name: .[].name}')
 fi
 
 # Main script logic
@@ -111,7 +111,7 @@ jq -c '.[]' <<< "$workflows_response" | while read -r workflow; do
         echo "Workflow started at: ${workflowStartTime}"
 
         if [ -z "${workflowStatus}" ]; then
-            printf ":red_circle: *$repo:* <https://github.com/${owner}/${repo}/actions/workflows/|_*${name}*_> Did not return a workflow status \n" >> slack-message.txt
+            printf ":red_circle: *$repo:* <https://github.com/${owner}/${githubRepo}/actions/workflows/|_*${name}*_> Did not return a workflow status \n" >> slack-message.txt
         else
             if [ "${conclusion}" = "success" ]; then
                 echo "Workflow $name $conclusion"
