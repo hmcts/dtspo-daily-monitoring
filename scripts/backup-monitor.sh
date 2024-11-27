@@ -1,37 +1,93 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-#Vars
-RESOURCE_GROUP=$1
-VAULT_NAME=$2
+### Setup script environment
+set -e
+
+# Source central functions script
+source scripts/common-functions.sh
+
+resourceGroup=
+backupVault=
+
+usage(){
+>&2 cat << EOF
+    ------------------------------------------------
+    Script to check GitHub page expiry
+    ------------------------------------------------
+    Usage: $0
+        [ -r | --resourceGroup ]
+        [ -v | --backupVault ]
+        [ -h | --help ]
+EOF
+exit 1
+}
+
+args=$(getopt -a -o r:v:h: --long resourceGroup:,backupVault:,help -- "$@")
+if [[ $? -gt 0 ]]; then
+    usage
+fi
+
+eval set -- ${args}
+while :
+do
+    case $1 in
+        -h | --help)           usage             ; shift   ;;
+        -r | --resourceGroup)  resourceGroup=$2  ; shift 2 ;;
+        -v | --backupVault)    backupVault=$2    ; shift 2 ;;
+        -d | --checkDays)      checkDays=$2      ; shift 2 ;;
+        # -- means the end of the arguments; drop this, and break out of the while loop
+        --) shift; break ;;
+        *) >&2 echo Unsupported option: $1
+            usage ;;
+    esac
+done
+
+if [[ -z "$resourceGroup" || -z "$backupVault" ]]; then
+    {
+        echo "------------------------"
+        echo 'Please supply all of: '
+        echo '- Resource Group name'
+        echo '- Recovery Service Vault name'
+        echo "------------------------"
+    } >&2
+    exit 1
+fi
 
 #check if resource group exists
-RESOURCE_GROUP_EXIST=$( az group exists --name $RESOURCE_GROUP )
+rgExists=$( az group exists --name $resourceGroup )
 
-if [[ $RESOURCE_GROUP_EXIST == false ]]; then
-    echo "$RESOURCE_GROUP does not exist"
+if [[ $rgExists == false ]]; then
+    echo "$resourceGroup does not exist"
     exit 0
 fi
 
 #Get backup items json from recovery services vault
-AZ_BACKUP_RESULT=$( az backup item list --resource-group $RESOURCE_GROUP --vault-name $VAULT_NAME --output json )
+vaultId=$(az backup vault show --resource-group $resourceGroup --name $backupVault --query "id" -o tsv)
+vaultURL="https://portal.azure.com/#@HMCTS.NET/resource$vaultId"
+backupDetails=$( az backup item list --resource-group $resourceGroup --vault-name $backupVault --output json )
+
+# Initialize variables
+slackThread=""
+
+# Initialize arrays
+failedBackups=()
 
 #Loop over backup job json data
-while read job_data; do
-    job_status=$(jq -r '.properties.lastBackupStatus' <<< "$job_data")
-    vm_name=$(jq -r '.properties.friendlyName' <<< "$job_data")
-    vaultId=$(jq -r '.properties.vaultId' <<< "$job_data")
-    #Pointing URL to public portal
-    parsed_vault_url=${vaultId/management.azure.com/portal.azure.com/#@HMCTS.NET/resource}
+while read backup; do
+    job_status=$(jq -r '.properties.lastBackupStatus' <<< "$backup")
+    vm_name=$(jq -r '.properties.friendlyName' <<< "$backup")
 
     #If backup job has failed, print vm name and vault name to slack message
     if [[ $job_status == "Failed" ]]; then
-        printf "\n>:red_circle:  *$vm_name* backup in <$parsed_vault_url|_*$VAULT_NAME*_> has $job_status" >> slack-message.txt
-        failures_exist="true"
+        echo "Backup failed for: $vm_name"
+        failedBackups+=("$(printf "Backup for %s in vault <%s|_*%s*_> with status of: *%s*\\n" "${vm_name}" "${vaultURL}" "${backupVault}" "${job_status}")")
     fi
-done < <(jq -c '.[]' <<< $AZ_BACKUP_RESULT)
+done < <(jq -c '.[]' <<< $backupDetails)
 
-#If no failures were found in json, mark vault as free from backup failures.
-if [[ $failures_exist != "true" ]]; then
-    printf "\n>:green_circle:  No failed backups in <$parsed_vault_url|_*$VAULT_NAME*_>" >> slack-message.txt
+if [ "${#failedBackups[@]}" -gt 0 ]; then
+    slackThread+=":red_circle: Backups failed for the following VMs! \\n$(IFS=$'\n'; echo "${failedBackups[*]}")\\n\\n"
+else
+    slackThread+=":tada: :green_circle: No failed backups in <$vaultURL|_*$backupVault*_>\\n\\n"
 fi
 
+echo $slackThread >> azurebackup-status.txt
