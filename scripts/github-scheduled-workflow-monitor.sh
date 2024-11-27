@@ -2,7 +2,7 @@
 # This script expects the following options:
 
 ### Setup script environment
-set -ex
+set -e
 
 # Source central functions script
 source scripts/common-functions.sh
@@ -97,15 +97,17 @@ else
 
     echo "WORKFLOW RESPONSE: ${workflows_response}"
 
-    jq -c '.' <<< "$workflows_response" | while read -r workflow; do
+    workflows=$(jq -c '.' <<< "$workflows_response")
+
+    for workflow in $workflows; do
         id=$(echo "${workflow}" | jq -r '.id')
         name=$(echo "${workflow}" | jq -r '.name')
         workflow_status=$(fetch_workflow_runs "${id}")
 
         echo "Workflow status for ${name}:"
         echo "${workflow_status}"
-
-        jq -c '.' <<< "$workflow_status" | while read -r status; do
+        statuses=$(jq -c '.' <<< "$workflow_status")
+        for status in $statuses; do
             workflowStatus=$(echo "${status}" | jq -r '.status')
             conclusion=$(echo "${status}" | jq -r '.conclusion')
             workflowURL=$(echo "${status}" | jq -r '.URL')
@@ -119,7 +121,7 @@ else
             if [ -z "${workflowStatus}" ]; then
                 printf ":red_circle: *$repo:* <https://github.com/${owner}/${githubRepo}/actions/workflows/|_*${name}*_> Did not return a workflow status \n" >> slack-message.txt
             else
-                if [ "${conclusion}" = "success" ]; then
+                if [ "${conclusion}" == "success" ]; then
                     echo "Workflow $name $conclusion"
                     successfulWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s*\\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
                 elif [[ "${workflowStatus}" == "waiting" ]] || [[ "${workflowStatus}" == "pending" ]] || [[ "${workflowStatus}" == "in_progress" ]] || [[ "${workflowStatus}" == "queued" ]]; then
