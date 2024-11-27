@@ -67,7 +67,7 @@ az extension add --name front-door --yes
 slackThread=""
 
 # Print initial message for the thread response to the initial heading message
-slackThread+="\\n\\n"
+slackThread+="\\n"
 slackThread+="Certificate checks for: $frontdoorName\\n\\n"
 
 # Initialize array
