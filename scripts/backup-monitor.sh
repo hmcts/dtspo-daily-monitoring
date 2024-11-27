@@ -82,7 +82,7 @@ while read backup; do
     #If backup job has failed, print vm name and vault name to slack message
     if [[ $job_status == "Failed" ]]; then
         echo "Backup failed for: $vm_name"
-        failedBackups+=("$(printf "Backup for %s in vault <%s|_*%s*_> with status of: *%s*%\\n" "${vm_name}" "${parsed_vault_url}" "${backupVault}" "${job_status}")")
+        failedBackups+=("$(printf "Backup for %s in vault <%s|_*%s*_> with status of: *%s*\\n" "${vm_name}" "${parsed_vault_url}" "${backupVault}" "${job_status}")")
     fi
 done < <(jq -c '.[]' <<< $backupDetails)
 
