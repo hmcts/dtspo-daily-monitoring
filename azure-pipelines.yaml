@@ -222,13 +222,13 @@ jobs:
           keyVaultName:   "cftptl-intsvc"
           secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,github-management-api-token,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token'
 
-      # - task: Bash@3
-      #   displayName: 'Set Channel Name'
-      #   condition: and(succeeded(), eq(variables['isMain'], true))
-      #   inputs:
-      #     targetType: inline
-      #     script: |
-      #       echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
+      - task: Bash@3
+        displayName: 'Set Channel Name'
+        condition: and(succeeded(), eq(variables['isMain'], true))
+        inputs:
+          targetType: inline
+          script: |
+            echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
       # - task: Bash@3
       #   displayName: 'Set Channel Name - PR'
       #   condition: and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true))
@@ -423,7 +423,7 @@ jobs:
             filePath: scripts/github-scheduled-workflow-monitor.sh
             arguments: --githubToken $(github-management-api-token) --githubRepo ${{gh_workflow.repo}} --branch ${{gh_workflow.branch}} --run ${{gh_workflow.run}}
       - task: Bash@3
-        displayName: "Send SSL Cert Status"
+        displayName: "Send Github Workflow Status"
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-header-thread-each-loop.sh
