@@ -68,9 +68,11 @@ LICENSES_LEFT=$((TOTAL_LICENSES-CONSUMED_LICENSES))
 
 LICENSE_STATUS=":red_circle:"
 if (( "$LICENSES_LEFT" >= 25 )); then
-  LICENSE_STATUS=":green_circle:"
+    LICENSE_STATUS=":green_circle:"
 elif ((  "$LICENSES_LEFT" >= 10 )); then
-  LICENSE_STATUS=":yellow_circle:"
+    LICENSE_STATUS=":yellow_circle:"
 fi
 
-slackNotification $slackBotToken $slackChannelName ":launchdarkly: $LICENSE_STATUS Launch Darkly License Check"  "<https://app.launchdarkly.com/settings/members|_*LaunchDarkly Licenses*_> _*$LICENSES_LEFT*_ out of *$TOTAL_LICENSES* licenses left"
+if [[ "$LICENSE_STATUS" == ":red_circle:" || "$LICENSE_STATUS" == ":yellow_circle:" ]]; then
+    slackNotification $slackBotToken $slackChannelName ":launchdarkly: $LICENSE_STATUS Launch Darkly License Check"  "<https://app.launchdarkly.com/settings/members|_*LaunchDarkly Licenses*_> _*$LICENSES_LEFT*_ out of *$TOTAL_LICENSES* licenses left"
+fi

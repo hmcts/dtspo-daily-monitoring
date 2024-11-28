@@ -64,7 +64,7 @@ fi
 #Get backup items json from recovery services vault
 vaultId=$(az backup vault show --resource-group $resourceGroup --name $backupVault --query "id" -o tsv)
 vaultURL="https://portal.azure.com/#@HMCTS.NET/resource$vaultId"
-backupDetails=$( az backup item list --resource-group $resourceGroup --vault-name $backupVault --output json )
+backupDetails=$( az backup item list --resource-group $resourceGroup --vault-name $backupVault --output json | jq -c '.[]')
 
 # Initialize variables
 slackThread=""
@@ -73,7 +73,7 @@ slackThread=""
 failedBackups=()
 
 #Loop over backup job json data
-while read backup; do
+for backups in $backupDetails; do
     job_status=$(jq -r '.properties.lastBackupStatus' <<< "$backup")
     vm_name=$(jq -r '.properties.friendlyName' <<< "$backup")
 
@@ -82,7 +82,7 @@ while read backup; do
         echo "Backup failed for: $vm_name"
         failedBackups+=("$(printf "Backup for %s in vault <%s|_*%s*_> with status of: *%s*\\n" "${vm_name}" "${vaultURL}" "${backupVault}" "${job_status}")")
     fi
-done < <(jq -c '.[]' <<< $backupDetails)
+done
 
 if [ "${#failedBackups[@]}" -gt 0 ]; then
     slackThread+=":red_circle: Backups failed for the following VMs! \\n$(IFS=$'\n'; echo "${failedBackups[*]}")\\n\\n"

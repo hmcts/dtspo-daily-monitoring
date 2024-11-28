@@ -149,17 +149,21 @@ else
   withdrawnIssues=":hourglass_flowing_sand: *No issues were automatically withdrawn yesterday*"
 fi
 
-slackNotification $slackBotToken $slackChannelName "$jiraStatus Jira Status" ":jira: <https://bit.ly/3mzE5DL|_*BAU Tickets Status*_>"
+if [[ "$jiraStatus" == ":red_circle:" || "$jiraStatus" == ":yellow_circle:" ]]; then
+  slackNotification $slackBotToken $slackChannelName "$jiraStatus Jira Status" ":jira: <https://bit.ly/3mzE5DL|_*BAU Tickets Status*_>"
+  slackThreadResponse $slackBotToken $slackChannelName "${openIssues}\\n${unassignedIssues}\\n${patchingIssues}\\n${oatIssues}\\n${withdrawnIssues}" $TS
+fi
 
-slackThreadResponse $slackBotToken $slackChannelName "${openIssues}\\n${unassignedIssues}\\n${patchingIssues}\\n${oatIssues}\\n${withdrawnIssues}" $TS
+if [[ "$ticketStatus" == ":red_circle:" || "$ticketStatus" == ":yellow_circle:" ]]; then
 
-closedIssues=$(printf ":tada: *%s issues closed yesterday*" "$CLOSED_ISSUES_COUNT")
+  closedIssues=$(printf ":tada: *%s issues closed yesterday*" "$CLOSED_ISSUES_COUNT")
+  slackNotification $slackBotToken $slackChannelName "$ticketStatus Jira Ticket Status" "${closedIssues}"
 
-slackNotification $slackBotToken $slackChannelName "$ticketStatus Jira Ticket Status" "${closedIssues}"
+  slackThreadResponse $slackBotToken $slackChannelName "${closedIssues}:" $TS
+  slackThreadResponse $slackBotToken $slackChannelName "$CLOSED_ISSUES_USER" $TS
 
-slackThreadResponse $slackBotToken $slackChannelName "${closedIssues}:" $TS
-slackThreadResponse $slackBotToken $slackChannelName "$CLOSED_ISSUES_USER" $TS
+  currentlyAssigned=$(printf ":fire: *Current Assigned tickets:*")
+  slackThreadResponse $slackBotToken $slackChannelName "${currentlyAssigned}" $TS
+  slackThreadResponse $slackBotToken $slackChannelName "$ASSIGNED_ISSUES_RESULT" $TS
 
-currentlyAssigned=$(printf ":fire: *Current Assigned tickets:*")
-slackThreadResponse $slackBotToken $slackChannelName "${currentlyAssigned}" $TS
-slackThreadResponse $slackBotToken $slackChannelName "$ASSIGNED_ISSUES_RESULT" $TS
+fi

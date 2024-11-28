@@ -61,17 +61,16 @@ else
     AZ_APP_RESULT=$( az ad app list --display-name "DTS Operations Bootstrap GA" --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
 fi
 
-azAppCount=$(jq -r '. | length' <<< "${AZ_APP_RESULT}")
-
 declare -a expiredApps=()
 declare -a expiringAppsSoon=()
 declare -a expiringAppsUrgent=()
-STATUS=":green_circle:"
+
+azAppCount=$(jq -r '. | length' <<< "${AZ_APP_RESULT}")
 
 if [[ $azAppCount -gt 0 ]]; then
     azAppData=$(jq -c '.[]' <<< "$AZ_APP_RESULT")
 
-    while read -r app; do
+    for app in $azAppData; do
         displayName=$(jq -r '.displayName' <<< "$app")
         appId=$(jq -r '.appId' <<< "$app")
         endDateTime=$(jq -r '.passwordCredentials[0].endDateTime' <<< "$app")
@@ -87,26 +86,18 @@ if [[ $azAppCount -gt 0 ]]; then
         else
             expiringAppsUrgent+=("$(printf "<%s|_* %s*_> expires in %d days" "$APP_URL" "$displayName" "$date_diff")")
         fi
-    done <<< "$azAppData"
+    done
 fi
 
+STATUS=":green_circle:"
 if [[ "${#expiredApps[@]}" -gt 0 || "${#expiringAppsUrgent[@]}" -gt 0 ]]; then
     STATUS=":red_circle:"
 elif [ "${#expiringAppsSoon[@]}" -gt 0 ]; then
     STATUS=":yellow_circle:"
 fi
 
-if [ $DOMAIN = "HMCTS.NET" ]; then
-    slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - HMCTS" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status*_>"
-else
-    slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - HMCTS Dev" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status - HMCTS Dev Tenant*_>"
-fi
-
-if [[ $azAppCount == 0 ]]; then
-    slackThreadResponse $slackBotToken $slackChannelName ":green_circle: No Service Principals Secrets are expiring in $checkDays days" $TS
-    exit 0
-else
-    message=""
+function slackThread(){
+    local message=""
 
     if [ "${#expiredApps[@]}" -gt 0 ]; then
         message+=":red_circle: Expired Service Principals found! \\n$(IFS=$'\n'; echo "${expiredApps[*]}")\\n\\n"
@@ -120,7 +111,17 @@ else
         message+=":yellow_circle: Service Principals expiring soon! \\n$(IFS=$'\n'; echo "${expiringAppsSoon[*]}")\\n\\n"
     fi
 
-    if [ -n "$message" ]; then
-        slackThreadResponse "$slackBotToken" "$slackChannelName" "$message" "$TS"
+    slackThreadResponse "$slackBotToken" "$slackChannelName" "$message" "$TS"
+}
+
+if [[ "$STATUS" == ":red_circle:" || "$STATUS" == ":yellow_circle:" ]]; then
+    # Send slack header baased on domain
+    if [ $DOMAIN = "HMCTS.NET" ]; then
+        slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - HMCTS" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status*_>"
+    else
+        slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - HMCTS Dev" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status - HMCTS Dev Tenant*_>"
     fi
+    # Send any output to slack thread
+    slackThread
 fi
+

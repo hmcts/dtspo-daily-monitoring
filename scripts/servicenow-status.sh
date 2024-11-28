@@ -87,9 +87,11 @@ elif [[ "$OPEN_INCIDENTS_STATUS" == "yellow_circle" || "$OPEN_PROBLEMS_STATUS" =
   snowStatus=":yellow_circle:"
 fi
 
-# Post initial header message
-slackNotification $slackBotToken $slackChannelName ":service-now: $snowStatus Service Now Check" "<https://mojcppprod.service-now.com/|_*ServiceNow Status*_>"
-# Dashboard status heading
-slackThreadResponse $slackBotToken $slackChannelName "$OPEN_INCIDENTS_STATUS There are $OPEN_INCIDENTS_COUNT open incidents" $TS
-#Pipeline Status
-slackThreadResponse $slackBotToken $slackChannelName "$OPEN_PROBLEMS_STATUS There are $OPEN_PROBLEMS_COUNT open problems" $TS
+if [[ "$snowStatus" == ":red_circle:" || "$snowStatus" == ":yellow_circle:" ]]; then
+  # Post initial header message
+  slackNotification $slackBotToken $slackChannelName ":service-now: $snowStatus Service Now Check" "<https://mojcppprod.service-now.com/|_*ServiceNow Status*_>"
+  # Dashboard status heading
+  slackThreadResponse $slackBotToken $slackChannelName "$OPEN_INCIDENTS_STATUS There are $OPEN_INCIDENTS_COUNT open incidents" $TS
+  #Pipeline Status
+  slackThreadResponse $slackBotToken $slackChannelName "$OPEN_PROBLEMS_STATUS There are $OPEN_PROBLEMS_COUNT open problems" $TS
+fi

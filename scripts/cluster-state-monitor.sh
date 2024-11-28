@@ -44,19 +44,27 @@ do
 done
 
 if [[ -z "$slackBotToken" || -z "$slackChannelName" ]]; then
-    echo "------------------------"
-    echo 'Please supply a Slack token and a Slack channel name' >&2
-    echo "------------------------"
+    {
+        echo "------------------------"
+        echo 'Please supply all of'
+        echo '- Slack token'
+        echo '- Slack channel name' >&2
+        echo "------------------------"
+        exit 1
+    } >&2
     exit 1
 fi
 
-SUBSCRIPTIONS=$(az account list -o json)
-while read subscription; do
+failedState=()
+
+SUBSCRIPTIONS=$(az account list -o json | jq -c '.[]')
+
+for sub in $SUBSCRIPTIONS; do
     SUBSCRIPTION_ID=$(jq -r '.id' <<< $subscription)
     az account set -s $SUBSCRIPTION_ID
-    CLUSTERS=$(az resource list --resource-type Microsoft.ContainerService/managedClusters --query "[?tags.application == 'core']" -o json)
+    CLUSTERS=$(az resource list --resource-type Microsoft.ContainerService/managedClusters --query "[?tags.application == 'core']" -o json | jq -c '.[]')
 
-    while read cluster; do
+    for cluster in $CLUSTERS; do
         RESOURCE_GROUP=$(jq -r '.resourceGroup' <<< $cluster)
         cluster_name=$(jq -r '.name' <<< $cluster)
 
@@ -68,25 +76,22 @@ while read subscription; do
             failedState+="\n>:red_circle: <https://portal.azure.com/#@HMCTS.NET/resource$cluster_id|_*$cluster_name*_> has a provisioning state of $cluster_status"
             failures_exist="true"
         fi
-    done < <(jq -c '.[]' <<< $CLUSTERS) # end_of_cluster_loop
+    done
 
-done < <(jq -c '.[]' <<< $SUBSCRIPTIONS)
+done
 
+# Default to green if the variable doesn't exist
+checkStatus=":green_circle:"
 if [ -n "${failures_exist+x}" ]; then # Check if variable exists
     if [ "$failures_exist" == "true" ]; then #Check if the value is "true"
         checkStatus=":red_circle:"
     fi
-else
-    checkStatus=":green_circle:"  # Default to green if the variable doesn't exist
 fi
 
-# Send initial header message
-slackNotification $slackBotToken $slackChannelName "$checkStatus AKS Cluster State Checks" " "
+if [[ "$checkStatus" == ":red_circle:" ]]; then
+    # Send initial header message
+    slackNotification $slackBotToken $slackChannelName "$checkStatus AKS Cluster State Checks" " "
 
-# Check Toffee failures and if exist, add to thread
-if [ ${#failedState[@]} -eq 0 ]; then
-    slackThreadResponse $slackBotToken $slackChannelName ">:green_circle:  All clusters have a provisioning state of: Succeeded" $TS
-else
     # Loop through each failure
     for failure in "${failedState[@]}"; do
         slackThreadResponse $slackBotToken $slackChannelName "$failure" $TS
