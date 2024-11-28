@@ -5,7 +5,7 @@
 # slackThread variable and save the final output to file
 
 ### Setup script environment
-set -ex
+set -e
 
 # Source central functions script
 source scripts/common-functions.sh
@@ -60,7 +60,7 @@ do
     esac
 done
 
-if [[ -z "$subscription" ]]; then
+if [[ -z "$adoToken" | -z "$adoProject" | -z "$adoPipelineName" | -z "$adoPipelineDefinitionId" | -z "$adoPipelineBranch" ]]; then
     {
         echo "---------------------------------"
         echo 'Please supply all of:'
@@ -69,8 +69,6 @@ if [[ -z "$subscription" ]]; then
         echo '- Azure DevOps Pipeline Name'
         echo '- Azure DevOps Pipeline Definition Id'
         echo '- Azure DevOps Pipeline Branch'
-        echo '- Max Time for Amber status (days)'
-        echo '- Max Time for Red status (days)'
         echo "---------------------------------"
     } >&2
     exit 1
