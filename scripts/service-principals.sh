@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ### Setup script environment
-set -euox pipefail
+set -euo pipefail
 
 # Source central functions script
 source scripts/common-functions.sh
@@ -70,7 +70,7 @@ azAppCount=$(jq -r '. | length' <<< "${AZ_APP_RESULT}")
 if [[ $azAppCount -gt 0 ]]; then
     azAppData=$(jq -c '.[]' <<< "$AZ_APP_RESULT")
 
-    for app in $azAppData; do
+    while read -r app; do
         displayName=$(jq -r '.displayName' <<< "$app")
         appId=$(jq -r '.appId' <<< "$app")
         endDateTime=$(jq -r '.passwordCredentials[0].endDateTime' <<< "$app")
@@ -86,7 +86,7 @@ if [[ $azAppCount -gt 0 ]]; then
         else
             expiringAppsUrgent+=("$(printf "<%s|_* %s*_> expires in %d days" "$APP_URL" "$displayName" "$date_diff")")
         fi
-    done
+    done <<< "$azAppData"
 fi
 
 STATUS=":green_circle:"
