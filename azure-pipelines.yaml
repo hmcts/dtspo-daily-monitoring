@@ -215,7 +215,7 @@ jobs:
     pool:
       name: 'hmcts-cftptl-agent-pool'
     steps:
-      - task: AzureKeyVault@1
+      - task: AzureKeyVault@2
         displayName: 'Get secrets from Keyvault'
         inputs:
           azureSubscription:  "DTS-CFTPTL-INTSVC"
