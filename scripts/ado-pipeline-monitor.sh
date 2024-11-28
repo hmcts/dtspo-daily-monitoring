@@ -5,7 +5,7 @@
 # slackThread variable and save the final output to file
 
 ### Setup script environment
-set -e
+set -ex
 
 # Source central functions script
 source scripts/common-functions.sh
