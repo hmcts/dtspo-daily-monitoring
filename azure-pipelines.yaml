@@ -241,7 +241,6 @@ jobs:
         env:
           GITHUB_TOKEN: $(github-management-api-token)
           PULL_REQUEST_NUMBER: ${{ variables.pull_request_number }}
-
       - script: |
           echo "main_channel set to: $(main_channel)"
         displayName: 'Show main channel name'
@@ -384,6 +383,23 @@ jobs:
             --slackChannelName $(main_channel)
             --inputFileName cert-status.txt
             --messageHeader ":ssl-cert: SSL Certificates Checks"
+      - ${{ each gh_workflow in parameters.gh_workflows }}:
+        - task: Bash@3
+          displayName: 'Check Github workflow Runs'
+          inputs:
+            targetType: filePath
+            filePath: scripts/github-scheduled-workflow-monitor.sh
+            arguments: --githubToken $(github-management-api-token) --githubRepo ${{gh_workflow.repo}} --branch ${{gh_workflow.branch}} --run ${{gh_workflow.run}}
+      - task: Bash@3
+        displayName: "Send Github Workflow Status"
+        inputs:
+          targetType: filePath
+          filePath: scripts/send-slack-header-thread-each-loop.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --inputFileName workflow-status.txt
+            --messageHeader ":github: GitHub Scheduled Workflow Status"
       - ${{ each ado_pipeline in parameters.ado_pipelines }}:
         - task: Bash@3
           displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
