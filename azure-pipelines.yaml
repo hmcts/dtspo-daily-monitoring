@@ -425,4 +425,4 @@ jobs:
             --slackBotToken $(dtspo-daily-checks-slack-bot-token)
             --slackChannelName $(main_channel)
             --inputFileName aks-cluster-status.txt
-            --messageHeader ":azure: Azure DevOps Scheduled Pipelines Checks"
+            --messageHeader ":aks: AKS Cluster Status Checks"
