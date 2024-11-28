@@ -55,16 +55,14 @@ if [[ -z "$slackBotToken" || -z "$slackChannelName" ]]; then
     exit 1
 fi
 
-failedState=()
+SUBSCRIPTIONS=$(az account list -o json)
 
-SUBSCRIPTIONS=$(az account list -o json | jq -c '.[]')
-
-for sub in $SUBSCRIPTIONS; do
+while read subscription; do
     SUBSCRIPTION_ID=$(jq -r '.id' <<< $subscription)
     az account set -s $SUBSCRIPTION_ID
-    CLUSTERS=$(az resource list --resource-type Microsoft.ContainerService/managedClusters --query "[?tags.application == 'core']" -o json | jq -c '.[]')
+    CLUSTERS=$(az resource list --resource-type Microsoft.ContainerService/managedClusters --query "[?tags.application == 'core']" -o json)
 
-    for cluster in $CLUSTERS; do
+    while read cluster; do
         RESOURCE_GROUP=$(jq -r '.resourceGroup' <<< $cluster)
         cluster_name=$(jq -r '.name' <<< $cluster)
 
@@ -76,9 +74,9 @@ for sub in $SUBSCRIPTIONS; do
             failedState+="\n>:red_circle: <https://portal.azure.com/#@HMCTS.NET/resource$cluster_id|_*$cluster_name*_> has a provisioning state of $cluster_status"
             failures_exist="true"
         fi
-    done
+    done < <(jq -c '.[]' <<< $CLUSTERS) # end_of_cluster_loop
 
-done
+done < <(jq -c '.[]' <<< $SUBSCRIPTIONS)
 
 # Default to green if the variable doesn't exist
 checkStatus=":green_circle:"
