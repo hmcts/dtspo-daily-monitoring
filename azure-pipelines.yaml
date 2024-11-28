@@ -245,29 +245,7 @@ jobs:
       - script: |
           echo "main_channel set to: $(main_channel)"
         displayName: 'Show main channel name'
-
-      # - task: Bash@3
-      #   displayName: 'Create a slack message file'
-      #   inputs:
-      #     targetType: 'inline'
-      #     script: |
-      #       echo "*Daily Monitoring Summary* \n \n">> slack-message.txt
-      # - ${{ each cluster in parameters.aks_clusters }}:
-      #   - task: AzureCLI@2
-      #     displayName: 'Get AKS Cluster Status'
-      #     inputs:
-      #       scriptType: bash
-      #       scriptPath: scripts/aks-node-count.sh
-      #       azureSubscription: ${{ cluster.subscription }}
-      #       arguments: ${{cluster.resourceGroup}} ${{cluster.clusterName}}
-      # # This step is used only for checks that do not use common-functions yet
-      # - task: Bash@3
-      #   displayName: 'Send slack message'
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/send-slack-message.sh
-      #     arguments: $(dtspo-daily-checks-slack-bot-token) $(main_channel)
-      # # All new checks using headers and threads should be below this comment to ensure the original slack notification is sent first
+      # All new checks using headers and threads should be below this comment to ensure the original slack notification is sent first
       # - task: Bash@3
       #   displayName: 'Orphaned Resource Status Check'
       #   continueOnError: true
@@ -406,27 +384,45 @@ jobs:
       #       --slackChannelName $(main_channel)
       #       --inputFileName cert-status.txt
       #       --messageHeader ":ssl-cert: SSL Certificates Checks"
-      - ${{ each ado_pipeline in parameters.ado_pipelines }}:
-        - task: Bash@3
-          displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
+      # - ${{ each ado_pipeline in parameters.ado_pipelines }}:
+      #   - task: Bash@3
+      #     displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
+      #     inputs:
+      #       targetType: filePath
+      #       filePath: scripts/ado-pipeline-monitor.sh
+      #       arguments: >
+      #         --adoToken $(azure-devops-token)
+      #         --adoProject ${{ado_pipeline.project}}
+      #         --adoPipelineName "${{ado_pipeline.pipelineName}}"
+      #         --adoPipelineDefinitionId ${{ado_pipeline.definitionId}}
+      #         --adoTimeForAmber ${{ado_pipeline.timeForAmber}}
+      #         --adoTimeForRed ${{ado_pipeline.timeForRed}}
+      #         --adoPipelineBranch "${{ado_pipeline.branchName}}"
+      # - task: Bash@3
+      #   displayName: "Send ADO Pipeline Status"
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/send-slack-header-thread-each-loop.sh
+      #     arguments: >
+      #       --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+      #       --slackChannelName $(main_channel)
+      #       --inputFileName ado-pipeline-status.txt
+      #       --messageHeader ":azure: Azure DevOps Scheduled Pipelines Checks"
+      - ${{ each cluster in parameters.aks_clusters }}:
+        - task: AzureCLI@2
+          displayName: 'AKS Cluster Status:  ${{cluster.clusterName}}'
           inputs:
-            targetType: filePath
-            filePath: scripts/ado-pipeline-monitor.sh
-            arguments: >
-              --adoToken $(azure-devops-token)
-              --adoProject ${{ado_pipeline.project}}
-              --adoPipelineName "${{ado_pipeline.pipelineName}}"
-              --adoPipelineDefinitionId ${{ado_pipeline.definitionId}}
-              --adoTimeForAmber ${{ado_pipeline.timeForAmber}}
-              --adoTimeForRed ${{ado_pipeline.timeForRed}}
-              --adoPipelineBranch "${{ado_pipeline.branchName}}"
+            scriptType: bash
+            scriptPath: scripts/aks-node-count.sh
+            azureSubscription: ${{ cluster.subscription }}
+            arguments: --resourceGroup ${{cluster.resourceGroup}} --aksClusterName ${{cluster.clusterName}}
       - task: Bash@3
-        displayName: "Send ADO Pipeline Status"
+        displayName: "Send AKS Cluster Status"
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-header-thread-each-loop.sh
           arguments: >
             --slackBotToken $(dtspo-daily-checks-slack-bot-token)
             --slackChannelName $(main_channel)
-            --inputFileName ado-pipeline-status.txt
+            --inputFileName aks-cluster-status.txt
             --messageHeader ":azure: Azure DevOps Scheduled Pipelines Checks"

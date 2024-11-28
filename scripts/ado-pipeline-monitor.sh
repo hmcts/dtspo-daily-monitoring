@@ -92,7 +92,7 @@ if [ "$redCheck" != 1 ]; then
 elif [ "$amberCheck" != 1 ]; then
   slackThread+=":yellow_circle: $slackLinkFormat hasn't run successfully in ${adoTimeForAmber} days!"
 else
-  slackThread+=":green_circle: $slackLinkFormat run successfully in the last ${adoTimeForAmber} days"
+  slackThread+=":green_circle: $slackLinkFormat ran successfully in the last ${adoTimeForAmber} days"
 fi
 
 echo $slackThread >> ado-pipeline-status.txt
