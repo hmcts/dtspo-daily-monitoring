@@ -77,11 +77,11 @@ percentageCalculation=$((100*$nodeCount/$maxCount))
 clusterURL="https://portal.azure.com/#@HMCTS.NET/resource/subscriptions/8b6ea922-0862-443e-af15-6056e1c9b9a4/resourceGroups/$resourceGroup/providers/Microsoft.ContainerService/managedClusters/$aksClusterName/overview"
 
 if [ $percentageCalculation -gt 95 ]; then
-    slackThread+=":red_circle: <$CLUSTER_URL|_*Cluster: $aksClusterName*_> is running above 95% capacity at *$percentageCalculation%*"
+    slackThread+=":red_circle: <$clusterURL|_*Cluster: $aksClusterName*_> is running above 95% capacity at *$percentageCalculation%*"
 elif [ $percentageCalculation -gt 80 ]; then
-    slackThread+=":yellow_circle: <$CLUSTER_URL|_*Cluster: $aksClusterName*_> is running above 80% capacity at *$percentageCalculation%*"
+    slackThread+=":yellow_circle: <$clusterURL|_*Cluster: $aksClusterName*_> is running above 80% capacity at *$percentageCalculation%*"
 else
-    slackThread+=":green_circle: <$CLUSTER_URL|_*Cluster: $aksClusterName*_> is running below 80% capacity at *$percentageCalculation%*"
+    slackThread+=":green_circle: <$clusterURL|_*Cluster: $aksClusterName*_> is running below 80% capacity at *$percentageCalculation%*"
 fi
 
 echo $slackThread >> aks-cluster-status.txt
