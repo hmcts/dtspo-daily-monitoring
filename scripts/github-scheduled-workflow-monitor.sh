@@ -1,107 +1,156 @@
 #!/bin/bash
 # This script expects the following options:
 
+### Setup script environment
+set -e
+
+# Source central functions script
+source scripts/common-functions.sh
+
 # Github Api Token
-token=$1
-# Repository to check 
-repo=$2
+githubToken=
+# Repository to check
+githubRepo=
 # Branch name i.e. Master
-branch=$3
+branch=
 # Workflow run this is optional if its not speified the script will check all runs in workflow
-run=$4
-# Github owner 
+run=
+# Github owner
 owner=hmcts
 
-# Check if we need to intergoate a specific run or all of the runs for that workflow 
-if [[ -z "${run}" ]];
-then
-    echo "----"
-    echo "Run not defined loop through all runs in workflows"
-    # no specific run specified therefore run for each workflow in the repo
-    # loop through list of workflows in repo to monitor
-    workflows_response=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${token}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/${owner}/${repo}/actions/workflows | jq -r '.workflows[] | [.id , .name] |@csv')
-    echo "WORKFLOW RESPONSE:"
-    echo ${workflows_response}
-    # While loop reads in data piped to it.
-    IFS=$'\t'
-    while read -r w;
-    do    
-        echo "Working on: "$w
-        # loop through the $workflows_respose and for each of the workflows find their name and id   
-        while IFS=, read -r id name;
-        do
-            name="${name//\"}"
-            workflow_status=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${token}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${repo}/actions/workflows/${id}/runs?per_page=1&branch=${branch}" | jq -r '.workflow_runs[] | [.status , .conclusion , .html_url , .run_started_at] |@csv')
-            # While loop reads in data piped to it.
-            echo "Workflow status is: "
-            echo NAME IS: ${name}
-            echo ${workflow_status}
-            while IFS=, read -r workflow_status conclusion html_url run_started_at;
-            do
-                # clean up responses
-                
-                workflow_status="${workflow_status//\"}"
-                if [ -z ${workflow_status} ];
-                then
-                    printf ":red_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> Did not return a workflow status \n" >> slack-message.txt 
-                else
-                    conclusion="${conclusion//\"}"
-                    
-                    echo wf_status:${workflow_status}
-                    echo conclusion:${conclusion}
-                    echo runstarted:${run_started_at}
-                    # Write slack message dependant on status and conclusion
-                    if [ "${conclusion}" = "success" ];
-                    then
-                        printf ":green_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
-                    elif [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
-                    then
-                        printf ":yellow_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
-                    else 
-                        printf ":red_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
-                    fi    
-                 fi    
-            done  <<< ${workflow_status}
-        done <<< $w
-    done <<< ${workflows_response}
-else
-    # A specific workflow run was specified interogate only that one and get its id
-    workflows_response_id=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${token}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${repo}/actions/workflows" | jq -r --arg TEST "$run" '[.workflows[]]| map(select(.name==$TEST))| [.[].id , .[].name] |@csv')
-    echo ${workflows_response_id}
-     # While loop reads in data piped to it.
-     while IFS=, read -r id name;
-        do
-            
-            name="${name//\"}"
-            echo "id is: " $id "name is: "$name "owner:" $owner "repo " $repo "branch" $branch
-            # Get the last response for that workflow id and specified branch and store status and conclusion
-            workflow_status=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${token}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${repo}/actions/workflows/${id}/runs?per_page=1&branch=$branch" | jq -r '.workflow_runs[] | [.status , .conclusion , .html_url , .run_started_at] |@csv')
-            # Read stored response and split status and conclusion then 
-            # While loop reads in data piped to it.
-            while IFS=, read -r workflow_status conclusion html_url run_started_at;
-            do
-                # clean up responses
-                workflow_status="${workflow_status//\"}"
-                echo wf_status:${workflow_status}
-                if [ -z ${workflow_status} ];
-                then
-                    printf "> :red_circle: *$repo:* ${name}" >>slack-message.txt 
-                else     
-                    conclusion="${conclusion//\"}"
-                    
-                    echo conclusion:${conclusion}
-                    echo runstarted:${run_started_at}
-                    # Write slack message dependant on status and conclusion
-                    if [ "${conclusion}" = "success" ];
-                    then
-                        printf ":green_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
-                    elif [[ "${workflow_status}" == "waiting" ]] | [[ "${workflow_status}" == "pending" ]] | [[ "${workflow_status}" == "in_progress" ]] | [[ "${workflow_status}" == "queued" ]] | [[ "${workflow_status}" == "waiting" ]]
-                    then
-                        printf ":yellow_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
-                    else 
-                       printf ":red_circle: *$repo:* <"https://github.com/${owner}/${repo}/actions/workflows/"|_*${name}*_> status is *${workflow_status}* with conclusion *${conclusion}* \n" >> slack-message.txt 
-                    fi    
-                fi
-            done  <<< ${workflow_status}
-        done <<< ${workflows_response_id}
+usage(){
+>&2 cat << EOF
+------------------------------------------------
+Script to check GitHub page expiry
+------------------------------------------------
+Usage: $0
+    [ -t | --githubToken ]
+    [ -g | --githubRepo ]
+    [ -b | --branch ]
+    [ -r | --run ]
+    [ -h | --help ]
+EOF
+exit 1
+}
+
+args=$(getopt -a -o t:g:b:r:h: --long githubToken:,githubRepo:,branch:,run:,help -- "$@")
+if [[ $? -gt 0 ]]; then
+    usage
 fi
+
+eval set -- ${args}
+while :
+do
+    case $1 in
+        -h | --help)            usage           ; shift   ;;
+        -t | --githubToken)     githubToken=$2  ; shift 2 ;;
+        -g | --githubRepo)      githubRepo=$2   ; shift 2 ;;
+        -b | --branch)          branch=$2       ; shift 2 ;;
+        -r | --run)             run=$2          ; shift 2 ;;
+        # -- means the end of the arguments; drop this, and break out of the while loop
+        --) shift; break ;;
+        *) >&2 echo Unsupported option: $1
+            usage ;;
+    esac
+done
+
+if [[ -z "$githubToken" || -z "$githubRepo" || -z "$branch" ]]; then
+    {
+        echo "------------------------"
+        echo 'Please supply all of: '
+        echo '- GitHub Token'
+        echo '- GitHub Repo'
+        echo '- Branch'
+        echo "------------------------"
+    } >&2
+    exit 1
+fi
+
+# Function to fetch workflow runs
+fetch_workflow_runs() {
+    local workflow_id=$1
+    curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${githubToken}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${githubRepo}/actions/workflows/${workflow_id}/runs?per_page=1&branch=${branch}" | jq -r '.workflow_runs[] | {status: .status, conclusion: .conclusion, URL: .html_url, StartTime: .run_started_at}'
+}
+
+# Initialize variables
+slackThread=""
+
+# Initialize arrays
+missingWorkflows=()
+successfulWorkflows=()
+failedWorkflows=()
+pendingWorkflows=()
+
+# Determine if run was a supplied value, if not then process all workflows in the repo
+# Output will be JSON formatted Id: Name: key/values.
+if [[ -z "${run}" ]]; then
+    workflows_response=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${githubToken}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/${owner}/${githubRepo}/actions/workflows | jq -r '.workflows[] | {id: .id, name: .name}')
+else
+    workflows_response=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${githubToken}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${githubRepo}/actions/workflows" | jq -r --arg workflow "$run" '[.workflows[]]| map(select(.name==$workflow)) | {id: .[].id, name: .[].name}')
+fi
+
+# check if a response was made
+if [ -z "$workflows_response" ]; then
+    echo "No workflows found or failed to fetch workflows." >&2
+    missingWorkflows+=("$(printf "No workflow found in repo: %s / %s \\n" "${githubRepo}" "${run}")")
+else
+
+    echo "WORKFLOW RESPONSE: ${workflows_response}"
+
+    workflows=$(jq -c '.' <<< "$workflows_response")
+
+    for workflow in $workflows; do
+        id=$(echo "${workflow}" | jq -r '.id')
+        name=$(echo "${workflow}" | jq -r '.name')
+        workflow_status=$(fetch_workflow_runs "${id}")
+
+        echo "Workflow status for ${name}:"
+        echo "${workflow_status}"
+        statuses=$(jq -c '.' <<< "$workflow_status")
+        for status in $statuses; do
+            workflowStatus=$(echo "${status}" | jq -r '.status')
+            conclusion=$(echo "${status}" | jq -r '.conclusion')
+            workflowURL=$(echo "${status}" | jq -r '.URL')
+            workflowStartTime=$(echo "${status}" | jq -r '.StartTime')
+
+            echo "Workflow Status: ${workflowStatus}"
+            echo "Conclusion: ${conclusion}"
+            echo "URL: ${workflowURL}"
+            echo "Workflow started at: ${workflowStartTime}"
+
+            if [ -z "${workflowStatus}" ]; then
+                printf ":red_circle: *$repo:* <https://github.com/${owner}/${githubRepo}/actions/workflows/|_*${name}*_> Did not return a workflow status \n" >> slack-message.txt
+            else
+                if [ "${conclusion}" == "success" ]; then
+                    echo "Workflow $name $conclusion"
+                    successfulWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s*\\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
+                elif [[ "${workflowStatus}" == "waiting" ]] || [[ "${workflowStatus}" == "pending" ]] || [[ "${workflowStatus}" == "in_progress" ]] || [[ "${workflowStatus}" == "queued" ]]; then
+                    echo "Workflow $name $conclusion"
+                    pendingWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s*\\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
+                else
+                    echo "Workflow $name $conclusion"
+                    failedWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s*\\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
+                fi
+            fi
+        done
+    done
+fi
+
+# Check if each of the arrays is empty, if not then add the relevant output to the slackThread variable to be sent to slack as a threaded update.
+if [ "${#missingWorkflows[@]}" -gt 0 ]; then
+    slackThread+=":red_circle: GitHub Workflows missing! \\n$(IFS=$'\n'; echo "${missingWorkflows[*]}")\\n\\n"
+fi
+
+if [ "${#failedWorkflows[@]}" -gt 0 ]; then
+    slackThread+=":red_circle: GitHub Workflows have failed! \\n$(IFS=$'\n'; echo "${failedWorkflows[*]}")\\n\\n"
+fi
+
+if [ "${#pendingWorkflows[@]}" -gt 0 ]; then
+    slackThread+=":yellow_circle: GitHub Workflows are still in pending state!: \\n$(IFS=$'\n'; echo "${pendingWorkflows[*]}")\\n\\n"
+fi
+
+if [ "${#successfulWorkflows[@]}" -gt 0 ]; then
+    slackThread+=":green: GitHub Workflows completed successfully: \\n$(IFS=$'\n'; echo "${successfulWorkflows[*]}")\\n\\n"
+fi
+
+echo $slackThread >> workflow-status.txt

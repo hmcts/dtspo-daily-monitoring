@@ -241,11 +241,11 @@ jobs:
         env:
           GITHUB_TOKEN: $(github-management-api-token)
           PULL_REQUEST_NUMBER: ${{ variables.pull_request_number }}
-
       - script: |
           echo "main_channel set to: $(main_channel)"
         displayName: 'Show main channel name'
 
+      ## Do not modify steps above this comment
       - task: Bash@3
         displayName: 'Create a slack message file'
         inputs:
@@ -260,19 +260,6 @@ jobs:
             targetType: filePath
             filePath: scripts/ado-pipeline-monitor.sh
             arguments: $(azure-devops-token) ${{ado_pipeline.project}} ${{ado_pipeline.definitionId}}  ${{ado_pipeline.timeForAmber}}  ${{ado_pipeline.timeForRed}}  "${{ado_pipeline.pipelineName}}" "${{ado_pipeline.branchName}}"
-      - task: Bash@3
-        displayName: 'Github workflow status header'
-        inputs:
-          targetType: 'inline'
-          script: |
-           echo "\n:github: *GitHub Scheduled Workflow Status* \n\n" >> slack-message.txt
-      - ${{ each gh_workflow in parameters.gh_workflows }}:
-        - task: Bash@3
-          displayName: 'Check Github workflow Runs'
-          inputs:
-            targetType: filePath
-            filePath: scripts/github-scheduled-workflow-monitor.sh
-            arguments: $(github-management-api-token) ${{gh_workflow.repo}} ${{gh_workflow.branch}} ${{gh_workflow.run}}
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'Get AKS Cluster Status'
@@ -427,3 +414,20 @@ jobs:
             --slackChannelName $(main_channel)
             --inputFileName cert-status.txt
             --messageHeader ":ssl-cert: SSL Certificates Checks"
+      - ${{ each gh_workflow in parameters.gh_workflows }}:
+        - task: Bash@3
+          displayName: 'Check Github workflow Runs'
+          inputs:
+            targetType: filePath
+            filePath: scripts/github-scheduled-workflow-monitor.sh
+            arguments: --githubToken $(github-management-api-token) --githubRepo ${{gh_workflow.repo}} --branch ${{gh_workflow.branch}} --run ${{gh_workflow.run}}
+      - task: Bash@3
+        displayName: "Send Github Workflow Status"
+        inputs:
+          targetType: filePath
+          filePath: scripts/send-slack-header-thread-each-loop.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --inputFileName workflow-status.txt
+            --messageHeader ":github: GitHub Scheduled Workflow Status"
