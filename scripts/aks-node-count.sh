@@ -1,36 +1,87 @@
-set -ex
+#!/usr/bin/env bash
 
-RESOURCE_GROUP=$1
-CLUSTER_NAME=$2
+### Setup script environment
+set -e
 
-RESOURCE_GROUP_EXIST=$( az group exists --name $RESOURCE_GROUP )
+# Source central functions script
+source scripts/common-functions.sh
 
-if [[ $RESOURCE_GROUP_EXIST == false ]]; then
-    echo "$RESOURCE_GROUP does not exist"
+resourceGroup=
+aksClusterName=
+
+usage(){
+>&2 cat << EOF
+    ------------------------------------------------
+    Script to check GitHub page expiry
+    ------------------------------------------------
+    Usage: $0
+        [ -r | --resourceGroup ]
+        [ -a | --aksClusterName ]
+        [ -h | --help ]
+EOF
+exit 1
+}
+
+args=$(getopt -a -o r:a:h: --long resourceGroup:,aksClusterName:,help -- "$@")
+if [[ $? -gt 0 ]]; then
+    usage
+fi
+
+eval set -- ${args}
+while :
+do
+    case $1 in
+        -h | --help)           usage             ; shift   ;;
+        -r | --resourceGroup)  resourceGroup=$2  ; shift 2 ;;
+        -a | --aksClusterName) aksClusterName=$2 ; shift 2 ;;
+        -d | --checkDays)      checkDays=$2      ; shift 2 ;;
+        # -- means the end of the arguments; drop this, and break out of the while loop
+        --) shift; break ;;
+        *) >&2 echo Unsupported option: $1
+            usage ;;
+    esac
+done
+
+if [[ -z "$resourceGroup" || -z "$aksClusterName" ]]; then
+    {
+        echo "------------------------"
+        echo 'Please supply all of: '
+        echo '- Resource Group name'
+        echo '- AKS Cluster name'
+        echo "------------------------"
+    } >&2
+    exit 1
+fi
+
+# Setup variables
+slackThread=""
+
+rgExists=$( az group exists --name $resourceGroup )
+
+if [[ $rgExists == false ]]; then
+    echo "$resourceGroup does not exist"
     exit 0
 fi
 
-CLUSTER_RESULT=$( az aks list --resource-group $RESOURCE_GROUP --output json )
+clusterCount=$(az aks list --resource-group $resourceGroup --output json | jq -r '. | length')
 
-# az aks list --resource-group $RESOURCE_GROUP --output json
-CLUSTER_COUNT=$(jq -r '. | length' <<< "${CLUSTER_RESULT}")
-
-if [[ $CLUSTER_COUNT == 0 ]]; then
-    echo "$CLUSTER_NAME does not exist"
+if [[ $clusterCount == 0 ]]; then
+    echo "$aksClusterName does not exist"
     exit 0
 fi
 
-MAX_COUNT=$( az aks nodepool show --resource-group $RESOURCE_GROUP --cluster-name $CLUSTER_NAME --name linux --query maxCount )    
-NODE_COUNT=$( az aks nodepool show --resource-group $RESOURCE_GROUP --cluster-name $CLUSTER_NAME --name linux --query count )
-PERCENTAGE=$((100*$NODE_COUNT/$MAX_COUNT))
+maxCount=$( az aks nodepool show --resource-group $resourceGroup --cluster-name $aksClusterName --name linux --query maxCount )
+nodeCount=$( az aks nodepool show --resource-group $resourceGroup --cluster-name $aksClusterName --name linux --query count )
+percentageCalculation=$((100*$nodeCount/$maxCount))
 
-CLUSTER_URL="https://portal.azure.com/#@HMCTS.NET/resource/subscriptions/8b6ea922-0862-443e-af15-6056e1c9b9a4/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerService/managedClusters/$CLUSTER_NAME/overview"
+clusterURL="https://portal.azure.com/#@HMCTS.NET/resource/subscriptions/8b6ea922-0862-443e-af15-6056e1c9b9a4/resourceGroups/$resourceGroup/providers/Microsoft.ContainerService/managedClusters/$aksClusterName/overview"
 
-printf "\n\n:aks: <$CLUSTER_URL|_*Cluster $CLUSTER_NAME Status*_>  \n\n" >> slack-message.txt
-if [ $PERCENTAGE -gt 95 ]; then
-    echo "> :red_circle: _*$CLUSTER_NAME*_ is running above 95% capacity at *$PERCENTAGE%*" >> slack-message.txt
-elif [ $PERCENTAGE -gt 80 ]; then
-    echo "> :yellow_circle: _*$CLUSTER_NAME*_ is running above 80% capacity at *$PERCENTAGE%*" >> slack-message.txt
-else 
-    echo "> :green_circle: _*$CLUSTER_NAME*_ is below 80% capacity at *$PERCENTAGE%*" >> slack-message.txt
+if [ $percentageCalculation -gt 95 ]; then
+    slackThread+=":red_circle: <$clusterURL|_*Cluster: $aksClusterName*_> is running above 95% capacity at *$percentageCalculation%*"
+elif [ $percentageCalculation -gt 80 ]; then
+    slackThread+=":yellow_circle: <$clusterURL|_*Cluster: $aksClusterName*_> is running above 80% capacity at *$percentageCalculation%*"
+else
+    slackThread+=":green_circle: Cluster: <$clusterURL|_*$aksClusterName*_> is running below 80% capacity at *$percentageCalculation%*"
 fi
+
+echo $slackThread >> aks-cluster-status.txt

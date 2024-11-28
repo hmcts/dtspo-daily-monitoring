@@ -1,34 +1,98 @@
-set -ex
+#!/usr/bin/env bash
 
-ADO_TOKEN=$1
-ADO_PROJECT=$2
-ADO_DEFINITION_ID=$3
-TIME_FOR_AMBER="$4 days"
-TIME_FOR_RED="$5 days"
-PIPELINE_NAME=$(echo $6 | sed 's/_/ /g' | sed 's/"//g')
-BRANCH_NAME=$(echo $7 | sed 's/"//g')
+# This script will check the Azure DevOps pipeline definition supplied for last successful run.
+# If older than the supplied dates (amber and red) it will save the relevant message to the
+# slackThread variable and save the final output to file
 
-PIPELINE_MESSAGE="<https://dev.azure.com/hmcts/$ADO_PROJECT/_build?definitionId=$ADO_DEFINITION_ID|$PIPELINE_NAME pipeline>"
+### Setup script environment
+set -e
 
-#MIN_TIME_RED=$(date -v "-${TIME_FOR_RED}" +"%Y-%m-%dT%H:%M:%SZ" )
-MIN_TIME_RED=$(date -d "-${TIME_FOR_RED}" +"%Y-%m-%dT%H:%M:%SZ" )
-RESULT=$(curl -u :$ADO_TOKEN "https://dev.azure.com/hmcts/$ADO_PROJECT/_apis/build/builds?api-version=7.0&definitions=$ADO_DEFINITION_ID&branchName=$BRANCH_NAME&resultFilter=succeeded&\$top=1&minTime=$MIN_TIME_RED")
-COUNT=$(jq -r .count <<< "${RESULT}")
+# Source central functions script
+source scripts/common-functions.sh
 
-if [ "$COUNT" != 1 ]; then
-  echo "> :red_circle: $PIPELINE_MESSAGE didn't have a successful run in last *$TIME_FOR_RED*." >> slack-message.txt
-  exit 0
+adoToken=
+adoProject=
+adoPipelineName=
+adoPipelineDefinitionId=
+adoPipelineBranch=
+adoTimeForAmber=3
+adoTimeForRed=5
+
+usage(){
+>&2 cat << EOF
+  ------------------------------------------------
+  Script to check GitHub page expiry
+  ------------------------------------------------
+  Usage: $0
+      [ -t | --adoToken ]
+      [ -p | --adoProject ]
+      [ -n | --adoPipelineName ]
+      [ -i | --adoPipelineDefinitionId ]
+      [ -b | --adoPipelineBranch ]
+      [ -a | --adoTimeForAmber ]
+      [ -r | --adoTimeForRed ]
+      [ -h | --help ]
+EOF
+exit 1
+}
+
+args=$(getopt -a -o t:p:n:i:b:a:r:h: --long adoToken:,adoProject:,adoPipelineName:,adoPipelineDefinitionId:,adoPipelineBranch:,adoTimeForAmber:,adoTimeForRed:,help -- "$@")
+if [[ $? -gt 0 ]]; then
+    usage
 fi
 
-#MIN_TIME_AMBER=$(date -v "-${TIME_FOR_AMBER}" +"%Y-%m-%dT%H:%M:%SZ" )
-MIN_TIME_AMBER=$(date -d "-${TIME_FOR_AMBER}" +"%Y-%m-%dT%H:%M:%SZ" )
-RESULT=$(curl -u :$ADO_TOKEN "https://dev.azure.com/hmcts/$ADO_PROJECT/_apis/build/builds?api-version=7.0&definitions=$ADO_DEFINITION_ID&branchName=$BRANCH_NAME&resultFilter=succeeded&\$top=1&minTime=$MIN_TIME_AMBER")
-COUNT=$(jq -r .count <<< "${RESULT}")
+eval set -- ${args}
+while :
+do
+    case $1 in
+        -h | --help)                    usage                       ; shift   ;;
+        -t | --adoToken)                adoToken=$2                 ; shift 2 ;;
+        -p | --adoProject)              adoProject=$2               ; shift 2 ;;
+        -m | --adoPipelineName)         adoPipelineName=$2          ; shift 2 ;;
+        -i | --adoPipelineDefinitionId) adoPipelineDefinitionId=$2  ; shift 2 ;;
+        -b | --adoPipelineBranch)       adoPipelineBranch=$2        ; shift 2 ;;
+        -a | --adoTimeForAmber)         adoTimeForAmber=$2          ; shift 2 ;;
+        -r | --adoTimeForRed)           adoTimeForRed=$2            ; shift 2 ;;
+        # -- means the end of the arguments; drop this, and break out of the while loop
+        --) shift; break ;;
+        *) >&2 echo Unsupported option: $1
+            usage ;;
+    esac
+done
 
-if [ "$COUNT" != 1 ]; then
-  echo "> :yellow_circle: $PIPELINE_MESSAGE didn't have a successful run in last *$TIME_FOR_AMBER*." >> slack-message.txt
-  exit 0
+if [[ -z "$adoToken" || -z "$adoProject" || -z "$adoPipelineName" || -z "$adoPipelineDefinitionId" || -z "$adoPipelineBranch" ]]; then
+    {
+        echo "---------------------------------"
+        echo 'Please supply all of:'
+        echo '- Azure DevOps Token '
+        echo '- Azure DevOps Project name '
+        echo '- Azure DevOps Pipeline Name'
+        echo '- Azure DevOps Pipeline Definition Id'
+        echo '- Azure DevOps Pipeline Branch'
+        echo "---------------------------------"
+    } >&2
+    exit 1
 fi
 
-echo "> :green_circle: $PIPELINE_MESSAGE had a successful run in last *$TIME_FOR_AMBER*." >> slack-message.txt
+# Setup variables
+slackThread=""
+pipelineName=$(echo $adoPipelineName | sed 's/_/ /g' | sed 's/"//g')
+branchName=$(echo $adoPipelineBranch | sed 's/"//g')
+isoTimeAmber=$(date -d "-${adoTimeForAmber} days" +"%Y-%m-%dT%H:%M:%SZ" )
+isoTimeRed=$(date -d "-${adoTimeForRed} days" +"%Y-%m-%dT%H:%M:%SZ" )
 
+slackLinkFormat="<https://dev.azure.com/hmcts/$adoProject/_build?definitionId=$adoPipelineDefinitionId|$pipelineName pipeline>"
+
+amberCheck=$(curl -u :$adoToken "https://dev.azure.com/hmcts/$adoProject/_apis/build/builds?api-version=7.0&definitions=$adoPipelineDefinitionId&branchName=$branchName&resultFilter=succeeded&\$top=1&minTime=$isoTimeAmber" | jq -r .count)
+
+redCheck=$(curl -u :$adoToken "https://dev.azure.com/hmcts/$adoProject/_apis/build/builds?api-version=7.0&definitions=$adoPipelineDefinitionId&branchName=$branchName&resultFilter=succeeded&\$top=1&minTime=$isoTimeRed" | jq -r .count)
+
+if [ "$redCheck" != 1 ]; then
+  slackThread+=":red_circle: $slackLinkFormat hasn't run successfully in ${adoTimeForRed} days!"
+elif [ "$amberCheck" != 1 ]; then
+  slackThread+=":yellow_circle: $slackLinkFormat hasn't run successfully in ${adoTimeForAmber} days!"
+else
+  slackThread+=":green_circle: $slackLinkFormat ran successfully in the last ${adoTimeForAmber} days"
+fi
+
+echo $slackThread >> ado-pipeline-status.txt
