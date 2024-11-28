@@ -47,13 +47,13 @@ do
     esac
 done
 
-if [[ -z "$slackBotToken" || -z "$slackChannelName" ]]; then
+if [[ -z "$slackBotToken" || -z "$slackChannelName" || -z "$token" ]]; then
     {
         echo "------------------------"
         echo 'Please supply all of: '
         echo '- Slack token'
         echo '- Slack channel name'
-        echo '- token'
+        echo '- Token'
         echo "------------------------"
     } >&2
     exit 1
