@@ -83,3 +83,5 @@ elif [ $percentageCalculation -gt 80 ]; then
 else
     slackThread+=":green_circle: <$CLUSTER_URL|_*Cluster: $aksClusterName*_> is running below 80% capacity at *$percentageCalculation%*"
 fi
+
+echo $slackThread >> aks-cluster-status.txt
