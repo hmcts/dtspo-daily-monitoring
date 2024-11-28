@@ -60,7 +60,7 @@ do
     esac
 done
 
-if [[ -z "$adoToken" | -z "$adoProject" | -z "$adoPipelineName" | -z "$adoPipelineDefinitionId" | -z "$adoPipelineBranch" ]]; then
+if [[ -z "$adoToken" || -z "$adoProject" || -z "$adoPipelineName" || -z "$adoPipelineDefinitionId" || -z "$adoPipelineBranch" ]]; then
     {
         echo "---------------------------------"
         echo 'Please supply all of:'
