@@ -9,49 +9,49 @@ source scripts/common-functions.sh
 resourceGroup=bau-bais_prod_resource_group
 backupVault=recovery-vault-dmz-bau-bais-prod
 
-# usage(){
-# >&2 cat << EOF
-#     ------------------------------------------------
-#     Script to check GitHub page expiry
-#     ------------------------------------------------
-#     Usage: $0
-#         [ -r | --resourceGroup ]
-#         [ -v | --backupVault ]
-#         [ -h | --help ]
-# EOF
-# exit 1
-# }
+usage(){
+>&2 cat << EOF
+    ------------------------------------------------
+    Script to check GitHub page expiry
+    ------------------------------------------------
+    Usage: $0
+        [ -r | --resourceGroup ]
+        [ -v | --backupVault ]
+        [ -h | --help ]
+EOF
+exit 1
+}
 
-# args=$(getopt -a -o r:v:h: --long resourceGroup:,backupVault:,help -- "$@")
-# if [[ $? -gt 0 ]]; then
-#     usage
-# fi
+args=$(getopt -a -o r:v:h: --long resourceGroup:,backupVault:,help -- "$@")
+if [[ $? -gt 0 ]]; then
+    usage
+fi
 
-# eval set -- ${args}
-# while :
-# do
-#     case $1 in
-#         -h | --help)           usage             ; shift   ;;
-#         -r | --resourceGroup)  resourceGroup=$2  ; shift 2 ;;
-#         -v | --backupVault)    backupVault=$2    ; shift 2 ;;
-#         -d | --checkDays)      checkDays=$2      ; shift 2 ;;
-#         # -- means the end of the arguments; drop this, and break out of the while loop
-#         --) shift; break ;;
-#         *) >&2 echo Unsupported option: $1
-#             usage ;;
-#     esac
-# done
+eval set -- ${args}
+while :
+do
+    case $1 in
+        -h | --help)           usage             ; shift   ;;
+        -r | --resourceGroup)  resourceGroup=$2  ; shift 2 ;;
+        -v | --backupVault)    backupVault=$2    ; shift 2 ;;
+        -d | --checkDays)      checkDays=$2      ; shift 2 ;;
+        # -- means the end of the arguments; drop this, and break out of the while loop
+        --) shift; break ;;
+        *) >&2 echo Unsupported option: $1
+            usage ;;
+    esac
+done
 
-# if [[ -z "$resourceGroup" || -z "$backupVault" ]]; then
-#     {
-#         echo "------------------------"
-#         echo 'Please supply all of: '
-#         echo '- Resource Group name'
-#         echo '- Recovery Service Vault name'
-#         echo "------------------------"
-#     } >&2
-#     exit 1
-# fi
+if [[ -z "$resourceGroup" || -z "$backupVault" ]]; then
+    {
+        echo "------------------------"
+        echo 'Please supply all of: '
+        echo '- Resource Group name'
+        echo '- Recovery Service Vault name'
+        echo "------------------------"
+    } >&2
+    exit 1
+fi
 
 #check if resource group exists
 rgExists=$( az group exists --name $resourceGroup )
