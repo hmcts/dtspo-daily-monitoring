@@ -6,8 +6,8 @@ set -e
 # Source central functions script
 source scripts/common-functions.sh
 
-resourceGroup=bau-bais_prod_resource_group
-backupVault=recovery-vault-dmz-bau-bais-prod
+resourceGroup=
+backupVault=
 
 usage(){
 >&2 cat << EOF
