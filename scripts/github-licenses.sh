@@ -47,13 +47,13 @@ do
     esac
 done
 
-if [[ -z "$slackBotToken" || -z "$slackChannelName" ]]; then
+if [[ -z "$slackBotToken" || -z "$slackChannelName" || -z "$token" ]]; then
     {
         echo "------------------------"
         echo 'Please supply all of: '
         echo '- Slack token'
         echo '- Slack channel name'
-        echo '- token'
+        echo '- Token'
         echo "------------------------"
     } >&2
     exit 1
@@ -74,7 +74,6 @@ elif ((  "$LICENSES_LEFT" >= 10 )); then
   LICENSE_STATUS=":yellow_circle:"
 fi
 
-printf "\n:github: <https://github.com/orgs/hmcts/people|_*GitHub License Status*_> \n\n" >> slack-message.txt
-printf "> %s *%s* out of *%s* licenses left \n" "$LICENSE_STATUS" "$LICENSES_LEFT" "$TOTAL_LICENSES" >> slack-message.txt
-
-slackNotification $slackBotToken $slackChannelName ":github: $LICENSE_STATUS GitHub License Check"  "<https://github.com/orgs/hmcts/people|_*GitHub Licenses*_> _*$LICENSES_LEFT*_ out of *"$TOTAL_LICENSES"* licenses left"
+if [[ "$LICENSE_STATUS" == ":red_circle:" || "$LICENSE_STATUS" == ":yellow_circle:" ]]; then
+  slackNotification $slackBotToken $slackChannelName ":github: $LICENSE_STATUS GitHub License Check"  "<https://github.com/orgs/hmcts/people|_*GitHub Licenses*_> _*$LICENSES_LEFT*_ out of *"$TOTAL_LICENSES"* licenses left"
+fi

@@ -35,19 +35,18 @@ When you merge your approved PR, the messages will be sent to the `#dtspo-daily-
 
 ## GitHub workflow
 
-
 To add a workflow to be monitored add it to the azure-pipelines.yaml within the gh_workflows section as below
 
-```
+```yaml
 parameters:
   - name: gh_workflows
     type: object
     default:
       - repo: 'some_repo' # repository the code resides in
         branch: 'master' # branch you wish to monitor
-        run: 'some_action' # The name specified in the YAML of workflow. This is optional if left blank the process will report on all Actions. 
+        run: 'some_action' # The name specified in the YAML of workflow. This is optional if left blank the process will report on all Actions.
 
 ```
 
-Note: This process requires uses name key set in the github actions YAML in the repo you are wanting to monitor the name key should be one word or use underscores as a separator. If you are getting blank slack messages it is because 
+Note: This process requires uses name key set in the github actions YAML in the repo you are wanting to monitor the name key should be one word or use underscores as a separator. If you are getting blank slack messages it is because
 the name is not set or set incorrectly. If it is not set the path can be used but looks bad in the slack messages.

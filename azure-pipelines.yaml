@@ -221,7 +221,7 @@ jobs:
           azureSubscription:  "DTS-CFTPTL-INTSVC"
           keyVaultName:   "cftptl-intsvc"
           secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,github-management-api-token,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token'
-
+      # Set Channel name based on PR or not and output channel name to console for confirmation
       - task: Bash@3
         displayName: 'Set Channel Name'
         condition: and(succeeded(), eq(variables['isMain'], true))
@@ -244,7 +244,7 @@ jobs:
       - script: |
           echo "main_channel set to: $(main_channel)"
         displayName: 'Show main channel name'
-      # All new checks using headers and threads should be below this comment to ensure the original slack notification is sent first
+      # The following checks use the common-functions.sh slack notifications and threads functions and will only send if negative status is found
       - task: Bash@3
         displayName: 'Orphaned Resource Status Check'
         continueOnError: true
@@ -325,6 +325,7 @@ jobs:
           targetType: filePath
           filePath: scripts/ld-license.sh
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(launchdarkly-access-token)
+      # Checks from this point on use each loop, every iteration saves to a file and a follow up step is used to send the output if a negative status is found
       - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
         - task: AzureCLI@2
           displayName: 'Checking PostgreSQL Flexible Storage Status: ${{ postgres_sub.subscription }}'

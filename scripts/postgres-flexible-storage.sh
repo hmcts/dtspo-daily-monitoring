@@ -109,16 +109,16 @@ slackThread+=$(printf ":tada: :green_circle: *%s* PostgreSQL Flexible Servers ar
 
 # Check if each of the arrays is empty, if not then add the relevant output to the slackThread variable to be sent to slack as a threaded update.
 if [ "${#resourcesInUnreadyState[@]}" -gt 0 ]; then
-    slackThread+=":red_circle: Postgres Server(s) in unready state! \\n$(IFS=$'\n'; echo "${resourcesInUnreadyState[*]}")\\n\\n"
+    slackThread+="\\n\\n :exclamation: :red_circle: Postgres Server(s) in unready state! \\n$(IFS=$'\n'; echo "${resourcesInUnreadyState[*]}")\\n\\n"
 fi
 
 if [ "${#criticalCapacityResources[@]}" -gt 0 ]; then
-    slackThread+=":red_circle: Postgres Server(s) running above 95% storage capacity!: \\n$(IFS=$'\n'; echo "${criticalCapacityResources[*]}")\\n\\n"
+    slackThread+="\\n\\n :exclamation: :red_circle: Postgres Server(s) running above 95% storage capacity!: \\n$(IFS=$'\n'; echo "${criticalCapacityResources[*]}")\\n\\n"
 
 fi
 
 if [ "${#highCapacityResources[@]}" -gt 0 ]; then
-    slackThread+=":yellow_circle: Postgres Server(s) running above 80% storage capacity!: \\n$(IFS=$'\n'; echo "${highCapacityResources[*]}")\\n\\n"
+    slackThread+="\\n\\n :warning: :yellow_circle: Postgres Server(s) running above 80% storage capacity!: \\n$(IFS=$'\n'; echo "${highCapacityResources[*]}")\\n\\n"
 fi
 
 echo $slackThread >> postgres-status.txt

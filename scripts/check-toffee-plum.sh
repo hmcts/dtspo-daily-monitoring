@@ -13,13 +13,13 @@ failures_exist_plum="false"
 
 usage(){
 >&2 cat << EOF
-------------------------------------------------
-Script to check GitHub page expiry
-------------------------------------------------
-Usage: $0
-    [ -t | --slackBotToken ]
-    [ -c | --slackChannelName ]
-    [ -h | --help ]
+    ------------------------------------------------
+    Script to check GitHub page expiry
+    ------------------------------------------------
+    Usage: $0
+        [ -t | --slackBotToken ]
+        [ -c | --slackChannelName ]
+        [ -h | --help ]
 EOF
 exit 1
 }
@@ -44,9 +44,14 @@ do
 done
 
 if [[ -z "$slackBotToken" || -z "$slackChannelName" ]]; then
-    echo "------------------------"
-    echo 'Please supply a Slack token and a Slack channel name' >&2
-    echo "------------------------"
+    {
+        echo "------------------------"
+        echo 'Please supply all of'
+        echo '- Slack token'
+        echo '- Slack channel name' >&2
+        echo "------------------------"
+        exit 1
+    } >&2
     exit 1
 fi
 
@@ -107,29 +112,24 @@ echo $failures_exist_plum
 
 if [[ $failures_exist_toffee == true || $failures_exist_plum == true ]]; then
     status=":red_circle:"
-else
-    status=":green_circle:"
+    # Send initial header message
+    slackNotification $slackBotToken $slackChannelName "$status Toffee/Plum Status Checks" " "
+
+    # Check Toffee failures and if exist, add to thread
+    if [ ${#failure_msg_toffee[@]} -gt 0 ]; then
+        # Loop through each failure
+        for failure in "${failure_msg_toffee[@]}"; do
+            slackThreadResponse $slackBotToken $slackChannelName "$failure" $TS
+        done
+    fi
+
+    # Check Plum failures and if exist, add to thread
+    if [ ${#failure_msg_plum[@]} -gt 0 ]; then
+        # Loop through each failure
+        for failure in "${failure_msg_plum[@]}"; do
+            slackThreadResponse $slackBotToken $slackChannelName "$failure" $TS
+        done
+    fi
 fi
 
-# Send initial header message
-slackNotification $slackBotToken $slackChannelName "$status Toffee/Plum Status Checks" " "
 
-# Check Toffee failures and if exist, add to thread
-if [ ${#failure_msg_toffee[@]} -eq 0 ]; then
-    slackThreadResponse $slackBotToken $slackChannelName ">:green_circle: All Toffee deployments are healthy" $TS
-else
-    # Loop through each failure
-    for failure in "${failure_msg_toffee[@]}"; do
-        slackThreadResponse $slackBotToken $slackChannelName "$failure" $TS
-    done
-fi
-
-# Check Plum failures and if exist, add to thread
-if [ ${#failure_msg_plum[@]} -eq 0 ]; then
-    slackThreadResponse $slackBotToken $slackChannelName ">:green_circle: All Plum deployments are healthy" $TS
-else
-    # Loop through each failure
-    for failure in "${failure_msg_plum[@]}"; do
-        slackThreadResponse $slackBotToken $slackChannelName "$failure" $TS
-    done
-fi

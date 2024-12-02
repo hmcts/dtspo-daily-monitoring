@@ -65,17 +65,12 @@ deletedResourceCount=$(echo "$jsonData" | jq 'length')
 # Set STATUS based on the object count
 if [ "$deletedResourceCount" -gt 0 ]; then
     STATUS=":red_circle:"
-else
-    STATUS=":green_circle:"
-fi
 
-# Post initial header message
-slackNotification $slackBotToken $slackChannelName "$STATUS Orphaned Resource Status" "$deletedResourceCount resources failed to delete, <https://github.com/hmcts/dtspo-orphan-resources-cleanup/actions|*_Orphaned Resource Pipeline_*>"
-
-# If there are more than 0 objects, print the object values into an array and send as a thread to slack
-if [ "$deletedResourceCount" -gt 0 ]; then
-    # failedDeletes=$(jq -r '.[].message | gsub("A resource failed to delete!\\\\nTo see why, you can run: az resource delete --ids "; "") | gsub("--verbose\\\\n"; "")' <<< $jsonData)
     failedDeletes=$(jq --arg status "$STATUS" -r '.[].message | gsub("A resource failed to delete!\\\\nTo see why, you can run: az resource delete --ids "; "") | gsub("--verbose\\\\n"; "") | $status + " " + .' <<< "$jsonData")
+
+
+    # Post initial header message
+    slackNotification $slackBotToken $slackChannelName "$STATUS Orphaned Resource Status" "$deletedResourceCount resources failed to delete, <https://github.com/hmcts/dtspo-orphan-resources-cleanup/actions|*_Orphaned Resource Pipeline_*>"
 
     # Send to slack thread
     slackThreadResponse $slackBotToken $slackChannelName "The following resources could not be deleted, you can find more information by running: \n 'az resource delete --ids (RESOURCE ID) --verbose'" $TS
