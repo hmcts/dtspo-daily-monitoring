@@ -78,7 +78,7 @@ while read backup; do
     vm_name=$(jq -r '.properties.friendlyName' <<< "$backup")
 
     #If backup job has failed, print vm name and vault name to slack message
-    if [[ $job_status != "Failed" ]]; then
+    if [[ $job_status == "Failed" ]]; then
         echo "Backup failed for: $vm_name"
         failedBackups+=("$(printf "Backup for %s in vault <%s|_*%s*_> with status of: *%s*\\n" "${vm_name}" "${vaultURL}" "${backupVault}" "${job_status}")")
     fi
