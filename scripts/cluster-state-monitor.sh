@@ -11,7 +11,12 @@ slackBotToken=
 slackChannelName=
 failedState=()
 
-usage() {
+autoFixCluster() {
+    az resource update --ids $1
+    cluster_status_recheck=$(az graph query -q "resources | where type =~ 'Microsoft.ContainerService/managedClusters'| where name == '$2'| project properties.provisioningState" -o json)
+}
+
+usage(){
 >&2 cat << EOF
     ------------------------------------------------
     Script to check GitHub page expiry
@@ -21,12 +26,7 @@ usage() {
         [ -c | --slackChannelName ]
         [ -h | --help ]
 EOF
-    exit 1
-}
-
-autoFixCluster() {
-    az resource update --ids $1
-    cluster_status_recheck=$(az graph query -q "resources | where type =~ 'Microsoft.ContainerService/managedClusters'| where name == '$2'| project properties.provisioningState" -o json)
+exit 1
 }
 
 args=$(getopt -a -o t:c:p:g: --long slackBotToken:,slackChannelName:,help -- "$@")
@@ -35,29 +35,16 @@ if [[ $? -gt 0 ]]; then
 fi
 
 eval set -- ${args}
-while :; do
+while :
+do
     case $1 in
-    -h | --help)
-        usage
-        shift
-        ;;
-    -t | --slackBotToken)
-        slackBotToken=$2
-        shift 2
-        ;;
-    -c | --slackChannelName)
-        slackChannelName=$2
-        shift 2
-        ;;
-    # -- means the end of the arguments; drop this, and break out of the while loop
-    --)
-        shift
-        break
-        ;;
-    *)
-        echo >&2 Unsupported option: $1
-        usage
-        ;;
+        -h | --help)              usage                    ; shift   ;;
+        -t | --slackBotToken)     slackBotToken=$2         ; shift 2 ;;
+        -c | --slackChannelName)  slackChannelName=$2      ; shift 2 ;;
+        # -- means the end of the arguments; drop this, and break out of the while loop
+        --) shift; break ;;
+        *) >&2 echo Unsupported option: $1
+            usage ;;
     esac
 done
 
@@ -72,6 +59,7 @@ if [[ -z "$slackBotToken" || -z "$slackChannelName" ]]; then
     } >&2
     exit 1
 fi
+
 
 CLUSTERS=$(az graph query -q "resources | where type =~ 'Microsoft.ContainerService/managedClusters'| where tags.application == 'core'| project name, resourceGroup, properties, ['id']" --first 1000 -o json)
 
