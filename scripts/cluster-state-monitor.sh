@@ -12,7 +12,7 @@ slackChannelName=
 failedState=()
 
 usage() {
-    cat >&2 <<EOF
+>&2 cat << EOF
     ------------------------------------------------
     Script to check GitHub page expiry
     ------------------------------------------------
@@ -83,7 +83,7 @@ while read cluster; do
 
     if [[ $cluster_status == "Failed" ]]; then
         autoFixCluster $resourceId $cluster_name
-        
+
         #if cluster is still in a failed state after recheck, add to failedState array
         if [[ $cluster_status_recheck == "Failed" ]]; then
             failedState+="\n>:red_circle: <https://portal.azure.com/#@HMCTS.NET/resource$cluster_id|_*$cluster_name*_> has a provisioning state of $cluster_status"
