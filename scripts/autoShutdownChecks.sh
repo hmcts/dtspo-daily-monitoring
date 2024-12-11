@@ -56,7 +56,7 @@ fi
 ### Script begins
 CURRENTTIME=$($date_command +"%b %d %T") # 2w = 2 weeks
 STATUS=":green_circle"
-slackThread="Script ran at $CURRENTTIME \\n"
+slackThread="This status check was run on: $CURRENTTIME \\n\\n"
 
 # Declare any associative array
 declare -A resourceTypes
@@ -90,7 +90,7 @@ for resource in "${!resourceTypes[@]}"; do
             # printf "\\nStart content for %s: %s\\n" "$resource" "${startStatusOutputs[$resource]}"
             STATUS=":red_circle:"
             # slackThread+="$STATUS Issues found with $resource during $mode action! \\n Please visit the <$url|_*status output*_> for more information.\\n\\n"
-            slackThread+=$(printf "%s Issues found with *%s* during *%s* action! Please visit the <%s|_*status output*_> for more information.\\n\\n " "$STATUS" "$resource" "$mode" "$url")
+            slackThread+=$(printf "%s Issues found with *%s* during *%s* action! Please visit the <%s|_*status output*_> for more information.\\n\\n" "$STATUS" "$resource" "$mode" "$url")
         fi
     done
 done
