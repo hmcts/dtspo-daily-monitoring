@@ -56,7 +56,7 @@ fi
 ### Script begins
 CURRENTTIME=$($date_command +"%b %d %T") # 2w = 2 weeks
 STATUS=":green_circle"
-slackThread="This status check was run on: $CURRENTTIME \\n\\n"
+slackThread="This status check was run on: $CURRENTTIME \\n\\n "
 
 # Declare any associative array
 declare -A resourceTypes
