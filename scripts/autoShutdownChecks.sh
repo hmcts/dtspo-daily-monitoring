@@ -54,9 +54,9 @@ if [[ -z "$slackBotToken" || -z "$slackChannelName" ]]; then
 fi
 
 ### Script begins
-CURRENTDATE=$($date_command +"%Y-%m-%d") # 2w = 2 weeks
+CURRENTTIME=$($date_command +"%b %d %T") # 2w = 2 weeks
 STATUS=":green_circle"
-slackThread=""
+slackThread="Script ran at $CURRENTTIME \\n"
 
 # Declare any associative array
 declare -A resourceTypes
