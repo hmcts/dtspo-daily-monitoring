@@ -90,7 +90,7 @@ for resource in "${!resourceTypes[@]}"; do
             # printf "\\nStart content for %s: %s\\n" "$resource" "${startStatusOutputs[$resource]}"
             STATUS=":red_circle:"
             # slackThread+="$STATUS Issues found with $resource during $mode action! \\n Please visit the <$url|_*status output*_> for more information.\\n\\n"
-            slackThread+=$(printf "%s Issues found with %s during %s action! \\n\\n Please visit the <%s|_*status output*_> for more information.\\n\\n " "$STATUS" "$resource" "$mode" "$url")
+            slackThread+=$(printf "%s Issues found with *%s* during *%s* action! Please visit the <%s|_*status output*_> for more information.\\n\\n " "$STATUS" "$resource" "$mode" "$url")
         fi
     done
 done
@@ -98,7 +98,7 @@ done
 # Send Slack notification only if CHECK_STATUS is red or yellow
 if [[ "$STATUS" == ":red_circle:" ]]; then
     # Post initial header message
-    slackNotification $slackBotToken $slackChannelName ":clock1: $STATUS Auto Shutdown Status" "Please visit the <https://github.com/hmcts/auto-shutdown/tree/master/status|Status Section> for all output or check the threads for direct links"
+    slackNotification $slackBotToken $slackChannelName ":clock1: $STATUS Auto Shutdown Status" "You can visit the <https://github.com/hmcts/auto-shutdown/tree/master/status|_*Status Section*_> or <https://moj.enterprise.slack.com/archives/C07CL9KJHUN|_*Slack Channel*_> for more details"
 
     # Send slack Thread
     slackThreadResponse "$slackBotToken" "$slackChannelName" "$slackThread" "$TS"
