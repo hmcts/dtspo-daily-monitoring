@@ -1,11 +1,12 @@
 # dtspo-daily-monitoring
+
 Daily monitoring checks for DTS Platform Operations BAU team
 
 ## Adding a new pipeline to be monitored
 
 Update `azure-pipelines.yaml` by adding a new entry to the ado_pipeline parameter:
 
-```
+```yaml
 - project: 'PlatformOperations'
   definitionId: '123'
   timeForAmber: '3'
@@ -13,7 +14,6 @@ Update `azure-pipelines.yaml` by adding a new entry to the ado_pipeline paramete
   pipelineName: my_pipeline_name
   branchName: "refs/heads/master"
 ```
-
 
 If your pipeline name uses dashes, `-`, and no spaces, then just enter it as is without any quotes e.g. `sds-azure-platform`.
 

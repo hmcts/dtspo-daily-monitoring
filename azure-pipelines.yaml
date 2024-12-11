@@ -325,6 +325,12 @@ jobs:
           targetType: filePath
           filePath: scripts/ld-license.sh
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(launchdarkly-access-token)
+      - task: Bash@3
+        displayName: "Auto Shutdown status check"
+        inputs:
+          targetType: filePath
+          filePath: scripts/autoShutdownChecks.sh
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       # Checks from this point on use each loop, every iteration saves to a file and a follow up step is used to send the output if a negative status is found
       - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
         - task: AzureCLI@2
