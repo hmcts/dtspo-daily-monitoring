@@ -95,7 +95,7 @@ for resource in "${!resourceTypes[@]}"; do
     done
 done
 
-Send Slack notification only if CHECK_STATUS is red or yellow
+# Send Slack notification only if CHECK_STATUS is red or yellow
 if [[ "$STATUS" == ":red_circle:" ]]; then
     # Post initial header message
     slackNotification $slackBotToken $slackChannelName ":clock1: $STATUS Auto Shutdown Status" "Please visit the <https://github.com/hmcts/auto-shutdown/tree/master/status|Status Section> for all output or check the threads for direct links"
