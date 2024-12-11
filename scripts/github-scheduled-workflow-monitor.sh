@@ -150,7 +150,7 @@ if [ "${#pendingWorkflows[@]}" -gt 0 ]; then
 fi
 
 if [ "${#successfulWorkflows[@]}" -gt 0 ]; then
-    slackThread+=":green: GitHub Workflows completed successfully: \\n$(IFS=$'\n'; echo "${successfulWorkflows[*]}")\\n\\n"
+    slackThread+=":green_circle: GitHub Workflows completed successfully: \\n$(IFS=$'\n'; echo "${successfulWorkflows[*]}")\\n\\n"
 fi
 
 echo $slackThread >> workflow-status.txt
