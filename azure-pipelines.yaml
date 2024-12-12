@@ -32,7 +32,7 @@ parameters:
         run: 'aks-auto-shutdown'
       - repo: 'auto-shutdown'
         branch: 'master'
-        run: 'VM-auto-start'
+        run: 'vm-auto-start'
       - repo: 'auto-shutdown'
         branch: 'master'
         run: 'vm-auto-shutdown'
