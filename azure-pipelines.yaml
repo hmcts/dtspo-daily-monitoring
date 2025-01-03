@@ -138,6 +138,18 @@ parameters:
         timeForRed: '3'
         pipelineName: hmcts.postgresql-cron-jobs
         branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '860'
+        timeForAmber: '1'
+        timeForRed: '3'
+        pipelineName: hmcts.crime-portal-infra
+        branchName: refs/heads/main
+      - project: 'PlatformOperations'
+        definitionId: '927'
+        timeForAmber: '1'
+        timeForRed: '3'
+        pipelineName: hmcts.sdrs-infra
+        branchName: refs/heads/main
   - name: aks_clusters
     type: object
     default:
