@@ -1,0 +1,463 @@
+---
+name: Daily monitoring for platform operations
+trigger: none
+pr:
+  - master
+schedules:
+  - cron: '45 7,14 * * Mon-Fri'
+    displayName: Runs 8 AM & 3 PM Mon-Fri
+    branches:
+      include:
+        - master
+    always: 'true'
+
+parameters:
+  - name: gh_workflows
+    type: object
+    default:
+      - repo: 'cnp-java-base'
+        branch: 'master'
+        run: 'cd'
+      - repo: 'cnp-node-base'
+        branch: 'master'
+        run: 'cd'
+      - repo: 'tech-docs-monitor'
+        branch: 'main'
+        run: '.github/workflows/run.yml'
+      - repo: 'auto-shutdown'
+        branch: 'master'
+        run: 'aks-auto-start'
+      - repo: 'auto-shutdown'
+        branch: 'master'
+        run: 'aks-auto-shutdown'
+      - repo: 'auto-shutdown'
+        branch: 'master'
+        run: 'vm-auto-start'
+      - repo: 'auto-shutdown'
+        branch: 'master'
+        run: 'vm-auto-shutdown'
+      - repo: 'auto-shutdown'
+        branch: 'master'
+        run: 'AppGateway-auto-start'
+      - repo: 'auto-shutdown'
+        branch: 'master'
+        run: 'AppGateway-auto-shutdown'
+      - repo: 'auto-shutdown'
+        branch: 'master'
+        run: 'flexible-server-auto-start'
+      - repo: 'auto-shutdown'
+        branch: 'master'
+        run: 'flexible-server-auto-shutdown'
+      - repo: 'sandbox-auto-cleardown'
+        branch: 'master'
+        run: 'sandbox-cleanup'
+  - name: ado_pipelines
+    type: object
+    default:
+      - project: 'PlatformOperations'
+        definitionId: '802'
+        timeForAmber: '3'
+        timeForRed: '5'
+        pipelineName: Preview_Helm_release_cleanup_-_scheduled
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '840'
+        timeForAmber: '3'
+        timeForRed: '5'
+        pipelineName: Preview_Helm_release_cleanup_-_PR_close
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '768'
+        timeForAmber: '3'
+        timeForRed: '7'
+        pipelineName: ACR_Cleanup
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '777'
+        timeForAmber: '14'
+        timeForRed: '28'
+        pipelineName: Launch_Darkly_cleanup
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '472'
+        timeForAmber: '3'
+        timeForRed: '7'
+        pipelineName: Azure_AAD_group_cleanup
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '771'
+        timeForAmber: '3'
+        timeForRed: '7'
+        pipelineName: OWASP_DB_Update_-_Production
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '808'
+        timeForAmber: '3'
+        timeForRed: '7'
+        pipelineName: OWASP_DB_Update_-_Sandbox
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '772'
+        timeForAmber: '3'
+        timeForRed: '7'
+        pipelineName: ACR_Base_importer
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '635'
+        timeForAmber: '1'
+        timeForRed: '3'
+        pipelineName: "hmcts.azure-enterprise"
+        branchName: refs/heads/main
+      - project: 'PlatformOperations'
+        definitionId: '543'
+        timeForAmber: '1'
+        timeForRed: '3'
+        pipelineName: sds-azure-platform
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '765'
+        timeForAmber: '1'
+        timeForRed: '3'
+        pipelineName: azure-platform-terraform
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '821'
+        timeForAmber: '5'
+        timeForRed: '7'
+        pipelineName: azure-app-proxy
+        branchName: refs/heads/main
+      - project: 'PlatformOperations'
+        definitionId: '534'
+        timeForAmber: '5'
+        timeForRed: '7'
+        pipelineName: azure-resource-locks
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '529'
+        timeForAmber: '1'
+        timeForRed: '3'
+        pipelineName: hmcts.postgresql-cron-jobs
+        branchName: refs/heads/master
+      - project: 'PlatformOperations'
+        definitionId: '860'
+        timeForAmber: '1'
+        timeForRed: '3'
+        pipelineName: hmcts.crime-portal-infra
+        branchName: refs/heads/main
+      - project: 'PlatformOperations'
+        definitionId: '927'
+        timeForAmber: '1'
+        timeForRed: '3'
+        pipelineName: hmcts.sdrs-infra
+        branchName: refs/heads/main
+  - name: aks_clusters
+    type: object
+    default:
+      - resourceGroup: 'cft-preview-00-rg'
+        clusterName: 'cft-preview-00-aks'
+        subscription: 'DCD-CFTAPPS-DEV'
+      - resourceGroup: 'cft-preview-01-rg'
+        clusterName: 'cft-preview-01-aks'
+        subscription: 'DCD-CFTAPPS-DEV'
+  - name: recovery_services_vaults
+    type: object
+    default:
+      - resourceGroup: 'bau-bais_prod_resource_group'
+        vaultName: 'recovery-vault-dmz-bau-bais-prod'
+        subscription: 'DTS-SHAREDSERVICES-PROD'
+      - resourceGroup: 'bau-bais_prod_resource_group'
+        vaultName: 'recovery-vault-eft-bau-bais-prod'
+        subscription: 'DTS-SHAREDSERVICES-PROD'
+      - resourceGroup: 'libragob-prod-rg'
+        vaultName: 'libragob-db-migration-prod-rsv-01'
+        subscription: 'DTS-SHAREDSERVICES-PROD'
+      - resourceGroup: 'externalspoke-rg'
+        vaultName: 'rsv-prod-uks-her-01'
+        subscription: 'DTS-HERITAGE-EXTSVC-PROD'
+      - resourceGroup: 'internalspoke-rg'
+        vaultName: 'rsv-prod-uks-her-02'
+        subscription: 'DTS-HERITAGE-INTSVC-PROD'
+  - name: certificates
+    type: object
+    default:
+      - subscription: 'DCD-CFTAPPS-PROD'
+        resource_group: 'lz-prod-rg'
+        front_door_name: 'hmcts-prod'
+        min_cert_exp_days: '14'
+      - subscription: 'DTS-SHAREDSERVICES-PROD'
+        resource_group: 'lz-prod-rg'
+        front_door_name: 'sdshmcts-prod'
+        min_cert_exp_days: '14'
+      - subscription: 'DCD-CFTAPPS-SBOX'
+        resource_group: 'lz-sbox-rg'
+        front_door_name: 'hmcts-sbox'
+        min_cert_exp_days: '14'
+      - subscription: 'DTS-SHAREDSERVICES-PROD'
+        resource_group: 'bau-bais_prod_network_rg'
+        front_door_name: 'hmcts-heritage-prod'
+        min_cert_exp_days: '14'
+  - name: postgres_subscriptions
+    type: object
+    default:
+      - subscription: 'DCD-CNP-PROD'
+      - subscription: 'DTS-SHAREDSERVICES-PROD'
+      - subscription: 'DTS-HERITAGE-INTSVC-PROD'
+
+variables:
+  - name: SPSecretNumDays
+    value: 14
+  - name: service_connection
+    value: dts-management-prod-intsvc
+  - name: dev_service_connection
+    value: GA-development-tenant
+  - name: ado_service_connection
+    value: OPS-APPROVAL-GATE-MGMT-ENVS
+  - name: isMain
+    value: $[in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/master')]
+  - name: isAutoTriggered
+    value: $[in(variables['Build.Reason'], 'BatchedCI', 'IndividualCI', 'PullRequest', 'Schedule')] # does not include manually running pipeline from UI (i.e. manual trigger).
+  - name: jenkins_url
+    value: "http://jenkins.jenkins:8080/"
+  - name: pull_request_number
+    value: $(system.pullRequest.pullRequestNumber)
+
+jobs:
+  - job: DailyMonitoring
+    timeoutInMinutes: 20
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - task: AzureKeyVault@2
+        displayName: 'Get secrets from Keyvault'
+        inputs:
+          azureSubscription:  "DTS-CFTPTL-INTSVC"
+          keyVaultName:   "cftptl-intsvc"
+          secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,github-management-api-token,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token'
+      # Set Channel name based on PR or not and output channel name to console for confirmation
+      - task: Bash@3
+        displayName: 'Set Channel Name'
+        condition: and(succeeded(), eq(variables['isMain'], true))
+        inputs:
+          targetType: inline
+          script: |
+            echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
+      - task: Bash@3
+        displayName: 'Set Channel Name - PR'
+        condition: and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true))
+        inputs:
+          targetType: inline
+          script: |
+            GITHUB_USER=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GITHUB_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/hmcts/dtspo-daily-monitoring/pulls/$PULL_REQUEST_NUMBER"  | jq -r '.user.login')
+            PR_CHANNEL_NAME=$(curl -s https://raw.githubusercontent.com/hmcts/github-slack-user-mappings/master/slack.json | jq --arg GITHUB_USER "$GITHUB_USER" -r '.[][] | (select(.github | contains($GITHUB_USER)))' | jq -r '.slack')
+            echo "##vso[task.setvariable variable=main_channel]$PR_CHANNEL_NAME"
+        env:
+          GITHUB_TOKEN: $(github-management-api-token)
+          PULL_REQUEST_NUMBER: ${{ variables.pull_request_number }}
+      - script: |
+          echo "main_channel set to: $(main_channel)"
+        displayName: 'Show main channel name'
+      # The following checks use the common-functions.sh slack notifications and threads functions and will only send if negative status is found
+      - task: Bash@3
+        displayName: 'Orphaned Resource Status Check'
+        continueOnError: true
+        inputs:
+          targetType: filePath
+          filePath: scripts/orphan-resource-check.sh
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      - task: Bash@3
+        displayName: 'Checking Jenkins status'
+        continueOnError: true
+        inputs:
+          targetType: filePath
+          filePath: scripts/jenkins-status.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --jenkinsUsername $(jenkins-api-user)
+            --jenkinsApiToken $(jenkins-api-token)
+            --jenkinsURL ${{ variables.jenkins_url }}
+      - task: AzureCLI@2
+        displayName: 'Service Principal Check - Dev Tenant'
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/service-principals.sh
+          azureSubscription: ${{ variables.dev_service_connection }}
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
+      - task: AzureCLI@2
+        displayName: 'Service Principal Check'
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/service-principals.sh
+          azureSubscription: ${{ variables.service_connection }}
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
+      - task: Bash@3
+        displayName: "Checking GitHub Pages review status"
+        inputs:
+          targetType: filePath
+          filePath: scripts/github_pages_checks.sh
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      - task: Bash@3
+        displayName: 'Checking JIRA status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/jira-status.sh
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --jiraUsername $(jira-username) --jiraPassword $(jira-password)
+      - task: AzureCLI@2
+        displayName: 'Get Provisioning State'
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/cluster-state-monitor.sh
+          azureSubscription: ${{ variables.ado_service_connection }}
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      - task: Bash@3
+        displayName: 'Check Toffee/Plum Status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/check-toffee-plum.sh
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      - task: Bash@3
+        displayName: 'Checking servicenow status'
+        inputs:
+          targetType: filePath
+          filePath: scripts/servicenow-status.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --snowUsername $(service-now-username)
+            --snowPassword $(service-now-password)
+      - task: Bash@3
+        displayName: 'Github Licenses check'
+        inputs:
+          targetType: filePath
+          filePath: scripts/github-licenses.sh
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(github-management-api-token)
+      - task: Bash@3
+        displayName: "Launchdarkly Licenses check"
+        inputs:
+          targetType: filePath
+          filePath: scripts/ld-license.sh
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(launchdarkly-access-token)
+      - task: Bash@3
+        displayName: "Auto Shutdown status check"
+        inputs:
+          targetType: filePath
+          filePath: scripts/autoShutdownChecks.sh
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      # Checks from this point on use each loop, every iteration saves to a file and a follow up step is used to send the output if a negative status is found
+      - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
+        - task: AzureCLI@2
+          displayName: 'Checking PostgreSQL Flexible Storage Status: ${{ postgres_sub.subscription }}'
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/postgres-flexible-storage.sh
+            azureSubscription: ${{ postgres_sub.subscription }}
+            arguments: --subscription ${{ postgres_sub.subscription }}
+      - task: Bash@3
+        displayName: "Send Postgres Status"
+        inputs:
+          targetType: filePath
+          filePath: scripts/send-slack-header-thread-each-loop.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --inputFileName postgres-status.txt
+            --messageHeader ":database: PostgreSQL Flexible Server Storage Usage"
+      - ${{ each backup_vault in parameters.recovery_services_vaults }}:
+        - task: AzureCLI@2
+          displayName: 'Check Backup Status'
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/backup-monitor.sh
+            azureSubscription: ${{ backup_vault.subscription }}
+            arguments: --resourceGroup ${{backup_vault.resourceGroup}} --backupVault ${{backup_vault.vaultName}}
+      - task: Bash@3
+        displayName: "Send Recovery Services Vaults Status"
+        inputs:
+          targetType: filePath
+          filePath: scripts/send-slack-header-thread-each-loop.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --inputFileName azurebackup-status.txt
+            --messageHeader ":azuremonitoring: Azure Backup Checks"
+      - ${{ each frontdoor in parameters.certificates }}:
+        - task: AzureCLI@2
+          displayName: 'Checking ${{ frontdoor.front_door_name }} Certificate status'
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/cert-check.sh
+            azureSubscription: ${{ frontdoor.subscription }}
+            arguments: >
+              --subscription ${{ frontdoor.subscription }}
+              --resourceGroup ${{ frontdoor.resource_group }}
+              --frontdoorName ${{ frontdoor.front_door_name }}
+              --minCertExpirationDays ${{ frontdoor.min_cert_exp_days }}
+      - task: Bash@3
+        displayName: "Send SSL Cert Status"
+        inputs:
+          targetType: filePath
+          filePath: scripts/send-slack-header-thread-each-loop.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --inputFileName cert-status.txt
+            --messageHeader ":ssl-cert: SSL Certificates Checks"
+      - ${{ each gh_workflow in parameters.gh_workflows }}:
+        - task: Bash@3
+          displayName: 'Check Github workflow Runs'
+          inputs:
+            targetType: filePath
+            filePath: scripts/github-scheduled-workflow-monitor.sh
+            arguments: --githubToken $(github-management-api-token) --githubRepo ${{gh_workflow.repo}} --branch ${{gh_workflow.branch}} --run ${{gh_workflow.run}}
+      - task: Bash@3
+        displayName: "Send Github Workflow Status"
+        inputs:
+          targetType: filePath
+          filePath: scripts/send-slack-header-thread-each-loop.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --inputFileName workflow-status.txt
+            --messageHeader ":github: GitHub Scheduled Workflow Status"
+      - ${{ each ado_pipeline in parameters.ado_pipelines }}:
+        - task: Bash@3
+          displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
+          inputs:
+            targetType: filePath
+            filePath: scripts/ado-pipeline-monitor.sh
+            arguments: >
+              --adoToken $(azure-devops-token)
+              --adoProject ${{ado_pipeline.project}}
+              --adoPipelineName "${{ado_pipeline.pipelineName}}"
+              --adoPipelineDefinitionId ${{ado_pipeline.definitionId}}
+              --adoTimeForAmber ${{ado_pipeline.timeForAmber}}
+              --adoTimeForRed ${{ado_pipeline.timeForRed}}
+              --adoPipelineBranch "${{ado_pipeline.branchName}}"
+      - task: Bash@3
+        displayName: "Send ADO Pipeline Status"
+        inputs:
+          targetType: filePath
+          filePath: scripts/send-slack-header-thread-each-loop.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --inputFileName ado-pipeline-status.txt
+            --messageHeader ":azure: Azure DevOps Scheduled Pipelines Checks"
+      - ${{ each cluster in parameters.aks_clusters }}:
+        - task: AzureCLI@2
+          displayName: 'AKS Cluster Status:  ${{cluster.clusterName}}'
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/aks-node-count.sh
+            azureSubscription: ${{ cluster.subscription }}
+            arguments: --resourceGroup ${{cluster.resourceGroup}} --aksClusterName ${{cluster.clusterName}}
+      - task: Bash@3
+        displayName: "Send AKS Cluster Status"
+        inputs:
+          targetType: filePath
+          filePath: scripts/send-slack-header-thread-each-loop.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --inputFileName aks-cluster-status.txt
+            --messageHeader ":aks: AKS Cluster Status Checks"
