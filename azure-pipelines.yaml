@@ -210,6 +210,8 @@ variables:
     value: dts-management-prod-intsvc
   - name: dev_service_connection
     value: GA-development-tenant
+  - name: b2c_service_connection
+    value: DTS-SHAREDSERVICES-STG
   - name: ado_service_connection
     value: OPS-APPROVAL-GATE-MGMT-ENVS
   - name: isMain
@@ -290,6 +292,13 @@ jobs:
           scriptPath: scripts/service-principals.sh
           azureSubscription: ${{ variables.service_connection }}
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
+      - task: AzureCLI@2
+        displayName: 'Service Principal Check - B2C Tenant'
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/service-principals.sh
+          azureSubscription: ${{ variables.b2c_service_connection }}
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}          
       - task: Bash@3
         displayName: "Checking GitHub Pages review status"
         inputs:
