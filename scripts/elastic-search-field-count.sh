@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 #Configuring the script
 ELASTICSEARCH_HOST="10.96.85.7:9200"
 OUTPUT=""
