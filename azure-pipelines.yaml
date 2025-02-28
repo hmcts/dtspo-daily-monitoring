@@ -292,7 +292,7 @@ jobs:
           scriptPath: scripts/service-principals.sh
           azureSubscription: ${{ variables.service_connection }}
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
-      # - task: AzureCLI@2
+      ## - task: AzureCLI@2
       #   displayName: 'Service Principal Check - B2C Tenant'
       #   inputs:
       #     scriptType: bash
