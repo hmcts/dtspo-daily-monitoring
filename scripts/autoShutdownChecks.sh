@@ -64,6 +64,7 @@ declare -A statusOutputs
 
 # Assign modes to the associative array resource types
 resourceTypes[vm]="start deallocate"
+resourceTypes[vmss]="start deallocate"
 resourceTypes[appgateway]="start stop"
 resourceTypes[blob-storage]="start stop"
 resourceTypes[flexible-server]="start stop"
