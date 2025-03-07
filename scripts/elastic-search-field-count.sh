@@ -5,6 +5,7 @@ set -x
 #Configuring the script
 ELASTICSEARCH_HOST="10.96.85.7:9200"
 OUTPUT=""
+slackThread=""
 
 # Get the list of all index names
 INDEX_LIST=$(curl -sv -XGET "$ELASTICSEARCH_HOST/_cat/indices?h=index")
@@ -26,4 +27,6 @@ done <<< "$INDEX_LIST"
 
 echo "$OUTPUT"
 
-echo "Saving to file" $OUTPUT > elastic-field-count.txt
+slackThread="The following indices have more than 7500 fields: "$'\n'"$OUTPUT"
+
+echo $slackThread >> elastic-field-count.txt
