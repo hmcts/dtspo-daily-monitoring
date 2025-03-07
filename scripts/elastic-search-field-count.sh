@@ -17,8 +17,9 @@ while IFS= read -r index_name; do
         index_count=$(curl -sv -XGET "$ELASTICSEARCH_HOST/_cat/indices" | awk '{print $3, $7}' | grep $index_name)
         
         # Append the result to the output variable
-        if field_count >=7500; then
+        if [[ $field_count -ge 7500; ]] then
         OUTPUT+="$index_count:  Field Count - $field_count"$'\n'
+        fi
     fi
 
 done <<< "$INDEX_LIST"
