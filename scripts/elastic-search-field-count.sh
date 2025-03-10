@@ -67,7 +67,7 @@ while IFS= read -r index_name; do
         index_count=$(curl -sv -XGET "$ELASTICSEARCH_HOST/_cat/indices" | awk '{print $3, $7}' | grep $index_name)
         
         # Append the result to the output variable
-        if [[ $field_count -ge 7500 ]]; then
+        if [[ $field_count -ge 5000 ]]; then
         OUTPUT+="$index_count:  Field Count - $field_count"$'\n'
         fi
     fi
@@ -82,8 +82,8 @@ fi
 echo "$OUTPUT"
 
 if [[ "$Field_Count_Status" == ":red_circle:" && $(grep -c '' <<< "$VARIABLE") -le 2 ]]; then
-        slackNotification $slackBotToken $slackChannelName ":elasticsearch: $Field_Count_Status Elastic indexes approaching limits" "The following indices have more than 7500 fields: " $'\n'"$OUTPUT"
+        slackNotification $slackBotToken $slackChannelName ":elasticserch: $Field_Count_Status Elastic indexes approaching limits" "The following indices have more than 5000 fields: " $'\n' "$OUTPUT"
 elif [[ "$Field_Count_Status" == ":red_circle:" && $(grep -c '' <<< "$VARIABLE") -ge 3 ]]; then
-        slackNotification $slackBotToken $slackChannelName ":elasticsearch: $Field_Count_Status Elastic indexes approaching limits"
-        slackThreadResponse $slackBotToken $slackChannelName "The following indices have more than 7500 fields: " $'\n'"$OUTPUT" $TS
+        slackNotification $slackBotToken $slackChannelName ":elasticserch: $Field_Count_Status Elastic indexes approaching limits"
+        slackThreadResponse $slackBotToken $slackChannelName "The following indices have more than 5000 fields: " $'\n' "$OUTPUT" $TS
 fi
