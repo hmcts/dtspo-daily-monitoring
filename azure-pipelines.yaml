@@ -466,8 +466,4 @@ jobs:
         inputs:
          targetType: filePath
          filePath: scripts/elastic-search-field-count.sh
-         arguments: > 
-            --slackBotToken $(dtspo-daily-checks-slack-bot-token) 
-            --slackChannelName $(main_channel)
-            --inputFileName elastic-field-count.txt
-            --messageHeader ":elastic: Elastic Search Field Count Check"
+         arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)

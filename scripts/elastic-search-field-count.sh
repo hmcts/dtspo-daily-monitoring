@@ -2,6 +2,55 @@
 
 set -x
 
+# Source central functions script
+source scripts/common-functions.sh
+
+slackBotToken=
+slackChannelName=
+
+usage(){
+>&2 cat << EOF
+------------------------------------------------
+Script to check GitHub page expiry
+------------------------------------------------
+Usage: $0
+    [ -t | --slackBotToken ]
+    [ -c | --slackChannelName ]
+    [ -h | --help ]
+EOF
+exit 1
+}
+
+args=$(getopt -a -o t:c:n:h: --long slackBotToken:,slackChannelName:,help -- "$@")
+if [[ $? -gt 0 ]]; then
+    usage
+fi
+
+eval set -- ${args}
+while :
+do
+    case $1 in
+        -h | --help)              usage                    ; shift   ;;
+        -t | --slackBotToken)     slackBotToken=$2         ; shift 2 ;;
+        -c | --slackChannelName)  slackChannelName=$2      ; shift 2 ;;
+        # -- means the end of the arguments; drop this, and break out of the while loop
+        --) shift; break ;;
+        *) >&2 echo Unsupported option: $1
+            usage ;;
+    esac
+done
+
+if [[ -z "$slackBotToken" || -z "$slackChannelName" ]]; then
+    {
+        echo "------------------------"
+        echo 'Please supply all of: '
+        echo '- Slack token'
+        echo '- Slack channel name'
+        echo "------------------------"
+    } >&2
+    exit 1
+fi
+
 #Configuring the script
 ELASTICSEARCH_HOST="10.96.85.7:9200"
 OUTPUT=""
@@ -25,8 +74,13 @@ while IFS= read -r index_name; do
 
 done <<< "$INDEX_LIST"
 
+Field_Count_Status=":red_circle:"
+if (( -z "$OUTPUT" )); then
+    Field_Count_Status=":green_circle:"
+fi
+
 echo "$OUTPUT"
 
-slackThread="The following indices have more than 7500 fields: "$'\n'"$OUTPUT"
-
-echo $slackThread >> elastic-field-count.txt
+if [[ "$Field_Count_Status" == ":red_circle:"]]; then
+    slackNotification $slackBotToken $slackChannelName ":elasticserch: $Field_Count_Status Elastic indexes approaching limits" "The following indices have more than 7500 fields: " $'\n'"$OUTPUT"
+fi
