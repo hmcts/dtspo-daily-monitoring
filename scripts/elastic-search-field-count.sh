@@ -81,6 +81,6 @@ fi
 
 echo "$OUTPUT"
 
-if [[ "$Field_Count_Status" == ":red_circle:"]]; then
+if [[ "$Field_Count_Status" == ":red_circle:" ]]; then
     slackNotification $slackBotToken $slackChannelName ":elasticserch: $Field_Count_Status Elastic indexes approaching limits" "The following indices have more than 7500 fields: " $'\n'"$OUTPUT"
 fi
