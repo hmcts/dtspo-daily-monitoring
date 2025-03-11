@@ -211,7 +211,7 @@ variables:
   - name: dev_service_connection
     value: GA-development-tenant
   - name: b2c_service_connection
-    value: DTS-SHAREDSERVICES-STG
+    value: DTS-SHAREDSERVICES-SBOX
   - name: ado_service_connection
     value: OPS-APPROVAL-GATE-MGMT-ENVS
   - name: isMain
