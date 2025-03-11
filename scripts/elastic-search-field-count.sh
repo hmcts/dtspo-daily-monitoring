@@ -66,7 +66,7 @@ while IFS= read -r index_name; do
         field_count=$(curl -sv -XGET "$ELASTICSEARCH_HOST/$index_name/_mapping?pretty" | grep type | wc -l)
         index_count=$(curl -sv -XGET "$ELASTICSEARCH_HOST/_cat/indices" | awk '{print $3, $7}' | grep $index_name | awk '{print $1}')
         
-        # Append the result to the output variable
+        # Append the result to the output variable if at risk
         if [[ $field_count -ge 7250 ]]; then
         OUTPUT+=$(printf "%s: Field Count - %s\n " "$index_count" "$field_count")
         fi
@@ -79,15 +79,8 @@ if [[ -z "$OUTPUT" ]]; then
     STATUS=":green_circle:"
 fi
 
-echo "$OUTPUT"
-
 if [[ "$STATUS" == ":red_circle:" ]]; then
         slackNotification $slackBotToken $slackChannelName " " "$STATUS :elasticserch: Elastic indexes approaching limits"
 
         slackThreadResponse $slackBotToken $slackChannelName "$OUTPUT" $TS
 fi
-# elif [[ "$Field_Count_Status" == ":red_circle:" ]] && [[ $(grep -c '' <<< "$VARIABLE") -ge 3 ]]; then
-#         slackNotification $slackBotToken $slackChannelName "$Field_Count_Status :elasticserch: Elastic indexes approaching limits"
-#         slackThreadResponse $slackBotToken $slackChannelName "The following indices have more than 5500 fields: "$'\n'"$OUTPUT" $TS
-
-#&& [[ $(grep -c '' <<< "$VARIABLE") -le 2 ]]
