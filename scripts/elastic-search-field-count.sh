@@ -64,11 +64,11 @@ while IFS= read -r index_name; do
     if [[ -n "$index_name" ]]; then
         #Get the field count for the index
         field_count=$(curl -sv -XGET "$ELASTICSEARCH_HOST/$index_name/_mapping?pretty" | grep type | wc -l)
-        index_count=$(curl -s "$ELASTICSEARCH_HOST/_cat/indices" | awk -v index="$index_name" '$3 == index {print $1}')
+        index_count=$(curl -s "$ELASTICSEARCH_HOST/_cat/indices" | awk -v index="$index_name" '$3 == index {print $0}')
         
         # Append the result to the output variable
         if [[ $field_count -ge 5500 ]]; then
-        OUTPUT+=$(printf " %s: Field Count - %s\n " "$index_count " "$field_count")
+        OUTPUT+=$(printf "%s: Field Count - %s\n " "$index_count" "$field_count")
         fi
     fi
 
