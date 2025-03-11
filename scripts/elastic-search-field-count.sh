@@ -83,8 +83,8 @@ echo "$OUTPUT"
 
 if [[ "$STATUS" == ":red_circle:" ]]; then
         slackNotification $slackBotToken $slackChannelName "$STATUS :elasticserch: Elastic indexes approaching limits"
-        
-        slackThreadResponse $slackBotToken $slackChannelName "$OUTPUT" $TS
+
+        slackThreadResponse $slackBotToken $slackChannelName "test$OUTPUT" $TS
 fi
 # elif [[ "$Field_Count_Status" == ":red_circle:" ]] && [[ $(grep -c '' <<< "$VARIABLE") -ge 3 ]]; then
 #         slackNotification $slackBotToken $slackChannelName "$Field_Count_Status :elasticserch: Elastic indexes approaching limits"
