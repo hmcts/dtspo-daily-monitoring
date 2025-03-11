@@ -68,25 +68,25 @@ while IFS= read -r index_name; do
         
         # Append the result to the output variable
         if [[ $field_count -ge 5500 ]]; then
-        OUTPUT+="$index_count:  Field Count - $field_count"$'\n'
+        OUTPUT+=$(printf " %s: Field Count - %s \\n\n " $index_count $field_count)
         fi
     fi
 
 done <<< "$INDEX_LIST"
 
-Field_Count_Status=":red_circle:"
+STATUS=":red_circle:"
 if (( -z "$OUTPUT" )); then
-    Field_Count_Status=":green_circle:"
+    STATUS=":green_circle:"
 fi
 
 echo "$OUTPUT"
 
-if [[ "$Field_Count_Status" == ":red_circle:" ]]; then
-        slackNotification $slackBotToken $slackChannelName "$Field_Count_Status :elasticserch: Elastic indexes approaching limits"
-        slackThreadResponse $slackBotToken $slackChannelName "The following indices have more than 5500 fields: "$'\n'"$OUTPUT" $TS
+if [[ "$STATUS" == ":red_circle:" ]]; then
+        slackNotification $slackBotToken $slackChannelName "$STATUS :elasticserch: Elastic indexes approaching limits"
+        slackThreadResponse $slackBotToken $slackChannelName "$OUTPUT" $TS
+fi
 # elif [[ "$Field_Count_Status" == ":red_circle:" ]] && [[ $(grep -c '' <<< "$VARIABLE") -ge 3 ]]; then
 #         slackNotification $slackBotToken $slackChannelName "$Field_Count_Status :elasticserch: Elastic indexes approaching limits"
 #         slackThreadResponse $slackBotToken $slackChannelName "The following indices have more than 5500 fields: "$'\n'"$OUTPUT" $TS
 
 #&& [[ $(grep -c '' <<< "$VARIABLE") -le 2 ]]
-fi
