@@ -68,7 +68,7 @@ while IFS= read -r index_name; do
         
         # Append the result to the output variable
         if [[ $field_count -ge 5500 ]]; then
-        OUTPUT+=$(printf " %s: Field Count - %s \\n\n " $index_count $field_count)
+        OUTPUT+=$(printf " %s: Field Count - %s\n " "$index_count " "$field_count")
         fi
     fi
 
