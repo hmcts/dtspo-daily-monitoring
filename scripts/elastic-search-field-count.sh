@@ -82,7 +82,7 @@ fi
 echo "$OUTPUT"
 
 if [[ "$STATUS" == ":red_circle:" ]]; then
-        slackNotification $slackBotToken $slackChannelName "$STATUS :elasticserch: Elastic indexes approaching limits"
+        slackNotification $slackBotToken $slackChannelName " " "$STATUS :elasticserch: Elastic indexes approaching limits"
 
         slackThreadResponse $slackBotToken $slackChannelName "test$OUTPUT" $TS
 fi
