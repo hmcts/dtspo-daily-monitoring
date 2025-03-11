@@ -75,7 +75,7 @@ while IFS= read -r index_name; do
 done <<< "$INDEX_LIST"
 
 STATUS=":red_circle:"
-if (( -z "$OUTPUT" )); then
+if [[ -z "$OUTPUT" ]]; then
     STATUS=":green_circle:"
 fi
 
