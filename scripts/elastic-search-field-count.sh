@@ -81,9 +81,9 @@ fi
 
 echo "$OUTPUT"
 
-if [[ "$Field_Count_Status" == ":red_circle:" && $(grep -c '' <<< "$VARIABLE") -le 2 ]]; then
-        slackNotification $slackBotToken $slackChannelName "$Field_Count_Status :elasticserch: Elastic indexes approaching limits" "The following indices have more than 5500 fields: $'\n' TEST$OUTPUT"
-elif [[ "$Field_Count_Status" == ":red_circle:" && $(grep -c '' <<< "$VARIABLE") -ge 3 ]]; then
+if [[ "$Field_Count_Status" == ":red_circle:" ]] && [[ $(grep -c '' <<< "$VARIABLE") -le 2 ]]; then
+        slackNotification $slackBotToken $slackChannelName "$Field_Count_Status :elasticserch: Elastic indexes approaching limits" "The following indices have more than 5500 fields:"$'\n'"TEST$OUTPUT"
+elif [[ "$Field_Count_Status" == ":red_circle:" ]] && [[ $(grep -c '' <<< "$VARIABLE") -ge 3 ]]; then
         slackNotification $slackBotToken $slackChannelName "$Field_Count_Status :elasticserch: Elastic indexes approaching limits"
-        slackThreadResponse $slackBotToken $slackChannelName "The following indices have more than 5500 fields: " $'\n' "TEST$OUTPUT" $TS
+        slackThreadResponse $slackBotToken $slackChannelName "The following indices have more than 5500 fields: "$'\n'"TEST$OUTPUT" $TS
 fi
