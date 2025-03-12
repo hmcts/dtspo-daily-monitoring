@@ -234,7 +234,7 @@ jobs:
         inputs:
           azureSubscription:  "DTS-CFTPTL-INTSVC"
           keyVaultName:   "cftptl-intsvc"
-          secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,github-management-api-token,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token,B2cSboxservicePrincipalId,B2cSboxservicePrincipalPassword,B2cSboxtenantId'
+          secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,github-management-api-token,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token'
       # Set Channel name based on PR or not and output channel name to console for confirmation
       - task: Bash@3
         displayName: 'Set Channel Name'
