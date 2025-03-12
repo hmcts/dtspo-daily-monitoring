@@ -472,3 +472,9 @@ jobs:
             --slackChannelName $(main_channel)
             --inputFileName aks-cluster-status.txt
             --messageHeader ":aks: AKS Cluster Status Checks"
+      - task: Bash@3
+        displayName: 'Elastic search field count check'
+        inputs:
+         targetType: filePath
+         filePath: scripts/elastic-search-field-count.sh
+         arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
