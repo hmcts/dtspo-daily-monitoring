@@ -279,6 +279,15 @@ jobs:
             --jenkinsApiToken $(jenkins-api-token)
             --jenkinsURL ${{ variables.jenkins_url }}
       - task: AzureCLI@2
+        displayName: 'Service Principal Check - B2C Sandbox Tenant'
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/service-principals.sh
+          azureSubscription: ${{ variables.b2c_service_connection }}
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }} 
+          addSpLogin: true
+          spLoginArguments: --service-principal --username $(B2cSboxservicePrincipalId) --password $(B2cSboxservicePrincipalPassword) --tenant $(B2cSboxtenantId)  --allow-no-subscriptions        
+      - task: AzureCLI@2
         displayName: 'Service Principal Check - Dev Tenant'
         inputs:
           scriptType: bash
@@ -291,16 +300,7 @@ jobs:
           scriptType: bash
           scriptPath: scripts/service-principals.sh
           azureSubscription: ${{ variables.service_connection }}
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
-      - task: AzureCLI@2
-        displayName: 'Service Principal Check - B2C Sandbox Tenant'
-        inputs:
-          scriptType: bash
-          scriptPath: scripts/service-principals.sh
-          azureSubscription: ${{ variables.b2c_service_connection }}
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }} 
-          addSpLogin: true
-          spLoginArguments: --service-principal --username $(B2cSboxservicePrincipalId) --password $(B2cSboxservicePrincipalPassword) --tenant $(B2cSboxtenantId)  --allow-no-subscriptions         
       - task: Bash@3
         displayName: "Checking GitHub Pages review status"
         inputs:
