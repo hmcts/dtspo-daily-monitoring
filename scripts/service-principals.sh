@@ -116,6 +116,9 @@ function slackThread(){
     slackThreadResponse "$slackBotToken" "$slackChannelName" "$message" "$TS"
 }
 
+# B2C Tenant Service Principal login 
+az login --service-principal --username $(B2cSboxservicePrincipalId) --password $(B2cSboxservicePrincipalPassword) --tenant $(B2cSboxtenantId)  --allow-no-subscriptions
+
 if [[ "$STATUS" == ":red_circle:" || "$STATUS" == ":yellow_circle:" ]]; then
     # Send slack header based on domain
     if [ $DOMAIN = "hmctssboxextid.onmicrosoft.com" ]; then
