@@ -283,7 +283,7 @@ jobs:
         inputs:
           scriptType: bash
           scriptPath: scripts/service-principals.sh
-         # azureSubscription: ${{ variables.b2c_service_connection }}
+          azureSubscription: ${{ variables.b2c_service_connection }}
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }} 
           addSpLogin: true
           spLoginArguments: --service-principal --username $(B2cSboxservicePrincipalId) --password $(B2cSboxservicePrincipalPassword) --tenant $(B2cSboxtenantId)  --allow-no-subscriptions        
