@@ -128,7 +128,6 @@ if [[ "$STATUS" == ":red_circle:" || "$STATUS" == ":yellow_circle:" ]]; then
     # else
     #     slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - B2C Tenants" "<https://portal.azure.com/#view/Microsoft_AAD_B2CAdmin/TenantManagementMenuBlade/~/registeredApps|_*Service Principal Secrets Status - B2C Tenant*_>"
     fi
-fi
     # Send any output to slack thread
     slackThread
 fi
