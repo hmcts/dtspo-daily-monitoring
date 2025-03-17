@@ -7,7 +7,7 @@ set -euo pipefail
 # B2cSboxservicePrincipalId=$(az keyvault secret show --name "B2cSboxservicePrincipalId" --vault-name "cftptl-intsvc" --query value -o tsv)
 # B2cSboxservicePrincipalPassword=$(az keyvault secret show --name "B2cSboxservicePrincipalPassword" --vault-name "cftptl-intsvc" --query value -o tsv)
 # B2cSboxtenantId=$(az keyvault secret show --name "B2cSboxtenantId" --vault-name "cftptl-intsvc" --query value -o tsv)
-source ../scripts/azure-pipelines.yaml
+source ../azure-pipelines.yaml
 
 # B2C Tenant Service Principal login 
 az login --service-principal --username $(B2cSboxservicePrincipalId) --password $(B2cSboxservicePrincipalPassword) --tenant $(B2cSboxtenantId)  --allow-no-subscriptions
