@@ -3,10 +3,11 @@
 ### Setup script environment
 set -euo pipefail
 
-# Retrieve secrets from Key Vault
-B2cSboxservicePrincipalId=$(az keyvault secret show --name "B2cSboxservicePrincipalId" --vault-name "cftptl-intsvc" --query value -o tsv)
-B2cSboxservicePrincipalPassword=$(az keyvault secret show --name "B2cSboxservicePrincipalPassword" --vault-name "cftptl-intsvc" --query value -o tsv)
-B2cSboxtenantId=$(az keyvault secret show --name "B2cSboxtenantId" --vault-name "cftptl-intsvc" --query value -o tsv)
+# # Retrieve secrets from Key Vault
+# B2cSboxservicePrincipalId=$(az keyvault secret show --name "B2cSboxservicePrincipalId" --vault-name "cftptl-intsvc" --query value -o tsv)
+# B2cSboxservicePrincipalPassword=$(az keyvault secret show --name "B2cSboxservicePrincipalPassword" --vault-name "cftptl-intsvc" --query value -o tsv)
+# B2cSboxtenantId=$(az keyvault secret show --name "B2cSboxtenantId" --vault-name "cftptl-intsvc" --query value -o tsv)
+source azure-pipelines.yaml
 
 # B2C Tenant Service Principal login 
 az login --service-principal --username $(B2cSboxservicePrincipalId) --password $(B2cSboxservicePrincipalPassword) --tenant $(B2cSboxtenantId)  --allow-no-subscriptions
@@ -15,7 +16,7 @@ echo "Service Principal Password: $B2cSboxservicePrincipalPassword"
 echo "Tenant ID: $B2cSboxtenantId"
 
 # Source central functions script
-source scripts/common-functions.sh
+source ../scripts/common-functions.sh
 
 slackBotToken=
 slackChannelName=
