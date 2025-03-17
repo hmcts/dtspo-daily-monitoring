@@ -3,13 +3,6 @@
 ### Setup script environment
 set -euo pipefail
 
-# B2C Tenant Service Principal login 
-echo "Service Principal ID: $B2cSboxservicePrincipalId"
-echo "Service Principal Password: $B2cSboxservicePrincipalPassword"
-echo "Tenant ID: $B2cSboxtenantId"
-
-az login --service-principal --username $(B2cSboxservicePrincipalId) --password $(B2cSboxservicePrincipalPassword) --tenant $(B2cSboxtenantId)  --allow-no-subscriptions
-
 # Source central functions script
 source scripts/common-functions.sh
 
@@ -63,6 +56,9 @@ CHECK_DATE=$(date -d "+${checkDays} days" +%Y-%m-%d)
 DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains --query 'value[?isDefault].id' -o tsv)
 
 if [ $DOMAIN = "hmctssboxextid.onmicrosoft.com" ]; then
+# B2C Tenant Service Principal login 
+
+az login --service-principal --username $(B2cSboxservicePrincipalId) --password $(B2cSboxservicePrincipalPassword) --tenant $(B2cSboxtenantId)  --allow-no-subscriptions
     AZ_APP_RESULT=$( az ad app list --display-name "B2C Tenants" --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
 elif [ $DOMAIN = "HMCTS.NET" ]; then
     AZ_APP_RESULT=$( az ad app list --all --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
