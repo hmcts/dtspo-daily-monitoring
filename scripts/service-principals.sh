@@ -131,7 +131,8 @@ if [[ "$STATUS" == ":red_circle:" || "$STATUS" == ":yellow_circle:" ]]; then
     echo "Tenant ID: $B2cSboxtenantId"
 
     az login --service-principal --username $(B2cSboxservicePrincipalId) --password $(B2cSboxservicePrincipalPassword) --tenant $(B2cSboxtenantId)  --allow-no-subscriptions
-        slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - B2C Tenants" "<https://portal.azure.com/#view/Microsoft_AAD_B2CAdmin/TenantManagementMenuBlade/~/registeredApps|_*Service Principal Secrets Status - B2C Tenant*_>"
+        #slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - B2C Tenants" "<https://portal.azure.com/#view/Microsoft_AAD_B2CAdmin/TenantManagementMenuBlade/~/registeredApps|_*Service Principal Secrets Status - B2C Tenant*_>"
+        slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - B2C Tenants" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status - B2C Tenant*_>"
     elif [ $DOMAIN = "HMCTS.NET" ]; then
         slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - HMCTS" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status*_>"    
     else
