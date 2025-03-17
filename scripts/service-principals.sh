@@ -3,7 +3,7 @@
 ### Setup script environment
 set -euo pipefail
 
-source ./azure-pipelines.yaml
+./azure-pipelines.yaml
 # # Retrieve secrets from Key Vault
 # B2cSboxservicePrincipalId=$(az keyvault secret show --name "B2cSboxservicePrincipalId" --vault-name "cftptl-intsvc" --query value -o tsv)
 # B2cSboxservicePrincipalPassword=$(az keyvault secret show --name "B2cSboxservicePrincipalPassword" --vault-name "cftptl-intsvc" --query value -o tsv)
