@@ -57,8 +57,12 @@ DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains --q
 
 if [ $DOMAIN = "hmctssboxextid.onmicrosoft.com" ]; then
 # B2C Tenant Service Principal login 
+echo "Service Principal ID: $B2cSboxservicePrincipalId"
+echo "Service Principal Password: $B2cSboxservicePrincipalPassword"
+echo "Tenant ID: $B2cSboxtenantId"
 
 az login --service-principal --username $(B2cSboxservicePrincipalId) --password $(B2cSboxservicePrincipalPassword) --tenant $(B2cSboxtenantId)  --allow-no-subscriptions
+
     AZ_APP_RESULT=$( az ad app list --display-name "B2C Tenants" --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
 elif [ $DOMAIN = "HMCTS.NET" ]; then
     AZ_APP_RESULT=$( az ad app list --all --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
@@ -122,6 +126,11 @@ function slackThread(){
 if [[ "$STATUS" == ":red_circle:" || "$STATUS" == ":yellow_circle:" ]]; then
     # Send slack header based on domain
     if [ $DOMAIN = "hmctssboxextid.onmicrosoft.com" ]; then
+    echo "Service Principal ID: $B2cSboxservicePrincipalId"
+    echo "Service Principal Password: $B2cSboxservicePrincipalPassword"
+    echo "Tenant ID: $B2cSboxtenantId"
+
+    az login --service-principal --username $(B2cSboxservicePrincipalId) --password $(B2cSboxservicePrincipalPassword) --tenant $(B2cSboxtenantId)  --allow-no-subscriptions
         slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - B2C Tenants" "<https://portal.azure.com/#view/Microsoft_AAD_B2CAdmin/TenantManagementMenuBlade/~/registeredApps|_*Service Principal Secrets Status - B2C Tenant*_>"
     elif [ $DOMAIN = "HMCTS.NET" ]; then
         slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - HMCTS" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status*_>"    
