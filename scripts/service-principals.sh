@@ -6,6 +6,10 @@ set -euo pipefail
 # Source central functions script
 source scripts/common-functions.sh
 
+echo "Service Principal ID: $B2cSboxservicePrincipalId"
+echo "Service Principal Password: $B2cSboxservicePrincipalPassword"
+echo "Tenant ID: $B2cSboxtenantId"
+
 slackBotToken=
 slackChannelName=
 checkDays=
