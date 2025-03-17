@@ -3,12 +3,14 @@
 ### Setup script environment
 set -euo pipefail
 
-# Source central functions script
-source scripts/common-functions.sh
-
+# B2C Tenant Service Principal login 
+az login --service-principal --username $(B2cSboxservicePrincipalId) --password $(B2cSboxservicePrincipalPassword) --tenant $(B2cSboxtenantId)  --allow-no-subscriptions
 echo "Service Principal ID: $B2cSboxservicePrincipalId"
 echo "Service Principal Password: $B2cSboxservicePrincipalPassword"
 echo "Tenant ID: $B2cSboxtenantId"
+
+# Source central functions script
+source scripts/common-functions.sh
 
 slackBotToken=
 slackChannelName=
@@ -119,9 +121,6 @@ function slackThread(){
 
     slackThreadResponse "$slackBotToken" "$slackChannelName" "$message" "$TS"
 }
-
-# B2C Tenant Service Principal login 
-az login --service-principal --username $(B2cSboxservicePrincipalId) --password $(B2cSboxservicePrincipalPassword) --tenant $(B2cSboxtenantId)  --allow-no-subscriptions
 
 if [[ "$STATUS" == ":red_circle:" || "$STATUS" == ":yellow_circle:" ]]; then
     # Send slack header based on domain
