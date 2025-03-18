@@ -55,21 +55,19 @@ TODAY_DATE=$(date +%Y-%m-%d)
 CHECK_DATE=$(date -d "+${checkDays} days" +%Y-%m-%d)
 DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains --query 'value[?isDefault].id' -o tsv)
 
-# if [ $DOMAIN = "hmctssboxextid.onmicrosoft.com" ]; then
+ if [ $DOMAIN = "hmctssboxextid.onmicrosoft.com" ]; then
 # B2C Tenant Service Principal login
-#export B2cSboxtenantId="d52331b8-ce98-423b-a0d2-1054eaf49f1a"
-#echo "Tenant ID: $B2cSboxtenantId"
 az login --service-principal --username $B2cSboxservicePrincipalId --password $B2cSboxservicePrincipalPassword --tenant hmctssboxextid.onmicrosoft.com --allow-no-subscriptions
 echo "Service Principal ID: $B2cSboxservicePrincipalId"
 echo "Service Principal Password: $B2cSboxservicePrincipalPassword"
 echo "Tenant ID: $B2cSboxtenantId"
 
 AZ_APP_RESULT=$( az ad app list --display-name "B2C Tenants" --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
-# elif [ $DOMAIN = "HMCTS.NET" ]; then
-#     AZ_APP_RESULT=$( az ad app list --all --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
-# else
-#     AZ_APP_RESULT=$( az ad app list --display-name "DTS Operations Bootstrap GA" --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
-# fi
+elif [ $DOMAIN = "HMCTS.NET" ]; then
+    AZ_APP_RESULT=$( az ad app list --all --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
+else
+    AZ_APP_RESULT=$( az ad app list --display-name "DTS Operations Bootstrap GA" --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
+fi
 
 declare -a expiredApps=()
 declare -a expiringAppsSoon=()
