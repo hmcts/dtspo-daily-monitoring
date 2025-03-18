@@ -9,11 +9,7 @@ source scripts/common-functions.sh
 slackBotToken=
 slackChannelName=
 checkDays=
-username=
-password=
-tenant=
 
---username $(B2cSboxservicePrincipalId) --password $(B2cSboxservicePrincipalPassword) --tenant $(B2cSboxtenantId)
 usage(){
 >&2 cat << EOF
     ------------------------------------------------
@@ -28,7 +24,7 @@ EOF
 exit 1
 }
 
-args=$(getopt -a -o t:c:d: --long slackBotToken:,slackChannelName:,checkDays:,username:,password:,tenant:,help -- "$@")
+args=$(getopt -a -o t:c:d: --long slackBotToken:,slackChannelName:,checkDays:,help -- "$@")
 if [[ $? -gt 0 ]]; then
     usage
 fi
