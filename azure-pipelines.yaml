@@ -284,7 +284,7 @@ jobs:
           scriptType: bash
           scriptPath: scripts/service-principals.sh
           azureSubscription: ${{ variables.b2c_service_connection }}
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }} 
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }} --username $(B2cSboxservicePrincipalId) --password $(B2cSboxservicePrincipalPassword) --tenant $(B2cSboxtenantId)
           # Send secrets to the service-principal script
         env:
           B2cSboxservicePrincipalId: $B2cSboxservicePrincipalId
