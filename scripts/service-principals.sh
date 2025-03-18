@@ -56,7 +56,7 @@ CHECK_DATE=$(date -d "+${checkDays} days" +%Y-%m-%d)
 DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains --query 'value[?isDefault].id' -o tsv)
 
 # if [ $DOMAIN = "hmctssboxextid.onmicrosoft.com" ]; then
-# B2C Tenant Service Principal login
+# B2C Tenant Service Principal login 
 az login --service-principal --username $(b2c-sbox-serviceprincipal-id) --password $(b2c-sboxserviceprincipal-password) --tenant hmctssboxextid.onmicrosoft.com --allow-no-subscriptions
 echo "Service Principal ID: $(b2c-sbox-serviceprincipal-id)"
 echo "Service Principal Password: $(b2c-sboxserviceprincipal-password)"
