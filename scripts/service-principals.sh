@@ -57,7 +57,7 @@ DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains --q
 
 # if [ $DOMAIN = "hmctssboxextid.onmicrosoft.com" ]; then
 # B2C Tenant Service Principal login 
-
+export B2cSboxservicePrincipalId="d52331b8-ce98-423b-a0d2-1054eaf49f1a"
 az login --service-principal --username "$(B2cSboxservicePrincipalId)" --password "$(B2cSboxservicePrincipalPassword)" --tenant "$(B2cSboxtenantId)" --allow-no-subscriptions
 echo "Service Principal ID: $B2cSboxservicePrincipalId"
 echo "Service Principal Password: $B2cSboxservicePrincipalPassword"
