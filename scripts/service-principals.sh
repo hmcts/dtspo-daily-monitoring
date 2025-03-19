@@ -58,9 +58,10 @@ DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains --q
 # if [ $DOMAIN = "hmctssboxextid.onmicrosoft.com" ]; then
 # B2C Tenant Service Principal login 
 az login --service-principal --username "$(b2c-sbox-serviceprincipal-id)" --password "$(b2c-sboxserviceprincipal-password)" --tenant hmctssboxextid.onmicrosoft.com --allow-no-subscriptions
-# echo "Service Principal ID: ${b2c-sbox-serviceprincipal-id}"
-# echo "Service Principal Password: $(b2c-sboxserviceprincipal-password)"
-# echo "Tenant ID: $(b2c-sbox-tenant-id)"
+
+echo "Service Principal ID: ${b2c-sbox-serviceprincipal-id}"
+echo "Service Principal Password: ${b2c-sboxserviceprincipal-password}"
+echo "Tenant ID: ${b2c-sbox-tenant-id}"
 
 AZ_APP_RESULT=$( az ad app list --display-name "B2C Tenants" --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
 # elif [ $DOMAIN = "HMCTS.NET" ]; then
