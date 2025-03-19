@@ -303,7 +303,7 @@ jobs:
           scriptType: bash
           scriptPath: scripts/service-principals.sh
           azureSubscription: ${{ variables.service_connection }}
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }} 
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
       - task: Bash@3
         displayName: "Checking GitHub Pages review status"
         inputs:

@@ -59,10 +59,6 @@ if [ $DOMAIN = "hmctssboxextid.onmicrosoft.com" ]; then
 # B2C Tenant Service Principal login 
 az login --service-principal --username "${b2c_sbox_serviceprincipal_id}" --password "${b2c_sbox_serviceprincipal_password}" --tenant "${b2c_sbox_tenant_id}" --allow-no-subscriptions
 echo "B2C Tenant login testing"
-# echo "Service Principal ID: ${b2c_sbox_serviceprincipal_id}"
-# echo "Service Principal Password: ${b2c_sbox_serviceprincipal_password}"
-# echo "Tenant ID: ${b2c_sbox_tenant_id}"
-
     AZ_APP_RESULT=$( az ad app list --display-name "B2C Tenants" --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
 elif [ $DOMAIN = "HMCTS.NET" ]; then
     AZ_APP_RESULT=$( az ad app list --all --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
