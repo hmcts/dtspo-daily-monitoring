@@ -290,8 +290,6 @@ jobs:
           b2c-sbox-serviceprincipal-id: $(b2c-sbox-serviceprincipal-id)
           b2c-sboxserviceprincipal-password: $(b2c-sboxserviceprincipal-password)
           b2c-sbox-tenant-id: $(b2c-sbox-tenant-id)
-
-          
       - task: AzureCLI@2
         displayName: 'Service Principal Check - Dev Tenant'
         inputs:
