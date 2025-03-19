@@ -287,9 +287,9 @@ jobs:
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }} 
           # Send secrets to the service-principal script
         env:
-          b2c-sbox-serviceprincipal-id: $(b2c-sbox-serviceprincipal-id)
-          b2c-sboxserviceprincipal-password: $(b2c-sboxserviceprincipal-password)
-          b2c-sbox-tenant-id: $(b2c-sbox-tenant-id)
+          b2c_sbox_serviceprincipal_id: $(b2c-sbox-serviceprincipal-id)
+          b2c_sbox_serviceprincipal_password: $(b2c-sboxserviceprincipal-password)
+          b2c_sbox_tenant_id: $(b2c-sbox-tenant-id)
       - task: AzureCLI@2
         displayName: 'Service Principal Check - Dev Tenant'
         inputs:
