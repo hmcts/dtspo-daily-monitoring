@@ -138,19 +138,19 @@ elif [[ "$CLOSED_ISSUES_COUNT" -lt 10 ]]; then
   ticketStatus=":yellow_circle:"
 fi
 
-openIssues=$(printf "%s *%s* Open BAU issues\n" "$OPEN_ISSUES_STATUS" "$OPEN_ISSUES_COUNT")
-unassignedIssues=$(printf "%s *%s* Unassigned BAU issues\n" "$UNASSIGNED_STATUS" "$UNASSIGNED_ISSUES_COUNT")
+openIssues=$(printf "%s *%s* <https://tools.hmcts.net/jira/secure/IssueNavigator.jspa?reset=true&jqlQuery=project+%3D+DTSPO+AND+IssueType+in+%28%22Support%22%29+and+status+not+in+%28Done%2C+Withdrawn%2C+Rejected%29+AND+%28Labels+IS+EMPTY+OR+Labels+NOT+IN+%28DTSPO-YELLOW%2C+DTSPO-RED%2C+DTSPO-BLUE%2C+DTSPO-WHITE%2C+DTSPO-Orange%2CTechDebt%2CBAUTeam-Improvement%2C+embedded_devops%29%29++++++++++++++++++++++++++++++++++++&src=confmacro|Open BAU issues>\n" "$OPEN_ISSUES_STATUS" "$OPEN_ISSUES_COUNT")
+unassignedIssues=$(printf "%s *%s* <https://tools.hmcts.net/jira/secure/IssueNavigator.jspa?reset=true&jqlQuery=project+%3D+DTSPO+AND+IssueType+in+%28%22Task%22%2C+Support%29+and+status+not+in+%28Done%2C+Withdrawn%2C+Rejected%29+AND+%28Labels+IS+EMPTY+OR+Labels+NOT+IN+%28DTSPO-YELLOW%2C+DTSPO-RED%2C+DTSPO-BLUE%2C+DTSPO-WHITE%2C+DTSPO-Orange%2CTechDebt%2CBAU-TeamImprovement%2C+Release%29%29+and+assignee+is+empty+++++++++++&src=confmacro|Unassigned BAU issues>\n" "$UNASSIGNED_STATUS" "$UNASSIGNED_ISSUES_COUNT")
 patchingIssues=$(printf "%s *%s* Open Patching issues\n" "$OPEN_PATCHING_ISSUES_STATUS" "$OPEN_PATCHING_ISSUES_COUNT")
 oatIssues=$(printf "%s *%s* Open OAT issues\n" "$OPEN_OAT_ISSUES_STATUS" "$OPEN_OAT_ISSUES_COUNT")
 
 if [ "$AUTO_WITHDRAWN_ISSUES_COUNT" != "0" ]; then
-  withdrawnIssues=$(printf ":hourglass_flowing_sand: *%s issues automatically withdrawn yesterday:* <https://tools.hmcts.net/jira/issues/?jql=project%%20%%3D%%20DTSPO%%20AND%%20IssueType%%20in%%20(%%22BAU%%20Task%%22)%%20AND%%20Labels%%20in%%20(auto-withdrawn)%%20AND%%20status%%20changed%%20to%%20(Withdrawn)%%20ON%%20-${PREVIOUS_DAYS}d|_*View withdrawn issues*_>" "${AUTO_WITHDRAWN_ISSUES_COUNT}")
+  withdrawnIssues=$(printf ":hourglass_flowing_sand: *%s issues automatically withdrawn yesterday:* <https://tools.hmcts.net/jira/issues/?jql=project%%20%%3D%%20DTSPO%%20AND%%20IssueType%%20in%%20(%%22Support%%22)%%20AND%%20Labels%%20in%%20(auto-withdrawn)%%20AND%%20status%%20changed%%20to%%20(Withdrawn)%%20ON%%20-${PREVIOUS_DAYS}d|_*View withdrawn issues*_>" "${AUTO_WITHDRAWN_ISSUES_COUNT}")
 else
   withdrawnIssues=":hourglass_flowing_sand: *No issues were automatically withdrawn yesterday*"
 fi
 
 if [[ "$jiraStatus" == ":red_circle:" || "$jiraStatus" == ":yellow_circle:" ]]; then
-  slackNotification $slackBotToken $slackChannelName "$jiraStatus Jira Status" ":jira: <https://bit.ly/3mzE5DL|_*BAU Tickets Status*_>"
+  slackNotification $slackBotToken $slackChannelName "$jiraStatus Jira Status" ":jira: <https://tools.hmcts.net/jira/secure/IssueNavigator.jspa?reset=true&jqlQuery=project+%3D+DTSPO+AND+IssueType+in+%28%22Support%22%29+and+status+not+in+%28Done%2C+Withdrawn%2C+Rejected%29+AND+%28Labels+IS+EMPTY+OR+Labels+NOT+IN+%28DTSPO-YELLOW%2C+DTSPO-RED%2C+DTSPO-BLUE%2C+DTSPO-WHITE%2C+DTSPO-Orange%2CTechDebt%2CBAUTeam-Improvement%2C+embedded_devops%29%29++++++++++++++++++++++++++++++++++++&src=confmacro|_*BAU Tickets Status*_>"
   slackThreadResponse $slackBotToken $slackChannelName "${openIssues}\\n${unassignedIssues}\\n${patchingIssues}\\n${oatIssues}\\n${withdrawnIssues}" $TS
 fi
 
