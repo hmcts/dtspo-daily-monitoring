@@ -486,7 +486,7 @@ jobs:
         inputs:
           scriptType: bash
           scriptPath: scripts/service-principals-b2c-tenants.sh
-          # azureSubscription: ${{ variables.b2c_service_connection }}
+          azureSubscription: ${{ variables.b2c_service_connection }}
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }} 
           # Send secrets to the service-principal script
         env:
