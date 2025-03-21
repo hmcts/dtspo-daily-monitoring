@@ -55,11 +55,9 @@ TODAY_DATE=$(date +%Y-%m-%d)
 CHECK_DATE=$(date -d "+${checkDays} days" +%Y-%m-%d)
 DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains --query 'value[?isDefault].id' -o tsv)
 
-if [ $DOMAIN = "HMCTS.NET" ]; then
+# Login to the B2C tenant
+az login --service-principal --username "${b2c_sbox_serviceprincipal_id}" --password "${b2c_sbox_serviceprincipal_password}" --tenant "${b2c_sbox_tenant_id}" --allow-no-subscriptions
     AZ_APP_RESULT=$( az ad app list --all --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
-else
-    AZ_APP_RESULT=$( az ad app list --display-name "DTS Operations Bootstrap GA" --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
-fi
 
 declare -a expiredApps=()
 declare -a expiringAppsSoon=()
@@ -115,12 +113,6 @@ function slackThread(){
 }
 
 if [[ "$STATUS" == ":red_circle:" || "$STATUS" == ":yellow_circle:" ]]; then
-    # Send slack header baased on domain
-    if [ $DOMAIN = "HMCTS.NET" ]; then
-        slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - HMCTS" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status*_>"
-    else
-        slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - HMCTS Dev" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status - HMCTS Dev Tenant*_>"
-    fi
-    # Send any output to slack thread
+        slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - B2C Tenants" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status - B2C Tenant*_>"
     slackThread
 fi
