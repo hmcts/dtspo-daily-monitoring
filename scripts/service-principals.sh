@@ -55,26 +55,16 @@ TODAY_DATE=$(date +%Y-%m-%d)
 CHECK_DATE=$(date -d "+${checkDays} days" +%Y-%m-%d)
 DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains --query 'value[?isDefault].id' -o tsv)
 
-# az login --service-principal --username "${b2c_sbox_serviceprincipal_id}" --password "${b2c_sbox_serviceprincipal_password}" --tenant "${b2c_sbox_tenant_id}" --allow-no-subscriptions
-# if [ "$DOMAIN" = "hmctssboxextid.onmicrosoft.com" ]; then
-# # B2C Tenant Service Principal login 
-# echo "B2C Tenant login testing"
-#     AZ_APP_RESULT=$( az ad app list --display-name "B2C Tenants" --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
-# elif [ "$DOMAIN" = "HMCTS.NET" ]; then
-#     AZ_APP_RESULT=$( az ad app list --all --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
-# else
-#     AZ_APP_RESULT=$( az ad app list --display-name "DTS Operations Bootstrap GA" --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
-# fi
-
-if [ $DOMAIN = "HMCTS.NET" ]; then
+az login --service-principal --username "${b2c_sbox_serviceprincipal_id}" --password "${b2c_sbox_serviceprincipal_password}" --tenant "${b2c_sbox_tenant_id}" --allow-no-subscriptions
+if [ "$DOMAIN" = "hmctssboxextid.onmicrosoft.com" ]; then
+# B2C Tenant Service Principal login 
+echo "B2C Tenant login testing"
+    AZ_APP_RESULT=$( az ad app list --display-name "B2C Tenants" --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
+elif [ "$DOMAIN" = "HMCTS.NET" ]; then
     AZ_APP_RESULT=$( az ad app list --all --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
 else
     AZ_APP_RESULT=$( az ad app list --display-name "DTS Operations Bootstrap GA" --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
 fi
-
-az login --service-principal --username "${b2c_sbox_serviceprincipal_id}" --password "${b2c_sbox_serviceprincipal_password}" --tenant "${b2c_sbox_tenant_id}" --allow-no-subscriptions
-echo "B2C Tenant login testing"
-    AZ_APP_RESULT=$( az ad app list --display-name "B2C Tenants" --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
 
 declare -a expiredApps=()
 declare -a expiringAppsSoon=()
