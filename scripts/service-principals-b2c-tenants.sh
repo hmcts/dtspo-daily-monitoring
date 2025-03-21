@@ -136,11 +136,11 @@ function slackThread(){
 
 if [[ "$STATUS" == ":red_circle:" || "$STATUS" == ":yellow_circle:" ]]; then
     # Send slack header baased on domain
-    if [ $DOMAIN = "hmctssboxextid.onmicrosoft.com" ]; then
+    # if [ $DOMAIN = "hmctssboxextid.onmicrosoft.com" ]; then
         slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - B2C Tenants" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status - B2C Tenant*_>"
-    else
-        slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - HMCTS Dev" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status - HMCTS Dev Tenant*_>"
-    fi
+    # else
+    #     slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - HMCTS Dev" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status - HMCTS Dev Tenant*_>"
+    # fi
     # Send any output to slack thread
     slackThread
 fi
