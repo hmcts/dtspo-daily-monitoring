@@ -75,6 +75,7 @@ az login --service-principal --username "${b2c_sbox_serviceprincipal_id}" --pass
 echo "B2C Tenant login testing"
 else
     AZ_APP_RESULT=$( az ad app list --display-name "B2C Tenants" --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
+fi
 
 declare -a expiredApps=()
 declare -a expiringAppsSoon=()
