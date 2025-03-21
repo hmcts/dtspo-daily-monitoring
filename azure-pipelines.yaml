@@ -210,8 +210,8 @@ variables:
     value: dts-management-prod-intsvc
   - name: dev_service_connection
     value: GA-development-tenant
-  - name: b2c_service_connection
-    value: DTS-SHAREDSERVICES-SBOX
+  # - name: b2c_service_connection
+  #   value: DTS-SHAREDSERVICES-SBOX
   - name: ado_service_connection
     value: OPS-APPROVAL-GATE-MGMT-ENVS
   - name: isMain
@@ -486,7 +486,7 @@ jobs:
         inputs:
           scriptType: bash
           scriptPath: scripts/service-principals-b2c-tenants.sh
-          azureSubscription: ${{ variables.b2c_service_connection }}
+          # azureSubscription: ${{ variables.b2c_service_connection }}
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }} 
           # Send secrets to the service-principal script
         env:
