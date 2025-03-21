@@ -139,7 +139,7 @@ elif [[ "$CLOSED_ISSUES_COUNT" -lt 10 ]]; then
 fi
 
 openIssues=$(printf "%s *%s* <https://bit.ly/4iPQ6Nr|Open BAU issues>\n" "$OPEN_ISSUES_STATUS" "$OPEN_ISSUES_COUNT")
-unassignedIssues=$(printf "%s *%s* <bit.ly/4htIa39|Unassigned BAU issues>\n" "$UNASSIGNED_STATUS" "$UNASSIGNED_ISSUES_COUNT")
+unassignedIssues=$(printf "%s *%s* <hppt://bit.ly/4htIa39|Unassigned BAU issues>\n" "$UNASSIGNED_STATUS" "$UNASSIGNED_ISSUES_COUNT")
 patchingIssues=$(printf "%s *%s* Open Patching issues\n" "$OPEN_PATCHING_ISSUES_STATUS" "$OPEN_PATCHING_ISSUES_COUNT")
 oatIssues=$(printf "%s *%s* Open OAT issues\n" "$OPEN_OAT_ISSUES_STATUS" "$OPEN_OAT_ISSUES_COUNT")
 
