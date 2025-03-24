@@ -124,3 +124,4 @@ if [[ "$STATUS" == ":red_circle:" || "$STATUS" == ":yellow_circle:" ]]; then
     # Send any output to slack thread
     slackThread
 fi
+
