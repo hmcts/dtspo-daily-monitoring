@@ -234,7 +234,7 @@ jobs:
         inputs:
           azureSubscription:  "DTS-CFTPTL-INTSVC"
           keyVaultName:   "cftptl-intsvc"
-          secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,github-management-api-token,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token,launchdarkly-access-token,b2c-sbox-serviceprincipal-id,b2c-sboxserviceprincipal-password,b2c-sbox-tenant-id'
+          secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,github-management-api-token,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token,launchdarkly-access-token,b2c-prod-serviceprincipal-id,b2c-prod-serviceprincipal-password,b2c-prod-tenant-id'
       # Set Channel name based on PR or not and output channel name to console for confirmation
       - task: Bash@3
         displayName: 'Set Channel Name'
@@ -278,18 +278,6 @@ jobs:
             --jenkinsUsername $(jenkins-api-user)
             --jenkinsApiToken $(jenkins-api-token)
             --jenkinsURL ${{ variables.jenkins_url }}
-      # - task: AzureCLI@2
-      #   displayName: 'Service Principal Check - B2C Sandbox Tenant'
-      #   inputs:
-      #     scriptType: bash
-      #     scriptPath: scripts/service-principals-b2c-tenants.sh
-      #     azureSubscription: ${{ variables.b2c_service_connection }}
-      #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }} 
-      #     # Send secrets to the service-principal script
-      #   env:
-      #     b2c_sbox_serviceprincipal_id: $(b2c-sbox-serviceprincipal-id)
-      #     b2c_sbox_serviceprincipal_password: $(b2c-sboxserviceprincipal-password)
-      #     b2c_sbox_tenant_id: $(b2c-sbox-tenant-id)
       - task: AzureCLI@2
         displayName: 'Service Principal Check - Dev Tenant'
         inputs:
@@ -490,6 +478,6 @@ jobs:
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }} 
           # Send secrets to the service-principal script
         env:
-          b2c_sbox_serviceprincipal_id: $(b2c-sbox-serviceprincipal-id)
-          b2c_sbox_serviceprincipal_password: $(b2c-sboxserviceprincipal-password)
-          b2c_sbox_tenant_id: $(b2c-sbox-tenant-id)
+          b2c_sbox_serviceprincipal_id: $(b2c-prod-serviceprincipal-id)
+          b2c_sbox_serviceprincipal_password: $(b2c-prod-serviceprincipal-password)
+          b2c_sbox_tenant_id: $(b2c-prod-tenant-id)
