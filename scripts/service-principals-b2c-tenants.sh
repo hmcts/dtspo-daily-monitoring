@@ -56,7 +56,7 @@ CHECK_DATE=$(date -d "+${checkDays} days" +%Y-%m-%d)
 DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains --query 'value[?isDefault].id' -o tsv)
 
 # Login to the B2C prod tenant
-az login --service-principal --username "${b2c_prod_serviceprincipal_id}" --password "${b2c-prod-serviceprincipal-password}" --tenant "${b2c_prod_tenant_id}" --allow-no-subscriptions
+az login --service-principal --username "${b2c_prod_serviceprincipal_id}" --password "${b2c_prod_serviceprincipal_password}" --tenant "${b2c_prod_tenant_id}" --allow-no-subscriptions
     AZ_APP_RESULT=$( az ad app list --all --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
 
 declare -a expiredApps=()
