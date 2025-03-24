@@ -75,15 +75,14 @@ COUNT=$(echo $POSTGRES_FLEXIBLE_INSTANCES | jq '. | length')
 # Loop through the instances found in the subscription to check their status, add to the relevant array determined by the check
 # e.g. if storage capacity is 85% then add to the `highCapacityResources` array
 for ((INDEX = 0; INDEX < $COUNT; INDEX++)); do
-  if [ "$INSTANCE_NAME" == "ccd-data-store-api-sscs-data-analysis" ]; then
-    continue
-  fi
   INSTANCE_ID=$(echo $POSTGRES_FLEXIBLE_INSTANCES | jq -r '.['$INDEX'].id')
   INSTANCE_NAME=$(echo $POSTGRES_FLEXIBLE_INSTANCES | jq -r '.['$INDEX'].name')
   INSTANCE_STATE=$(echo $POSTGRES_FLEXIBLE_INSTANCES | jq -r '.['$INDEX'].state')
-
   echo "----- Processing: $INSTANCE_NAME -----"
-
+  if [ "$INSTANCE_NAME" == "ccd-data-store-api-sscs-data-analysis" ]; then
+    continue
+  fi
+  
   # If instance state is ready then run checks, if not add this to the `resourcesInUnreadyState` array for printing later
   if [ "$INSTANCE_STATE" == "Ready" ]; then
     INSTANCE_URL="https://portal.azure.com/#@HMCTS.NET/resource$INSTANCE_ID"
