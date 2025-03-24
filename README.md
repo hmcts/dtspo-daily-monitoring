@@ -33,6 +33,16 @@ When you submit a pull request, a direct slack message will be sent to you so yo
 
 When you merge your approved PR, the messages will be sent to the `#dtspo-daily-checks` channel.
 
+Troubleshooting:
+Pipeline returns error similar to:
+/azp/_work/_temp/827dfb97-f0ae-4ff2-9d01-7521c1643fd5.sh: line 1: main_channel: command not found
+getopt: option '--slackChannelName' requires an argument
+
+and you don't recieve a slack message check your Github and Slack Member ID is shown on this list:
+https://raw.githubusercontent.com/hmcts/github-slack-user-mappings/master/slack.json 
+
+If your IDs aren't there add via the guide https://github.com/hmcts/github-slack-user-mappings
+
 ## GitHub workflow
 
 To add a workflow to be monitored add it to the azure-pipelines.yaml within the gh_workflows section as below
