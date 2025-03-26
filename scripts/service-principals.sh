@@ -54,7 +54,7 @@ fi
 TODAY_DATE=$(date +%Y-%m-%d)
 CHECK_DATE=$(date -d "+${checkDays} days" +%Y-%m-%d)
 DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains --query 'value[?isDefault].id' -o tsv)
-IGNORE_APPS=("This service principal created by hmcts/central-app-registration repository" "Another App to Ignore" "Third Ignored App") # adding this filter to ignore central-app-registration apps, this text need to match in the notes field of the app AKA Internal notes
+IGNORE_APPS=("This service principal created by hmcts/central-app-registration repository" "App2 to ignore" "Third Ignored App") # adding this filter to ignore central-app-registration apps, this text need to match in the notes field of the app AKA Internal notes
 
 # Build the ignore filter
 IGNORE_FILTER=""
