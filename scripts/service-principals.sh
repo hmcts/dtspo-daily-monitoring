@@ -54,9 +54,19 @@ fi
 TODAY_DATE=$(date +%Y-%m-%d)
 CHECK_DATE=$(date -d "+${checkDays} days" +%Y-%m-%d)
 DOMAIN=$(az rest --method get --url https://graph.microsoft.com/v1.0/domains --query 'value[?isDefault].id' -o tsv)
+IGNORE_APPS=("This service principal created by hmcts/central-app-registration repository" "App2 to ignore" "Third Ignored App") # adding this filter to ignore central-app-registration apps, this text need to match in the notes field of the app AKA Internal notes
+
+# Build the ignore filter
+IGNORE_FILTER=""
+for app in "${IGNORE_APPS[@]}"; do
+    IGNORE_FILTER+=" && notes != '${app}'"
+done
+
+# Remove the leading " && "
+IGNORE_FILTER="${IGNORE_FILTER:4}"
 
 if [ $DOMAIN = "HMCTS.NET" ]; then
-    AZ_APP_RESULT=$( az ad app list --all --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
+    AZ_APP_RESULT=$( az ad app list --all --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']] | [?(${IGNORE_FILTER})].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, notes:notes, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName, endDateTime:endDateTime}}" --output json )
 else
     AZ_APP_RESULT=$( az ad app list --display-name "DTS Operations Bootstrap GA" --query "[?passwordCredentials[?endDateTime < '${CHECK_DATE}']].{displayName:displayName, appId:appId, createdDateTime:createdDateTime, passwordCredentials:passwordCredentials[?endDateTime < '${CHECK_DATE}'].{displayName:displayName,endDateTime:endDateTime}}" --output json )
 fi
