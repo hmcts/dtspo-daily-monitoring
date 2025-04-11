@@ -79,7 +79,7 @@ for ((INDEX = 0; INDEX < $COUNT; INDEX++)); do
   INSTANCE_NAME=$(echo $POSTGRES_FLEXIBLE_INSTANCES | jq -r '.['$INDEX'].name')
   INSTANCE_STATE=$(echo $POSTGRES_FLEXIBLE_INSTANCES | jq -r '.['$INDEX'].state')
   echo "----- Processing: $INSTANCE_NAME -----"
-  if [ "$INSTANCE_NAME" == "ccd-data-store-api-sscs-data-analysis" ] | [ "$INSTANCE_NAME" == "darts-migration-prod-clone2" ]; then
+  if [ "$INSTANCE_NAME" == "ccd-data-store-api-sscs-data-analysis" ] || [ "$INSTANCE_NAME" == "darts-migration-prod-clone2" ]; then
     continue
   fi
   
