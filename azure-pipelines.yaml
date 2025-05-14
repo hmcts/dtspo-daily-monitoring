@@ -150,6 +150,19 @@ parameters:
         timeForRed: '3'
         pipelineName: hmcts.sdrs-infra
         branchName: refs/heads/main
+      - project: 'PlatformOperations'
+        definitionId: '1115'
+        timeForAmber: '1'
+        timeForRed: '3'
+        pipelineName: gaps2-db-restore-stg
+        branchName: refs/heads/main
+      - project: 'PlatformOperations'
+        definitionId: '1116'
+        timeForAmber: '1'
+        timeForRed: '3'
+        pipelineName: gaps2-db-restore-prod
+        branchName: refs/heads/main
+
   - name: aks_clusters
     type: object
     default:
