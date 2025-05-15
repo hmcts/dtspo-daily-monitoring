@@ -256,7 +256,7 @@ jobs:
             echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
       - task: Bash@3
         displayName: 'Set Channel Name - PR'
-        condition: and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true))
+        condition: and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], false))
         inputs:
           targetType: inline
           script: |
