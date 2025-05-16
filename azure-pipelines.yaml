@@ -159,7 +159,7 @@ parameters:
       - project: 'PlatformOperations'
         definitionId: '1116'
         timeForAmber: '1'
-        timeForRed: '3'
+        timeForRed: '1'
         pipelineName: Gaps2_DB_Restore_PROD
         branchName: refs/heads/main
 
