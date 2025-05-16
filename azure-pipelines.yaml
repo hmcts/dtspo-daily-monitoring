@@ -263,6 +263,7 @@ jobs:
             GITHUB_USER=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GITHUB_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/hmcts/dtspo-daily-monitoring/pulls/$PULL_REQUEST_NUMBER"  | jq -r '.user.login')
             PR_CHANNEL_NAME=$(curl -s https://raw.githubusercontent.com/hmcts/github-slack-user-mappings/master/slack.json | jq --arg GITHUB_USER "$GITHUB_USER" -r '.[][] | (select(.github | contains($GITHUB_USER)))' | jq -r '.slack')
             echo "##vso[task.setvariable variable=main_channel]dtspo-25521-test"
+            echo "to be removed!"
         env:
           GITHUB_TOKEN: $(github-management-api-token)
           PULL_REQUEST_NUMBER: ${{ variables.pull_request_number }}
