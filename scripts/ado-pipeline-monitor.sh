@@ -79,14 +79,14 @@ slackThread=""
 pipelineName=$(echo $adoPipelineName | sed 's/_/ /g' | sed 's/"//g')
 branchName=$(echo $adoPipelineBranch | sed 's/"//g')
 isoTimeAmber=$(date -d "-${adoTimeForAmber} days" +"%Y-%m-%dT%H:%M:%SZ" )
+echo "Amber Time since: $isoTimeAmber"
 isoTimeRed=$(date -d "-${adoTimeForRed} days" +"%Y-%m-%dT%H:%M:%SZ" )
+echo "Red Time since: $isoTimeRed"
 
 slackLinkFormat="<https://dev.azure.com/hmcts/$adoProject/_build?definitionId=$adoPipelineDefinitionId|$pipelineName pipeline>"
 
 amberCheck=$(curl -u :$adoToken "https://dev.azure.com/hmcts/$adoProject/_apis/build/builds?api-version=7.0&definitions=$adoPipelineDefinitionId&branchName=$branchName&resultFilter=succeeded&\$top=1&minTime=$isoTimeAmber" | jq -r .count)
-echo "Amber Check: $amberCheck"
 redCheck=$(curl -u :$adoToken "https://dev.azure.com/hmcts/$adoProject/_apis/build/builds?api-version=7.0&definitions=$adoPipelineDefinitionId&branchName=$branchName&resultFilter=succeeded&\$top=1&minTime=$isoTimeRed" | jq -r .count)
-echo "Red Check: $redCheck"
 
 if [ "$redCheck" != 1 ]; then
   slackThread+=":red_circle: $slackLinkFormat hasn't run successfully in ${adoTimeForRed} days!"
