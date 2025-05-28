@@ -338,12 +338,12 @@ jobs:
       #       --slackChannelName $(main_channel)
       #       --snowUsername $(service-now-username)
       #       --snowPassword $(service-now-password)
-      - task: Bash@3
-        displayName: 'Github Licenses check'
-        inputs:
-          targetType: filePath
-          filePath: scripts/github-licenses.sh
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(dtspo-daily-checks-github-fine-grained-token)
+      # - task: Bash@3
+      #   displayName: 'Github Licenses check'
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/github-licenses.sh
+      #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(dtspo-daily-checks-github-fine-grained-token)
       # - task: Bash@3
       #   displayName: "Launchdarkly Licenses check"
       #   inputs:
