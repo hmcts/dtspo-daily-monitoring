@@ -245,7 +245,25 @@ jobs:
         inputs:
           azureSubscription:  "DTS-CFTPTL-INTSVC"
           keyVaultName:   "cftptl-intsvc"
-          secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,dtspo-daily-checks-github-fine-grained-token,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token,b2c-prod-serviceprincipal-id,b2c-prod-serviceprincipal-password,b2c-prod-tenant-id'
+          secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,dtspo-daily-checks-github-fine-grained-token,dtspo-daily-checks-github-app-id,dtspo-daily-checks-github-app-private-key,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token,b2c-prod-serviceprincipal-id,b2c-prod-serviceprincipal-password,b2c-prod-tenant-id'
+      
+      # Create JWT
+      - task: Bash@3
+        displayName: 'create GHApps access token (JWT) from private key'
+        inputs:
+          targetType: filePath
+          filePath: scripts/create-github-app-jwt.sh
+          arguments: --appID $(dtspo-daily-checks-github-app-id) --key $(dtspo-daily-checks-github-app-private-key) 
+
+      - task: Bash@3
+        displayName: 'Set Channel Name'
+        condition: and(succeeded(), eq(variables['isMain'], true))
+        inputs:
+          targetType: inline
+          script: |
+            echo "##vso[task.setvariable variable=jwt]$JWT"
+            printf $(jwt)
+
       # Set Channel name based on PR or not and output channel name to console for confirmation
       - task: Bash@3
         displayName: 'Set Channel Name'
@@ -269,6 +287,7 @@ jobs:
       - script: |
           echo "main_channel set to: $(main_channel)"
         displayName: 'Show main channel name'
+
       # The following checks use the common-functions.sh slack notifications and threads functions and will only send if negative status is found
       - task: Bash@3
         displayName: 'Orphaned Resource Status Check'
