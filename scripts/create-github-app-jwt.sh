@@ -36,5 +36,4 @@ signature=$(
 
 # Create JWT
 JWT="${header_payload}"."${signature}"
-printf '%s\n' "JWT: $JWT"
-export JWT="$JWT"
+echo "##vso[task.setvariable variable=jwt;issecret=true]$JWT"
