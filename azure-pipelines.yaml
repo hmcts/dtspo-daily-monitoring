@@ -246,25 +246,6 @@ jobs:
           azureSubscription:  "DTS-CFTPTL-INTSVC"
           keyVaultName:   "cftptl-intsvc"
           secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,dtspo-daily-checks-github-fine-grained-token,dtspo-daily-checks-github-app-id,dtspo-daily-checks-github-app-private-key,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token,b2c-prod-serviceprincipal-id,b2c-prod-serviceprincipal-password,b2c-prod-tenant-id'
-      
-      # troubleshoot JWT
-      - task: CmdLine@2
-        displayName: Dump invalid key into file
-        inputs:
-          script: 'echo $(dtspo-daily-checks-github-app-private-key) > key.txt'
-
-      - task: CopyFiles@2
-        displayName: Copy file
-        inputs:
-          Contents: key.txt
-          targetFolder: '$(Build.ArtifactStagingDirectory)'
-      
-      - task: PublishBuildArtifacts@1
-        displayName: Publish Artifact
-        inputs:
-          PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-          ArtifactName: 'drop'
-          publishLocation: 'Container'
 
       # Create JWT
       - task: Bash@3
@@ -281,7 +262,19 @@ jobs:
           script: |
             #echo "##vso[task.setvariable variable=jwt]$JWT"
             printf $(jwt)
-
+      # troubleshoot JWT
+      - task: CopyFiles@2
+        displayName: Copy file
+        inputs:
+          Contents: create-github-app-jwt.log
+          targetFolder: '$(Build.ArtifactStagingDirectory)'
+      
+      - task: PublishBuildArtifacts@1
+        displayName: Publish Artifact
+        inputs:
+          PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+          ArtifactName: 'drop'
+          publishLocation: 'Container'
       # # Set Channel name based on PR or not and output channel name to console for confirmation
       # - task: Bash@3
       #   displayName: 'Set Channel Name'
