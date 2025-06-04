@@ -36,12 +36,12 @@ jobs:
         inputs:
           targetType: inline
           script: |
-            TestUrl="https://api.github.com/repos/hmcts/dtspo-daily-monitoring"
+            TestUrl="https://api.github.com/app"
             gh_accesstoken=$(jwt)
 
             # Define headers
             AcceptHeader="application/vnd.github+json"
             AuthorizationHeader="Bearer $gh_accesstoken"
-            testResponse=$(curl -s -H "Accept: $AcceptHeader" -H "Authorization: $AuthorizationHeader" -X GET "$TestUrl")
+            testResponse=$(curl -s -H "Accept: $AcceptHeader" -H "Authorization: $AuthorizationHeader" "$TestUrl")
 
             echo "$testResponse" | jq
