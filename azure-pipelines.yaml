@@ -36,7 +36,7 @@ jobs:
         inputs:
           targetType: inline
           script: |
-            TestUrl="https://api.github.com/orgs/hmcts/repos"
+            TestUrl="https://api.github.com/repos/hmcts/dtspo-daily-monitoring"
             gh_accesstoken=$(jwt)
 
             # Define headers
