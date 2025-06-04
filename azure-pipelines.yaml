@@ -263,6 +263,13 @@ jobs:
             #echo "##vso[task.setvariable variable=jwt]$JWT"
             printf $(jwt)
 
+      - task: Bash@3
+        displayName: 'display jwt'
+        inputs:
+          targetType: inline
+          script: |
+            apt-get install tree
+            tree -f
       # troubleshoot JWT
       - task: CopyFiles@2
         displayName: Copy file
