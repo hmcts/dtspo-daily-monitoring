@@ -8,8 +8,10 @@ pem=$2 #take pem as string as second argument
 
 now=$(date +%s)
 iat=$((${now} - 60)) # Issues 60 seconds in the past
-exp=$((${now} + 3600)) 
+#exp=$((${now} + 3600))
+exp=$((${now} + 1)) 
 
+#encodes in url safe base64 
 b64enc() { openssl base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n'; }
 
 header_json='{
