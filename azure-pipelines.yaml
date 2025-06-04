@@ -22,7 +22,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/create-github-app-jwt.sh
-          arguments: $(dtspo-daily-checks-github-app-id) $(pemFile.secureFilePath) 
+          arguments: $(appID) $(pemFile.secureFilePath) 
 
       - task: Bash@3
         displayName: 'display jwt'
