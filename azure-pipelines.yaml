@@ -272,7 +272,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/create-github-app-jwt.sh
-          arguments: --appID $(dtspo-daily-checks-github-app-id) --key $(dtspo-daily-checks-github-app-private-key) 
+          arguments: $(dtspo-daily-checks-github-app-id) $(dtspo-daily-checks-github-app-private-key) 
 
       - task: Bash@3
         displayName: 'display jwt'
