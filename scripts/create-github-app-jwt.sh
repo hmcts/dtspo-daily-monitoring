@@ -4,7 +4,9 @@ set -o pipefail
 
 client_id=$1 # Client ID (appID) as first argument
 
-pem=$2 #take pem as string as second argument
+base64pem=$2 #take pem as string as second argument
+#decode it back to private key
+pem=$(echo "$base64pem" | base64 --decode )
 
 now=$(date +%s)
 iat=$((${now} - 60)) # Issues 60 seconds in the past
