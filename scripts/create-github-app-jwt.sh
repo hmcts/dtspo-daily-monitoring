@@ -33,18 +33,21 @@ payload=$( echo -n "${payload_json}" | b64enc )
 
 # Signature
 # Write the private key to a temporary file
+header_payload="${header}"."${payload}"
+
 temp_key_file=$(mktemp)
 echo -n "${pem}" > "$temp_key_file"
+temp_header_payload_file=$(mktemp)
+echo -n "${header_payload}" > "$temp_header_payload_file"
 
-header_payload="${header}"."${payload}"
 signature=$(
     openssl dgst -sha256 -sign $temp_key_file \
-    <(echo -n "${header_payload}") | b64enc
+    "$temp_header_payload_file" | b64enc
 )
 
 # Create JWT
 JWT="${header_payload}"."${signature}"
 echo "##vso[task.setvariable variable=jwt;issecret=true]$JWT"
 
-# Clean up the temporary file
-rm -f "$temp_key_file"
+# Clean up the temporary files
+rm -f "$temp_key_file" "$temp_header_payload_file"
