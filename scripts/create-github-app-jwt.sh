@@ -10,8 +10,7 @@ pem=$(echo "$base64pem" | base64 --decode )
 
 now=$(date +%s)
 iat=$((${now} - 60)) # Issues 60 seconds in the past
-#exp=$((${now} + 3600))
-exp=$((${now} + 1)) 
+exp=$((${now} + 3600))
 
 #encodes in url safe base64 
 b64enc() { openssl base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n'; }
@@ -35,6 +34,7 @@ payload=$( echo -n "${payload_json}" | b64enc )
 # Write the private key to a temporary file
 header_payload="${header}"."${payload}"
 
+#avoiding process substitution
 temp_key_file=$(mktemp)
 echo -n "${pem}" > "$temp_key_file"
 temp_header_payload_file=$(mktemp)
