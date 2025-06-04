@@ -268,6 +268,7 @@ jobs:
         inputs:
           targetType: inline
           script: |
+            sudo apt install tree
             tree -f
       # troubleshoot JWT
       - task: CopyFiles@2
