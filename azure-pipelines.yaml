@@ -246,6 +246,11 @@ jobs:
           azureSubscription:  "DTS-CFTPTL-INTSVC"
           keyVaultName:   "cftptl-intsvc"
           secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,dtspo-daily-checks-github-fine-grained-token,dtspo-daily-checks-github-app-id,dtspo-daily-checks-github-app-private-key,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token,b2c-prod-serviceprincipal-id,b2c-prod-serviceprincipal-password,b2c-prod-tenant-id'
+      
+      - task: DownloadSecureFile@1
+        name: pemFile
+        inputs:
+          secureFile: 'hmcts-daily-checks-private-key.pem'
 
       # Create JWT
       - task: Bash@3
@@ -253,7 +258,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/create-github-app-jwt.sh
-          arguments: $(dtspo-daily-checks-github-app-id) $(dtspo-daily-checks-github-app-private-key) 
+          arguments: $(dtspo-daily-checks-github-app-id) $(pemFile.secureFilePath) 
 
       - task: Bash@3
         displayName: 'display jwt'
@@ -264,25 +269,20 @@ jobs:
             printf $(jwt)
 
       - task: Bash@3
-        displayName: 'display jwt'
+        displayName: 'test jwt'
         inputs:
           targetType: inline
           script: |
-            apt-get install tree
-            tree -f
-      # troubleshoot JWT
-      - task: CopyFiles@2
-        displayName: Copy file
-        inputs:
-          Contents: ../**/*
-          targetFolder: '$(Build.ArtifactStagingDirectory)'
-      
-      - task: PublishBuildArtifacts@1
-        displayName: Publish Artifact
-        inputs:
-          PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-          ArtifactName: 'drop'
-          publishLocation: 'Container'
+            TestUrl="https://api.github.com/orgs/hmcts/repos"
+            gh_accesstoken=$(jwt)
+
+            # Define headers
+            AcceptHeader="application/vnd.github+json"
+            AuthorizationHeader="Bearer $gh_accesstoken"
+            testResponse=$(curl -s -H "Accept: $AcceptHeader" -H "Authorization: $AuthorizationHeader" -X GET "$TestUrl")
+
+            echo "$testResponse" | jq
+  
       # # Set Channel name based on PR or not and output channel name to console for confirmation
       # - task: Bash@3
       #   displayName: 'Set Channel Name'
