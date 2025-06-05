@@ -3,9 +3,10 @@
 # Generates Github App access token $JWT and 'installation token' for "hmcts-daily-checks"
 # Github App. Allowing auth via Github App auth rather than PAT tokens
 #
-# Requires: GH App private key added as a secure file to AzDO Library
-#           GH App clientID
-#           Permissions granted to the GHApp, app installed
+# Requires: GH App private key (added as a secure file to AzDO Library)
+#           GH App clientID    (added in the AzDO Var Group)
+#           Permissions granted to the GHApp (app installed on HMCTS)
+#           Repository access granted
 #
 # The following steps need adding to azure-pipelines.yaml after keyvault step:
 
