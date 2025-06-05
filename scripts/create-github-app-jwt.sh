@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # from the github docs example https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app
+# generates Github App access token $JWT
+# requires GH App private key added as a secure file to AzDO Library
+#           GH App clientID
 
 thisdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 set -o pipefail
@@ -10,7 +13,7 @@ pem=$( cat $2 ) # file path of the private key as second argument
 
 now=$(date +%s)
 iat=$((${now} - 60)) # Issues 60 seconds in the past
-exp=$((${now} + 600)) # Expires 10 minutes in the future
+exp=$((${now} + 3600)) # Expires 10 minutes in the future
 
 b64enc() { openssl base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n'; }
 
