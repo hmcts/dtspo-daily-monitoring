@@ -235,7 +235,6 @@
       value: $(system.pullRequest.pullRequestNumber)
     - group: daily-checks-ghapp
   
-  
   jobs:
     - job: DailyMonitoring
       timeoutInMinutes: 20
@@ -248,8 +247,8 @@
             azureSubscription:  "DTS-CFTPTL-INTSVC"
             keyVaultName:   "cftptl-intsvc"
             secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,dtspo-daily-checks-github-fine-grained-token,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token,b2c-prod-serviceprincipal-id,b2c-prod-serviceprincipal-password,b2c-prod-tenant-id'
-  
-          # Pull private key to Create JWT
+       
+        # Pull private key to Create JWT
         - task: DownloadSecureFile@1
           name: pemFile
           inputs:
@@ -260,8 +259,8 @@
           inputs:
             targetType: filePath
             filePath: scripts/create-github-app-jwt.sh
-            arguments: $(appID) $(pemFile.secureFilePath) 
-      
+            arguments: $(appID) $(pemFile.secureFilePath)       
+        
         # Set Channel name based on PR or not and output channel name to console for confirmation
         - task: Bash@3
           displayName: 'Set Channel Name'
@@ -272,7 +271,7 @@
               echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
         - task: Bash@3
           displayName: 'Set Channel Name - PR'
-          condition: and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true))
+          #condition: and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true))
           inputs:
             targetType: inline
             script: |
@@ -507,4 +506,4 @@
           env:
             b2c_prod_serviceprincipal_id: $(b2c-prod-serviceprincipal-id)
             b2c_prod_serviceprincipal_password: $(b2c-prod-serviceprincipal-password)
-            b2c_prod_tenant_id: $(b2c-prod-tenant-id)
+            b2c_prod_tenant_id: $(b2c-prod-tenant-id)  
