@@ -233,6 +233,7 @@ variables:
     value: "http://jenkins.jenkins:8080/"
   - name: pull_request_number
     value: $(system.pullRequest.pullRequestNumber)
+  - group: daily-checks-ghapp
 
 jobs:
   - job: DailyMonitoring
