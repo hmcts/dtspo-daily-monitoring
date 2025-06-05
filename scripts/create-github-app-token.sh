@@ -13,7 +13,7 @@ pem=$( cat $2 ) # file path of the private key as second argument
 
 now=$(date +%s)
 iat=$((${now} - 60)) # Issues 60 seconds in the past
-exp=$((${now} + 3600)) # Expires 10 minutes in the future
+exp=$((${now} + 599)) # Expires 10 minutes in the future
 
 b64enc() { openssl base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n'; }
 
@@ -41,4 +41,13 @@ signature=$(
 
 # Create JWT
 JWT="${header_payload}"."${signature}"
-echo "##vso[task.setvariable variable=jwt]$JWT"
+#printf '%s\n' "JWT: $JWT"
+#echo "##vso[task.setvariable variable=jwt]$JWT"
+
+# 69331259 is the app's install ID for hmcts/dtspo-daily-monitoring
+response=$(curl -s -X POST -H "Authorization: Bearer $JWT" \
+     -H "Accept: application/vnd.github+json" \
+     https://api.github.com/app/installations/69331259/access_tokens)
+#'installation' token
+itoken=$(echo "$response" | jq -r '.token')
+echo "##vso[task.setvariable variable=itoken;issecret=true]$itoken"
