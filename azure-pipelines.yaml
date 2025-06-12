@@ -60,108 +60,126 @@ parameters:
         timeForRed: '5'
         pipelineName: Preview_Helm_release_cleanup_-_scheduled
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '840'
         timeForAmber: '3'
         timeForRed: '5'
         pipelineName: Preview_Helm_release_cleanup_-_PR_close
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '768'
         timeForAmber: '3'
         timeForRed: '7'
         pipelineName: ACR_Cleanup
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '777'
         timeForAmber: '14'
         timeForRed: '28'
         pipelineName: Launch_Darkly_cleanup
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '472'
         timeForAmber: '3'
         timeForRed: '7'
         pipelineName: Azure_AAD_group_cleanup
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '771'
         timeForAmber: '3'
         timeForRed: '7'
         pipelineName: OWASP_DB_Update_-_Production
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '808'
         timeForAmber: '3'
         timeForRed: '7'
         pipelineName: OWASP_DB_Update_-_Sandbox
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '772'
         timeForAmber: '3'
         timeForRed: '7'
         pipelineName: ACR_Base_importer
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '635'
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: "hmcts.azure-enterprise"
         branchName: refs/heads/main
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '543'
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: sds-azure-platform
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '765'
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: azure-platform-terraform
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '821'
         timeForAmber: '5'
         timeForRed: '7'
         pipelineName: azure-app-proxy
         branchName: refs/heads/main
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '534'
         timeForAmber: '5'
         timeForRed: '7'
         pipelineName: azure-resource-locks
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '529'
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: hmcts.postgresql-cron-jobs
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '860'
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: hmcts.crime-portal-infra
         branchName: refs/heads/main
+        weekdayOnly: true
       - project: 'PlatformOperations'
         definitionId: '927'
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: hmcts.sdrs-infra
         branchName: refs/heads/main
+        weekdayOnly: true
       - project: 'PlatformOperations'
         definitionId: '1115'
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: Gaps2_DB_Restore_STG
         branchName: refs/heads/main
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '1116'
         timeForAmber: '1'
         timeForRed: '1'
         pipelineName: Gaps2_DB_Restore_PROD
         branchName: refs/heads/main
+         weekdayOnly: false
 
   - name: aks_clusters
     type: object
@@ -447,6 +465,7 @@ jobs:
               --adoTimeForAmber ${{ado_pipeline.timeForAmber}}
               --adoTimeForRed ${{ado_pipeline.timeForRed}}
               --adoPipelineBranch "${{ado_pipeline.branchName}}"
+              --weekdayOnly ${{ado_pipeline.weekdayOnly}}
       - task: Bash@3
         displayName: "Send ADO Pipeline Status"
         inputs:
