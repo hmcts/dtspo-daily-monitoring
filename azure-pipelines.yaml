@@ -179,8 +179,7 @@ parameters:
         timeForRed: '1'
         pipelineName: Gaps2_DB_Restore_PROD
         branchName: refs/heads/main
-         weekdayOnly: false
-
+        weekdayOnly: false
   - name: aks_clusters
     type: object
     default:
