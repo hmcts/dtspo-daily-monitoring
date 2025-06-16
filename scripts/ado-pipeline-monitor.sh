@@ -98,7 +98,8 @@ slackThread=""
 pipelineName=$(echo $adoPipelineName | sed 's/_/ /g' | sed 's/"//g')
 branchName=$(echo $adoPipelineBranch | sed 's/"//g')
 
-if [[ "$(echo "$weekdayOnly" | tr '[:upper:]' '[:lower:]')" == "true" ]] then
+if [[ "$(echo "$weekdayOnly" | tr '[:upper:]' '[:lower:]')" == "true" ]]; then
+
     echo "Calculating amber and red thresholds with business days only..."
 
     # Get the dates considering only business days
