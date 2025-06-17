@@ -19,14 +19,14 @@ Usage: $0
     [ -k | --sendgridApiKey ]
     [ -t | --emailTo ]
     [ -f | --emailFrom ]
-    [ --test | --testMode ]
+    [ --test | --testMode true/false default: false]
     [ -h | --help ]
 
 Options:
     -k, --sendgridApiKey    SendGrid API key for sending emails
     -t, --emailTo          Comma-separated list of email addresses to send notifications to
     -f, --emailFrom        Email address to send notifications from (MUST be verified in SendGrid)
-    --test, --testMode     Run in test mode (no emails sent, just display output)
+    --test, --testMode     Run in test mode (true/false, no emails sent, default: false)
     -h, --help             Show this help message
 
 IMPORTANT: The --emailFrom address must be verified in your SendGrid account.
@@ -46,7 +46,7 @@ EOF
 exit 1
 }
 
-args=$(getopt -a -o k:t:f:h: --long sendgridApiKey:,emailTo:,emailFrom:,test,testMode,help -- "$@")
+args=$(getopt -a -o k:t:f:h: --long sendgridApiKey:,emailTo:,emailFrom:,test:,testMode:,help -- "$@")
 if [[ $? -gt 0 ]]; then
     usage
 fi
@@ -59,7 +59,16 @@ do
         -k | --sendgridApiKey)    sendgridApiKey=$2        ; shift 2 ;;
         -t | --emailTo)           emailTo=$2               ; shift 2 ;;
         -f | --emailFrom)         emailFrom=$2             ; shift 2 ;;
-        --test | --testMode)      testMode=true            ; shift   ;;
+        --test | --testMode)
+            # Convert to lowercase for comparison
+            testValue=$(echo "$2" | tr '[:upper:]' '[:lower:]')
+            if [[ "$testValue" == "true" || "$testValue" == "false" ]]; then
+                testMode=$testValue
+            else
+                echo "Error: test mode value must be 'true' or 'false'" >&2
+                exit 1
+            fi
+            shift 2 ;;
         # -- means the end of the arguments; drop this, and break out of the while loop
         --) shift; break ;;
         *) >&2 echo Unsupported option: $1
