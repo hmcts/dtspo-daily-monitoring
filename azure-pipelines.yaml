@@ -403,7 +403,7 @@ jobs:
           filePath: scripts/elastic-search-dlq-case-type-count.sh
           arguments: >
             --sendgridApiKey $(sendgrid-hmcts-bau-nonprod-apikey)
-            --emailTo "martin.fox1@justice.gov.uk"
+            --emailTo "cft-level2-monitoring-aaaap23kppmnpt57cp3cbwpkym@moj.org.slack.com"
             --emailFrom bau@mail-bau-nonprod.platform.hmcts.net
             --testMode $(testMode)
       # Checks from this point on use each loop, every iteration saves to a file and a follow up step is used to send the output if a negative status is found
