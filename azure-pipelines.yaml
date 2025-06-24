@@ -184,14 +184,14 @@ parameters:
         definitionId: '518'
         timeForAmber: '7'
         timeForRed: '14'
-        pipelineName: Jenkins_Packer
+        pipelineName: jenkins-packer
         branchName: refs/heads/master
         weekdayOnly: true
       - project: 'PlatformOperations'
         definitionId: '556'
         timeForAmber: '7'
         timeForRed: '14'
-        pipelineName: Bastion_Packer
+        pipelineName: baction-packer
         branchName: refs/heads/master
         weekdayOnly: true
   - name: aks_clusters
