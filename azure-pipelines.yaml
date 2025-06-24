@@ -191,7 +191,7 @@ parameters:
         definitionId: '556'
         timeForAmber: '7'
         timeForRed: '14'
-        pipelineName: baction-packer
+        pipelineName: bastion-packer
         branchName: refs/heads/master
         weekdayOnly: true
   - name: aks_clusters
