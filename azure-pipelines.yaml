@@ -180,6 +180,20 @@ parameters:
         pipelineName: Gaps2_DB_Restore_PROD
         branchName: refs/heads/main
         weekdayOnly: false
+      - project: 'PlatformOperations'
+        definitionId: '518'
+        timeForAmber: '7'
+        timeForRed: '14'
+        pipelineName: jenkins-packer
+        branchName: refs/heads/master
+        weekdayOnly: true
+      - project: 'PlatformOperations'
+        definitionId: '556'
+        timeForAmber: '7'
+        timeForRed: '14'
+        pipelineName: bastion-packer
+        branchName: refs/heads/master
+        weekdayOnly: true
   - name: aks_clusters
     type: object
     default:
