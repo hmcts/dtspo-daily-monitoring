@@ -364,16 +364,17 @@ jobs:
           targetType: filePath
           filePath: scripts/check-toffee-plum.sh
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
-      - task: Bash@3
-        displayName: 'Checking servicenow status'
-        inputs:
-          targetType: filePath
-          filePath: scripts/servicenow-status.sh
-          arguments: >
-            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
-            --slackChannelName $(main_channel)
-            --snowUsername $(service-now-username)
-            --snowPassword $(service-now-password)
+      # TODO: Convert this task to Halo
+      # - task: Bash@3
+      #   displayName: 'Checking servicenow status'
+      #   inputs:
+      #     targetType: filePath
+      #     filePath: scripts/servicenow-status.sh
+      #     arguments: >
+      #       --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+      #       --slackChannelName $(main_channel)
+      #       --snowUsername $(service-now-username)
+      #       --snowPassword $(service-now-password)
       - task: Bash@3
         displayName: 'Github Licenses check'
         inputs:
