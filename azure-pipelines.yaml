@@ -420,7 +420,7 @@ jobs:
       # - ${{ each backup_vault in parameters.recovery_services_vaults }}:
       #   - task: AzureCLI@2
       #     displayName: 'Check Backup Status'
-      #     inputs:
+      #     inputs: 
       #       scriptType: bash
       #       scriptPath: scripts/backup-monitor.sh
       #       azureSubscription: ${{ backup_vault.subscription }}
@@ -528,4 +528,3 @@ jobs:
           b2c_prod_serviceprincipal_id: $(b2c-prod-serviceprincipal-id)
           b2c_prod_serviceprincipal_password: $(b2c-prod-serviceprincipal-password)
           b2c_prod_tenant_id: $(b2c-prod-tenant-id)
-          
