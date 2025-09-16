@@ -528,3 +528,4 @@ jobs:
           b2c_prod_serviceprincipal_id: $(b2c-prod-serviceprincipal-id)
           b2c_prod_serviceprincipal_password: $(b2c-prod-serviceprincipal-password)
           b2c_prod_tenant_id: $(b2c-prod-tenant-id)
+          
