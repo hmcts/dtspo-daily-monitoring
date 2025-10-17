@@ -466,7 +466,11 @@ jobs:
           scriptType: bash
           scriptPath: scripts/cert-check.sh
           azureSubscription: 'DTS-SHAREDSERVICES-PROD'
-          arguments: DTS-SHAREDSERVICES-PROD lz-prod-rg sdshmcts-prod 14
+          arguments: >
+            --subscription DTS-SHAREDSERVICES-PROD
+            --resourceGroup lz-prod-rg
+            --frontdoorName sdshmcts-prod
+            --minCertExpirationDays 14
       # - task: Bash@3
       #   displayName: "Send SSL Cert Status"
       #   inputs:
