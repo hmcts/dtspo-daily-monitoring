@@ -90,6 +90,11 @@ checkCertExpirationDate() {
     echo "Not after date: $not_after_date"
     not_after_date_cut=$(echo "$not_after_date" | cut -d "=" -f 2)
     echo "Not after date cut: $not_after_date_cut"
+
+    nslookup_value=$(nslookup "$url" 2>/dev/null)
+    echo "NSLookup output: $nslookup"
+    dig_value=$(dig "$url" 2>/dev/null)
+    echo "Dig output: $dig_value"
     
     expiration_date=$not_after_date_cut
     # expiration_date=$(echo | openssl s_client -servername "${url}" -connect "${url}:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep "notAfter" | cut -d "=" -f 2)
