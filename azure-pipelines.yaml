@@ -465,8 +465,8 @@ jobs:
         inputs:
           targetType: inline
           script: |
-            sudo apt-get update
-            sudo apt-get install -y dnsutils
+            apt-get update
+            apt-get install -y dnsutils
       - task: AzureCLI@2
         displayName: 'Checking sdshmcts-prod Certificate status'
         inputs:
