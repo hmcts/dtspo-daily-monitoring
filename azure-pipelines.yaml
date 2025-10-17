@@ -150,7 +150,7 @@ parameters:
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: hmcts.postgresql-cron-jobs
-        branchName: refs/heads/platops/dstpo28111-psqldailycheck
+        branchName: refs/heads/master
         weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '860'
