@@ -460,6 +460,13 @@ jobs:
       #         --frontdoorName ${{ frontdoor.front_door_name }}
       #         --minCertExpirationDays ${{ frontdoor.min_cert_exp_days }}
       # Test single certificate check
+      - task: Bash@3
+        displayName: 'Install dig and nslookup'
+        inputs:
+          targetType: inline
+          script: |
+            sudo apt-get update
+            sudo apt-get install -y dnsutils
       - task: AzureCLI@2
         displayName: 'Checking sdshmcts-prod Certificate status'
         inputs:
