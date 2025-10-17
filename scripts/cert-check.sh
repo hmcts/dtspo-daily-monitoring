@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 
 ### Setup script environment
@@ -82,16 +81,21 @@ checkCertExpirationDate() {
 
     echo "Processing $url"
     expiration_date=$(echo | openssl s_client -servername "${url}" -connect "${url}:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep "notAfter" | cut -d "=" -f 2)
+    echo "Expiration date: $expiration_date"
 
     if [[ -n $expiration_date ]]; then
         expiration_timestamp=$($date_command -d "${expiration_date}" +%s)
+        echo "Expiration timestamp: $expiration_timestamp"
         current_timestamp=$($date_command +%s)
         seconds_left=$((expiration_timestamp - current_timestamp))
         days_left=$((seconds_left / 86400))
+        echo "Days left: $days_left"
         if [[ $days_left -le 0 ]]; then
             results+=("$(printf ":red_circle: Certificate for *%s* : *%s* expired *%s* days ago! \\n" "${frontdoorName}" "${url}" "${days_left}")")
+            echo "Results: ${results[-1]}"
         elif [[ $days_left -le $minCertExpirationDays ]]; then
             results+=("$(printf ":yellow_circle: Certificate for *%s* : *%s* expires in *%s* days! \\n" "${frontdoorName}" "${url}" "${days_left}")")
+            echo "Results: ${results[-1]}"
         fi
     else
         echo "Expiration date not set"
