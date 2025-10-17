@@ -80,7 +80,20 @@ checkCertExpirationDate() {
     local url=$1
 
     echo "Processing $url"
-    expiration_date=$(echo | openssl s_client -servername "${url}" -connect "${url}:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep "notAfter" | cut -d "=" -f 2)
+
+    echo "Processing $url"
+    openssl_output1=$(echo | openssl s_client -servername "${url}" -connect "${url}:443" 2>/dev/null)
+    echo "OpenSSL output 1: $openssl_output1"
+    openssl_output2=$(echo "$openssl_output1" | openssl x509 -noout -dates 2>/dev/null)
+    echo "OpenSSL output 2: $openssl_output2"
+    not_after_date=$(echo "$openssl_output2" | grep "notAfter")
+    echo "Not after date: $not_after_date"
+    not_after_date_cut=$(echo "$not_after_date" | cut -d "=" -f 2)
+    echo "Not after date cut: $not_after_date_cut"
+    
+    expiration_date=$not_after_date_cut
+    # expiration_date=$(echo | openssl s_client -servername "${url}" -connect "${url}:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep "notAfter" | cut -d "=" -f 2)
+
     echo "Expiration date: $expiration_date"
 
     if [[ -n $expiration_date ]]; then
