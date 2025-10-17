@@ -92,7 +92,7 @@ checkCertExpirationDate() {
     echo "Not after date cut: $not_after_date_cut"
 
     nslookup_value=$(nslookup "$url" 2>/dev/null)
-    echo "NSLookup output: $nslookup"
+    echo "NSLookup output: $nslookup_value"
     dig_value=$(dig "$url" 2>/dev/null)
     echo "Dig output: $dig_value"
     
