@@ -240,6 +240,39 @@ parameters:
         resource_group: 'bau-bais_prod_network_rg'
         front_door_name: 'hmcts-heritage-prod'
         min_cert_exp_days: '14'
+  - name: keyvault_certificates
+    type: object
+    default:
+      - subscription: 'DCD-CFTAPPS-PROD'
+        keyvault_name: 'acmedcdcftappsprod'
+        min_cert_exp_days: '14'
+      - subscription: 'DCD-CFTAPPS-STG'
+        keyvault_name: 'acmedcdcftappsstg'
+        min_cert_exp_days: '14'
+      - subscription: 'DCD-CNP-Prod'
+        keyvault_name: 'acmedcdcnpprod'
+        min_cert_exp_days: '14'
+      - subscription: 'DTS-ARCHIVING-PROD'
+        keyvault_name: 'acmedtsarchivingprod'
+        min_cert_exp_days: '14'
+      - subscription: 'DTS-CFTPTL-INTSVC'
+        keyvault_name: 'acmedtscftptlintsvc'
+        min_cert_exp_days: '14'
+      - subscription: 'DTS-SHAREDSERVICESPTL'
+        keyvault_name: 'acmedtssdsptl'
+        min_cert_exp_days: '14'
+      - subscription: 'DTS-SHAREDSERVICES-PROD'
+        keyvault_name: 'acmedtssdsprod'
+        min_cert_exp_days: '14'
+      - subscription: 'DTS-SHAREDSERVICES-STG'
+        keyvault_name: 'acmedtssdsstg'
+        min_cert_exp_days: '14'
+      - subscription: 'HMCTS-HUB-PROD-INTSVC'
+        keyvault_name: 'acmehmctshubprodintsvc'
+        min_cert_exp_days: '14'
+      - subscription: 'HMCTS-SOC-PROD'
+        keyvault_name: 'acmehmctssocprod'
+        min_cert_exp_days: '14'
   - name: postgres_subscriptions
     type: object
     default:
@@ -469,6 +502,27 @@ jobs:
             --slackChannelName $(main_channel)
             --inputFileName cert-status.txt
             --messageHeader ":ssl-cert: SSL Certificates Checks"
+      - ${{ each keyvault in parameters.keyvault_certificates }}:
+        - task: AzureCLI@2
+          displayName: 'Checking ${{ keyvault.keyvault_name }} KeyVault Certificate status'
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/keyvault-cert-check.sh
+            azureSubscription: ${{ keyvault.subscription }}
+            arguments: >
+              --subscription ${{ keyvault.subscription }}
+              --keyVaultName ${{ keyvault.keyvault_name }}
+              --minCertExpirationDays ${{ keyvault.min_cert_exp_days }}
+      - task: Bash@3
+        displayName: "Send KeyVault Cert Status"
+        inputs:
+          targetType: filePath
+          filePath: scripts/send-slack-header-thread-each-loop.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --inputFileName keyvault-cert-status.txt
+            --messageHeader ":key: KeyVault Certificates Checks"
       - ${{ each gh_workflow in parameters.gh_workflows }}:
         - task: Bash@3
           displayName: 'Check Github workflow Runs'
