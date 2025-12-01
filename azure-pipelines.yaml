@@ -402,7 +402,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/check-toffee-plum.sh
-          arguments: --slackChannelName $(main_channel)
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: Bash@3
         displayName: 'Github Licenses check'
         continueOnError: true
