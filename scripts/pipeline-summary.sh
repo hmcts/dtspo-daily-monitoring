@@ -85,7 +85,7 @@ if [ "$jobStatus" == "SucceededWithIssues" ] || [ "$jobStatus" == "Failed" ]; th
     # Build the message
     # Since we can't easily enumerate failed tasks without API access,
     # we provide a general message directing to the pipeline logs
-    MESSAGE_DETAILS="<${buildUrl}|_*Daily Monitoring Pipeline*_> One or more monitoring checks failed but the pipeline continued.\\n\\nPlease review the pipeline logs to see which specific tasks encountered issues.\\n\\n<${buildUrl}|View Pipeline Details>"
+    MESSAGE_DETAILS="<${buildUrl}|_*Daily Monitoring Pipeline*_> One or more monitoring checks failed but the pipeline continued.\\n\\nPlease review the pipeline logs to see which specific tasks encountered issues: <${buildUrl}|View Pipeline Details>"
 
     # Send Slack notification only if there are failures
     slackNotification $slackBotToken $slackChannelName ":azure: $PIPELINE_STATUS Pipeline ${STATUS_TEXT}" "$MESSAGE_DETAILS"
