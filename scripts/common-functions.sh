@@ -17,9 +17,10 @@ slackNotification() {
     local header=$3
     local message=$4
 
-    # Use jq with variables
+    # Use jq with variables - interpret escape sequences in message
+    # Use printf to convert \\n to actual newlines before passing to jq
     headerPayload=$(jq --arg header "$header" \
-                    --arg message "$message" \
+                    --arg message "$(printf '%b' "$message")" \
                     '.[0].text.text |= $header | .[1].text.text |= $message' scripts/header-block-template.json)
 
     # Construct the payload with blocks directly
