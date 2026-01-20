@@ -69,17 +69,13 @@ fi
 
 MESSAGE=$(cat $inputFileName)
 
-# TEMPORARY: Send output for all statuses (including green) for testing
+# Only send output if red or yellow status
 if [[ $MESSAGE == *":red_circle:"* ]]; then
     STATUS=":red_circle:"
     slackNotification $slackBotToken $slackChannelName "$STATUS $messageHeader" "$subHeading"
     slackThreadResponse "$slackBotToken" "$slackChannelName" "$MESSAGE" "$TS"
 elif [[ $MESSAGE == *":yellow_circle:"* ]]; then
     STATUS=":yellow_circle:"
-    slackNotification $slackBotToken $slackChannelName "$STATUS $messageHeader" "$subHeading"
-    slackThreadResponse "$slackBotToken" "$slackChannelName" "$MESSAGE" "$TS"
-elif [[ $MESSAGE == *":green_circle:"* ]]; then
-    STATUS=":green_circle:"
     slackNotification $slackBotToken $slackChannelName "$STATUS $messageHeader" "$subHeading"
     slackThreadResponse "$slackBotToken" "$slackChannelName" "$MESSAGE" "$TS"
 fi
