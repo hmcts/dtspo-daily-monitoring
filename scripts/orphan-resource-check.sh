@@ -59,8 +59,15 @@ fi
 # Download data from URL
 jsonData=$(curl -s $URL)
 
-# Check if any records exist
-deletedResourceCount=$(echo "$jsonData" | jq 'length')
+# Filter out auto-created AKS NSGs in node resource groups
+# These are automatically created by Azure and cannot be deleted, so we ignore them
+filteredJsonData=$(echo "$jsonData" | jq '[.[] | select(
+    (.message | test("/resourceGroups/.*-aks-node-rg/providers/Microsoft.Network/networkSecurityGroups/aks-appgateway-.*-nsg"; "i") | not) and
+    (.message | test("/resourceGroups/.*-aks-node-rg/providers/Microsoft.Network/networkSecurityGroups/aks-virtualkubelet-.*-nsg"; "i") | not)
+)]')
+
+# Check if any records exist (after filtering)
+deletedResourceCount=$(echo "$filteredJsonData" | jq 'length')
 
 # Set STATUS based on the object count
 if [ "$deletedResourceCount" -gt 0 ]; then
