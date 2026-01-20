@@ -130,13 +130,38 @@ check_threshold "$cpuUsage" 75 90
 check_threshold "$memoryUsage" 75 90
 check_threshold "$diskUsage" 70 85
 
+# Check for over-provisioning (all resources below 40% usage)
+provisioningStatus=":green_circle:"
+provisioningText="healthy"
+
+# Only check if all metrics are available (not N/A)
+if [[ "$cpuUsage" != "N/A" && "$memoryUsage" != "N/A" && "$diskUsage" != "N/A" ]]; then
+    # Convert to integers for comparison
+    cpuInt=${cpuUsage%.*}
+    memInt=${memoryUsage%.*}
+    diskInt=${diskUsage%.*}
+    
+    # Flag as over-provisioned if ALL are below 40%
+    if [ "$cpuInt" -lt 40 ] && [ "$memInt" -lt 40 ] && [ "$diskInt" -lt 40 ]; then
+        provisioningStatus=":red_circle:"
+        provisioningText="over-provisioned"
+        
+        # Set overall status to warning if not already critical
+        if [ "$overallStatus" == ":green_circle:" ]; then
+            overallStatus=":yellow_circle:"
+            statusText="warning"
+        fi
+    fi
+fi
+
 # Build Slack message
 clusterURL="https://portal.azure.com/#@HMCTS.NET/resource/subscriptions/8b6ea922-0862-443e-af15-6056e1c9b9a4/resourceGroups/$resourceGroup/providers/Microsoft.ContainerService/managedClusters/$aksClusterName/overview"
 
 slackThread="$overallStatus <$clusterURL|*$aksClusterName*> - Status: *$statusText*\n"
 slackThread+="  • Node Capacity: *${nodeCapacity}%* (${nodeCount}/${maxCount} nodes)\n"
-slackThread+="  • CPU Usage: *${cpuUsage}%*\n"
-slackThread+="  • Memory Usage: *${memoryUsage}%*\n"
-slackThread+="  • Disk Usage: *${diskUsage}%*"
+slackThread+="  • Provisioning Status: $provisioningStatus *$provisioningText*\n"
+slackThread+="  • Average Average CPU Usage: *${cpuUsage}%*\n"
+slackThread+="  • Average Average Memory Usage: *${memoryUsage}%*\n"
+slackThread+="  • Average Average Disk Usage: *${diskUsage}%*"
 
 echo -e "$slackThread" >> aks-cluster-status.txt
