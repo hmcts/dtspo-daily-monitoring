@@ -141,8 +141,18 @@ if [[ "$cpuUsage" != "N/A" && "$memoryUsage" != "N/A" && "$diskUsage" != "N/A" ]
     memInt=${memoryUsage%.*}
     diskInt=${diskUsage%.*}
     
-    # Flag as over-provisioned if ALL are below 40%
-    if [ "$cpuInt" -lt 40 ] && [ "$memInt" -lt 40 ] && [ "$diskInt" -lt 40 ]; then
+    # Check if any resource is above 60% (under-provisioned)
+    if [ "$cpuInt" -gt 60 ] || [ "$memInt" -gt 60 ] || [ "$diskInt" -gt 60 ]; then
+        provisioningStatus=":red_circle:"
+        provisioningText="under-provisioned"
+        
+        # Set overall status to warning if not already critical
+        if [ "$overallStatus" == ":green_circle:" ]; then
+            overallStatus=":yellow_circle:"
+            statusText="warning"
+        fi
+    # Check if all resources are below 40% (over-provisioned)
+    elif [ "$cpuInt" -lt 40 ] && [ "$memInt" -lt 40 ] && [ "$diskInt" -lt 40 ]; then
         provisioningStatus=":red_circle:"
         provisioningText="over-provisioned"
         
@@ -151,6 +161,10 @@ if [[ "$cpuUsage" != "N/A" && "$memoryUsage" != "N/A" && "$diskUsage" != "N/A" ]
             overallStatus=":yellow_circle:"
             statusText="warning"
         fi
+    # Otherwise, provisioned normally (at least one between 40-60%)
+    else
+        provisioningStatus=":green_circle:"
+        provisioningText="provisioned normally"
     fi
 fi
 
