@@ -194,6 +194,13 @@ parameters:
         pipelineName: bastion-packer
         branchName: refs/heads/master
         weekdayOnly: true
+      - project: 'PlatformOperations'
+        definitionId: '1147'
+        timeForAmber: '1'
+        timeForRed: '2'
+        pipelineName: azure-resource-finops-scanner
+        branchName: refs/heads/master
+        weekdayOnly: true
   - name: aks_clusters
     type: object
     default:
