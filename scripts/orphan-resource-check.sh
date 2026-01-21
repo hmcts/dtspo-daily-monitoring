@@ -62,8 +62,8 @@ jsonData=$(curl -s $URL)
 # Filter out auto-created AKS NSGs in node resource groups
 # These are automatically created by Azure and cannot be deleted, so we ignore them
 filteredJsonData=$(echo "$jsonData" | jq '[.[] | select(
-    (.message | test("/resourceGroups/.*-aks-node-rg/providers/Microsoft.Network/networkSecurityGroups/aks-appgateway-.*-nsg"; "i") | not) and
-    (.message | test("/resourceGroups/.*-aks-node-rg/providers/Microsoft.Network/networkSecurityGroups/aks-virtualkubelet-.*-nsg"; "i") | not)
+    (.message | test("/subscriptions/.*/resourceGroups/.*-aks-node-rg/providers/Microsoft.Network/networkSecurityGroups/aks-appgateway-.*-nsg"; "i") | not) and
+    (.message | test("/subscriptions/.*/resourceGroups/.*-aks-node-rg/providers/Microsoft.Network/networkSecurityGroups/aks-virtualkubelet-.*-nsg"; "i") | not)
 )]')
 
 # Check if any records exist (after filtering)
@@ -73,7 +73,7 @@ deletedResourceCount=$(echo "$filteredJsonData" | jq 'length')
 if [ "$deletedResourceCount" -gt 0 ]; then
     STATUS=":red_circle:"
 
-    failedDeletes=$(jq --arg status "$STATUS" -r '.[].message | gsub("A resource failed to delete!\\\\nTo see why, you can run: az resource delete --ids "; "") | gsub("--verbose\\\\n"; "") | $status + " " + .' <<< "$jsonData")
+    failedDeletes=$(jq --arg status "$STATUS" -r '.[].message | gsub("A resource failed to delete!\\\\nTo see why, you can run: az resource delete --ids "; "") | gsub("--verbose\\\\n"; "") | $status + " " + .' <<< "$filteredJsonData")
 
 
     # Post initial header message
