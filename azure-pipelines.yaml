@@ -308,7 +308,7 @@ variables:
 
 jobs:
   - job: DailyMonitoring
-    timeoutInMinutes: 20
+    timeoutInMinutes: 25
     pool:
       name: 'hmcts-cftptl-agent-pool'
     steps:
