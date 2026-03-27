@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
-# Checks for failed backup jobs in an Azure Backup Vault over the past 8 days.
+# Checks for failed backup jobs in an Azure Backup Vault.
 # Only runs on Mondays to align with the weekly backup schedule.
-# Sends a Slack notification directly if failures are found, or a green status if all is well.
+# A failure is only reported if there is no subsequent successful backup for the same datasource,
+# preventing noise from stale failures that have since been resolved.
+# Sends a single Slack notification consolidating all unresolved failures, or a green status if clean.
 
 ### Setup script environment
 set -euo pipefail
@@ -86,26 +88,43 @@ allJobs=$(az dataprotection job list \
     --vault-name "$backupVault" \
     --output json)
 
-# Filter to failed backup jobs only
-failedJobs=$(echo "$allJobs" | jq '[.[] | select(.properties.status == "Failed" and .properties.operationCategory == "Backup")]')
-failedCount=$(echo "$failedJobs" | jq 'length')
+# Filter to failed backup jobs that have no subsequent successful backup for the same datasource.
+# A failure is "resolved" if a Completed backup with the same dataSourceName started later — skip those.
+activeFailedJobs=$(echo "$allJobs" | jq '
+  [.[] | select(.properties.operationCategory == "Backup")] as $backupJobs |
+  [
+    $backupJobs[] |
+    select(.properties.status == "Failed") |
+    . as $f |
+    select(
+      [$backupJobs[] |
+        select(
+          .properties.dataSourceName == $f.properties.dataSourceName and
+          .properties.status == "Completed" and
+          .properties.startTime > $f.properties.startTime
+        )
+      ] | length == 0
+    )
+  ]
+')
+activeFailedCount=$(echo "$activeFailedJobs" | jq 'length')
 
-if [[ "$failedCount" -gt 0 ]]; then
+if [[ "$activeFailedCount" -gt 0 ]]; then
     slackNotification "$slackBotToken" "$slackChannelName" \
         ":red_circle: Azure Backup Vault Failed Jobs" \
-        ":azure_backup: Backup failures detected in <${vaultURL}|_*${backupVault}*_>:"
+        ":azure_backup: Backup failures detected in <${vaultURL}|_*${backupVault}*_> with no subsequent successful run:"
 
-    while read -r job; do
-        instance=$(echo "$job"  | jq -r '.properties.dataSourceName')
-        started=$(echo "$job"   | jq -r '.properties.startTime')
-        errorCode=$(echo "$job" | jq -r '.properties.errorDetails[0].code // "Unknown"')
+    # Build a single consolidated message — one line per failure, joined with \n for Slack line breaks
+    failureText=$(echo "$activeFailedJobs" | jq -r '
+      [.[] | ":x: *\(.properties.dataSourceName)* — failed \(.properties.startTime) — `\(.properties.errorDetails[0].code // "Unknown")`"] |
+      join("\\n")
+    ')
 
-        slackThreadResponse "$slackBotToken" "$slackChannelName" \
-            ":x: *${instance}* failed on ${started} — \`${errorCode}\`" \
-            "$TS"
-    done < <(echo "$failedJobs" | jq -c '.[]')
+    slackThreadResponse "$slackBotToken" "$slackChannelName" \
+        "$failureText" \
+        "$TS"
 else
     slackNotification "$slackBotToken" "$slackChannelName" \
         ":green_circle: Azure Backup Vault" \
-        ":azure_backup: No failed backup jobs in <${vaultURL}|_*${backupVault}*_> :tada:"
+        ":azure_backup: No unresolved backup failures in <${vaultURL}|_*${backupVault}*_> :tada:"
 fi
