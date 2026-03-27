@@ -91,33 +91,33 @@ allJobs=$(az dataprotection job list \
 # Filter to failed backup jobs that have no subsequent successful backup for the same datasource.
 # A failure is "resolved" if a Completed backup with the same dataSourceName started later — skip those.
 activeFailedJobs=$(echo "$allJobs" | jq '
-  [.[] | select(.properties.operationCategory == "Backup")] as $backupJobs |
-  [
-    $backupJobs[] |
-    select(.properties.status == "Failed") |
-    . as $f |
-    select(
-      [$backupJobs[] |
+    [.[] | select(.properties.operationCategory == "Backup")] as $backupJobs |
+    [
+        $backupJobs[] |
+        select(.properties.status == "Failed") |
+        . as $f |
         select(
-          .properties.dataSourceName == $f.properties.dataSourceName and
-          .properties.status == "Completed" and
-          .properties.startTime > $f.properties.startTime
+        [$backupJobs[] |
+            select(
+            .properties.dataSourceName == $f.properties.dataSourceName and
+            .properties.status == "Completed" and
+            .properties.startTime > $f.properties.startTime
+            )
+        ] | length == 0
         )
-      ] | length == 0
-    )
-  ]
+    ]
 ')
 activeFailedCount=$(echo "$activeFailedJobs" | jq 'length')
 
 if [[ "$activeFailedCount" -gt 0 ]]; then
     slackNotification "$slackBotToken" "$slackChannelName" \
         ":red_circle: Azure Backup Vault Failed Jobs" \
-        ":azure_backup: Backup failures detected in <${vaultURL}|_*${backupVault}*_> with no subsequent successful run:"
+        ":azure: Backup failures detected in <${vaultURL}|_*${backupVault}*_> with no subsequent successful run:"
 
     # Build a single consolidated message — one line per failure, joined with \n for Slack line breaks
     failureText=$(echo "$activeFailedJobs" | jq -r '
-      [.[] | ":x: *\(.properties.dataSourceName)* — failed \(.properties.startTime) — `\(.properties.errorDetails[0].code // "Unknown")`"] |
-      join("\\n")
+        [.[] | ":x: *\(.properties.dataSourceName)* — failed \(.properties.startTime) — `\(.properties.errorDetails[0].code // "Unknown")`"] |
+        join("\\n")
     ')
 
     slackThreadResponse "$slackBotToken" "$slackChannelName" \
@@ -126,5 +126,5 @@ if [[ "$activeFailedCount" -gt 0 ]]; then
 else
     slackNotification "$slackBotToken" "$slackChannelName" \
         ":green_circle: Azure Backup Vault" \
-        ":azure_backup: No unresolved backup failures in <${vaultURL}|_*${backupVault}*_> :tada:"
+        ":azure: No unresolved backup failures in <${vaultURL}|_*${backupVault}*_> :tada:"
 fi
