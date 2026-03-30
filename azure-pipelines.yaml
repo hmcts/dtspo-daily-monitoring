@@ -503,6 +503,18 @@ jobs:
             --slackChannelName $(main_channel)
             --inputFileName azurebackup-status.txt
             --messageHeader ":azuremonitoring: Azure Backup Checks"
+      - task: AzureCLI@2
+        displayName: 'Check DR Backup Vault Job Status (weekly, Mondays only)'
+        continueOnError: true
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/dr-backup-vault-monitor.sh
+          azureSubscription: 'DCD-CNP-Prod'
+          arguments: >
+            --resourceGroup mgmt-infra-prod-rg
+            --backupVault cnp-backup-vault
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
       - ${{ each frontdoor in parameters.certificates }}:
         - task: AzureCLI@2
           displayName: 'Checking ${{ frontdoor.front_door_name }} Certificate status'
