@@ -66,12 +66,12 @@ if [[ -z "$slackBotToken" || -z "$slackChannelName" || -z "$resourceGroup" || -z
     exit 1
 fi
 
-# Only run on Mondays (day 1 in ISO week: Mon=1 ... Sun=7)
-# DAY_OF_WEEK=$(date +%u)
-# if [[ "$DAY_OF_WEEK" != "1" ]]; then
-#     echo "Backup vault check skipped — only runs on Mondays (today is day $DAY_OF_WEEK)"
-#     exit 0
-# fi
+Only run on Mondays (day 1 in ISO week: Mon=1 ... Sun=7)
+DAY_OF_WEEK=$(date +%u)
+if [[ "$DAY_OF_WEEK" != "1" ]]; then
+    echo "Backup vault check skipped — only runs on Mondays (today is day $DAY_OF_WEEK)"
+    exit 0
+fi
 
 ### Script begins
 
