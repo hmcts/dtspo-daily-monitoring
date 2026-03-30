@@ -107,6 +107,7 @@ activeFailedJobs=$(echo "$allJobs" | jq '
         )
     ]
 ')
+
 activeFailedCount=$(echo "$activeFailedJobs" | jq 'length')
 
 if [[ "$activeFailedCount" -gt 0 ]]; then
