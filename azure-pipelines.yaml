@@ -504,11 +504,11 @@ jobs:
             --inputFileName azurebackup-status.txt
             --messageHeader ":azuremonitoring: Azure Backup Checks"
       - task: AzureCLI@2
-        displayName: 'Check Backup Vault Job Status (weekly, Mondays only)'
+        displayName: 'Check DR Backup Vault Job Status (weekly, Mondays only)'
         continueOnError: true
         inputs:
           scriptType: bash
-          scriptPath: scripts/backup-vault-monitor.sh
+          scriptPath: scripts/dr-backup-vault-monitor.sh
           azureSubscription: 'DCD-CNP-Prod'
           arguments: >
             --resourceGroup mgmt-infra-prod-rg
