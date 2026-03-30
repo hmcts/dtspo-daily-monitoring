@@ -30,11 +30,16 @@ slackNotification() {
             --argjson blocks "$headerPayload" \
             '{channel: $channel, username: $username, blocks: $blocks, icon_emoji: $icon_emoji, unfurl_links: false}')
 
-    RESPONSE=$(curl -s -H "Content-Type: application/json" \
+    RESPONSE=$(curl -s -H "Content-Type: application/json; charset=utf-8" \
     --data "${payload}" \
     -H "Authorization: Bearer ${slack_token}" \
-    -H application/json \
     -X POST https://slack.com/api/chat.postMessage)
+
+    # Surface API failures without printing successful responses to pipeline logs.
+    if [[ "$(echo "$RESPONSE" | jq -r '.ok')" != "true" ]]; then
+        echo "Slack post failed: $RESPONSE" >&2
+        return 1
+    fi
 
     # Extract the timestamp of the posted message
     TS=$(echo $RESPONSE | jq -r '.ts')
@@ -49,11 +54,16 @@ slackThreadResponse() {
 
     payload="{\"channel\": \"${channel_name}\", \"username\": \"Plato\", \"text\": \"${message}\", \"thread_ts\": \"${parent_ts}\", \"icon_emoji\": \":plato:\"}"
 
-    curl -s -H "Content-Type: application/json" \
+    RESPONSE=$(curl -s -H "Content-Type: application/json; charset=utf-8" \
     --data "${payload}" \
     -H "Authorization: Bearer ${slack_token}" \
-    -H application/json \
-    -X POST https://slack.com/api/chat.postMessage
+    -X POST https://slack.com/api/chat.postMessage)
+
+    # Surface API failures without printing successful responses to pipeline logs.
+    if [[ "$(echo "$RESPONSE" | jq -r '.ok')" != "true" ]]; then
+        echo "Slack thread post failed: $RESPONSE" >&2
+        return 1
+    fi
 }
 
 # Update existing message in a Slack channel
@@ -76,9 +86,14 @@ slackMessageUpdate() {
             '{channel: $channel, blocks: $blocks, ts: $ts, unfurl_links: false}')
 
     # Send update to slack message
-    curl -s -H "Content-Type: application/json" \
+    RESPONSE=$(curl -s -H "Content-Type: application/json; charset=utf-8" \
     --data "${payload}" \
     -H "Authorization: Bearer ${slack_token}" \
-    -H application/json \
-    -X POST https://slack.com/api/chat.update
+    -X POST https://slack.com/api/chat.update)
+
+    # Surface API failures without printing successful responses to pipeline logs.
+    if [[ "$(echo "$RESPONSE" | jq -r '.ok')" != "true" ]]; then
+        echo "Slack update failed: $RESPONSE" >&2
+        return 1
+    fi
 }
