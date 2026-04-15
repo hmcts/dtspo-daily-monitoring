@@ -124,8 +124,4 @@ if [[ "$activeFailedCount" -gt 0 ]]; then
     slackThreadResponse "$slackBotToken" "$slackChannelName" \
         "$failureText" \
         "$TS"
-else
-    slackNotification "$slackBotToken" "$slackChannelName" \
-        ":green_circle: Azure Backup Vault" \
-        ":azure: No unresolved backup failures in <${vaultURL}|_*${backupVault}*_> :tada:"
 fi
