@@ -280,6 +280,9 @@ parameters:
       - subscription: 'HMCTS-SOC-PROD'
         keyvault_name: 'acmehmctssocprod'
         min_cert_exp_days: '14'
+      - subscription: 'DTS-ARCHIVING-PROD'
+        keyvault_name: 'arm-kv-prod'
+        min_cert_exp_days: '14'
   - name: postgres_subscriptions
     type: object
     default:
