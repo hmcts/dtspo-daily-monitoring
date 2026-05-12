@@ -98,6 +98,7 @@ fi
 
 # Configuring the script
 ELASTICSEARCH_HOST="10.96.85.7:9200"
+DLQ_INDEX="ccd-logstash-dead-letter"
 OUTPUT=""
 EMAIL_BODY=""
 
@@ -173,6 +174,20 @@ CASE_TYPE_LIST=(
     "ET_Scotland_Listings"
 )
 
+# The DLQ index is created only after Logstash has failed events to write. During
+# rollout, or when there are no DLQ entries yet, the index may not exist. Treat a
+# missing index as an all-clear rather than failing the daily monitoring job.
+dlq_index_status=$(curl -s -o /dev/null -w "%{http_code}" -X HEAD "$ELASTICSEARCH_HOST/$DLQ_INDEX")
+DLQ_INDEX_EXISTS=true
+
+if [[ "$dlq_index_status" == "404" ]]; then
+    echo "DLQ index '$DLQ_INDEX' does not exist; treating DLQ count as zero."
+    DLQ_INDEX_EXISTS=false
+elif [[ ! "$dlq_index_status" =~ ^2[0-9][0-9]$ ]]; then
+    echo "Error: unable to check DLQ index '$DLQ_INDEX' (HTTP $dlq_index_status)" >&2
+    exit 1
+fi
+
 # Function to send email via SendGrid
 sendEmailNotification() {
     local api_key=$1
@@ -234,38 +249,53 @@ sendEmailNotification() {
     fi
 }
 
-# Process each case type from the array
-for case_type_id in "${CASE_TYPE_LIST[@]}"; do
-    if [[ -n "$case_type_id" ]]; then
-        # Get the DLQ count for the case type
-        dlq_count_breakdown=$(curl -s -X GET "$ELASTICSEARCH_HOST/.logstash_dead_letter/_count" \
-            -H 'Content-Type: application/json' \
-            -d "{\"query\": {\"match_phrase\": {\"failed_case\": \"\\\"case_type_id\\\":\\\"$case_type_id\\\"\"}}}")
+if [[ "$DLQ_INDEX_EXISTS" == "true" ]]; then
+    # Process each case type from the array
+    for case_type_id in "${CASE_TYPE_LIST[@]}"; do
+        if [[ -n "$case_type_id" ]]; then
+            # Get the DLQ count for the case type
+            dlq_count_response=$(curl -s -w "\n%{http_code}" -X GET "$ELASTICSEARCH_HOST/$DLQ_INDEX/_count" \
+                -H 'Content-Type: application/json' \
+                -d "{\"query\": {\"match_phrase\": {\"failed_case\": \"\\\"case_type_id\\\":\\\"$case_type_id\\\"\"}}}")
 
-        count=$(echo "$dlq_count_breakdown" | grep -o '"count":[0-9]*' | cut -d':' -f2)
+            dlq_count_http_code=$(echo "$dlq_count_response" | tail -n1)
+            dlq_count_breakdown=$(echo "$dlq_count_response" | head -n -1)
 
-        # Append the result to the output variable if count > 0
-        if [[ -n "$count" && "$count" -gt 0 ]]; then
-            # Parse JSON response for prettier formatting
-            total_shards=$(echo "$dlq_count_breakdown" | jq -r '._shards.total // "N/A"')
-            successful_shards=$(echo "$dlq_count_breakdown" | jq -r '._shards.successful // "N/A"')
-            skipped_shards=$(echo "$dlq_count_breakdown" | jq -r '._shards.skipped // "N/A"')
-            failed_shards=$(echo "$dlq_count_breakdown" | jq -r '._shards.failed // "N/A"')
+            if [[ "$dlq_count_http_code" == "404" ]]; then
+                echo "DLQ index '$DLQ_INDEX' no longer exists; treating remaining DLQ counts as zero."
+                break
+            elif [[ ! "$dlq_count_http_code" =~ ^2[0-9][0-9]$ ]]; then
+                echo "Error: unable to query DLQ count for case type '$case_type_id' (HTTP $dlq_count_http_code)" >&2
+                echo "Response: $dlq_count_breakdown" >&2
+                exit 1
+            fi
 
-            OUTPUT+=$(printf "\nCase Type ID: %-30s Count: %s" "$case_type_id" "$count")
+            count=$(echo "$dlq_count_breakdown" | sed -n 's/.*"count"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' | head -n1)
+            count=${count:-0}
 
-            # Create prettier email content
-            EMAIL_BODY+="Case Type ID: $case_type_id"$'\n'
-            EMAIL_BODY+="Total Count: $count"$'\n'
-            EMAIL_BODY+="Shards - Total: $total_shards, Successful: $successful_shards, Skipped: $skipped_shards, Failed: $failed_shards"$'\n'
-            EMAIL_BODY+=""$'\n'  # Add blank line for readability
+            # Append the result to the output variable if count > 0
+            if [[ -n "$count" && "$count" -gt 0 ]]; then
+                # Parse JSON response for prettier formatting
+                total_shards=$(echo "$dlq_count_breakdown" | jq -r '._shards.total // "N/A"')
+                successful_shards=$(echo "$dlq_count_breakdown" | jq -r '._shards.successful // "N/A"')
+                skipped_shards=$(echo "$dlq_count_breakdown" | jq -r '._shards.skipped // "N/A"')
+                failed_shards=$(echo "$dlq_count_breakdown" | jq -r '._shards.failed // "N/A"')
 
-            echo "Found $count results for case type: $case_type_id"
-        else
-            echo "No results found for case type: $case_type_id"
+                OUTPUT+=$(printf "\nCase Type ID: %-30s Count: %s" "$case_type_id" "$count")
+
+                # Create prettier email content
+                EMAIL_BODY+="Case Type ID: $case_type_id"$'\n'
+                EMAIL_BODY+="Total Count: $count"$'\n'
+                EMAIL_BODY+="Shards - Total: $total_shards, Successful: $successful_shards, Skipped: $skipped_shards, Failed: $failed_shards"$'\n'
+                EMAIL_BODY+=""$'\n'  # Add blank line for readability
+
+                echo "Found $count results for case type: $case_type_id"
+            else
+                echo "No results found for case type: $case_type_id"
+            fi
         fi
-    fi
-done
+    done
+fi
 
 # Determine status and prepare email content
 STATUS="🔴"
