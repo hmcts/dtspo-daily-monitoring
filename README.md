@@ -27,21 +27,9 @@ If your pipeline name uses underscores, please replace these with spaces or dash
 
 `timeForAmber` and `timeForRed` are the amount of time in days that a pipeline should go without a successful run before showing an amber or red circle in the slack message.
 
-## Testing slack message updates
+## Slack notifications
 
-When you submit a pull request, a direct slack message will be sent to you so you can check the format is working.
-
-When you merge your approved PR, the messages will be sent to the `#dtspo-daily-checks` channel.
-
-Troubleshooting:
-Pipeline returns error similar to:
-/azp/_work/_temp/827dfb97-f0ae-4ff2-9d01-7521c1643fd5.sh: line 1: main_channel: command not found
-getopt: option '--slackChannelName' requires an argument
-
-and you don't recieve a slack message check your Github and Slack Member ID is shown on this list:
-https://raw.githubusercontent.com/hmcts/github-slack-user-mappings/master/slack.json 
-
-If your IDs aren't there add via the guide https://github.com/hmcts/github-slack-user-mappings
+Monitoring alerts are sent to the `#dtspo-daily-checks` channel for all pipeline runs (scheduled, main branch, and pull requests).
 
 ## GitHub workflow
 
