@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -exo pipefail
 
 # Source central functions script
 source scripts/common-functions.sh
@@ -98,8 +98,31 @@ fi
 
 # Configuring the script
 ELASTICSEARCH_HOST="10.96.85.7:9200"
+DLQ_INDEX="ccd-logstash-dead-letter"
 OUTPUT=""
 EMAIL_BODY=""
+
+echo "Checking Elasticsearch DLQ index at ${ELASTICSEARCH_HOST}/${DLQ_INDEX}..."
+index_check_response=$(curl -s -X GET "${ELASTICSEARCH_HOST}/${DLQ_INDEX}/_count")
+
+if [[ -z "$index_check_response" ]]; then
+    echo "ERROR: No response from Elasticsearch at ${ELASTICSEARCH_HOST}" >&2
+    exit 1
+fi
+
+if ! echo "$index_check_response" | jq -e . >/dev/null 2>&1; then
+    echo "ERROR: Elasticsearch returned non-JSON response during index check" >&2
+    echo "$index_check_response" >&2
+    exit 1
+fi
+
+if echo "$index_check_response" | jq -e '.error' >/dev/null 2>&1; then
+    echo "ERROR: Cannot query DLQ index '${DLQ_INDEX}' on ${ELASTICSEARCH_HOST}" >&2
+    echo "$index_check_response" | jq -r '.error | "  \(.type): \(.reason)"' >&2
+    exit 1
+fi
+
+echo "DLQ index check passed (total documents: $(echo "$index_check_response" | jq -r '.count // 0'))"
 
 # Array of case type IDs
 CASE_TYPE_LIST=(
@@ -237,16 +260,24 @@ sendEmailNotification() {
 # Process each case type from the array
 for case_type_id in "${CASE_TYPE_LIST[@]}"; do
     if [[ -n "$case_type_id" ]]; then
-        # Get the DLQ count for the case type
-        dlq_count_breakdown=$(curl -s -X GET "$ELASTICSEARCH_HOST/.logstash_dead_letter/_count" \
+        dlq_count_breakdown=$(curl -s -X GET "${ELASTICSEARCH_HOST}/${DLQ_INDEX}/_count" \
             -H 'Content-Type: application/json' \
-            -d "{\"query\": {\"match_phrase\": {\"failed_case\": \"\\\"case_type_id\\\":\\\"$case_type_id\\\"\"}}}")
+            -d "{\"query\": {\"match_phrase\": {\"failed_case\": \"\\\"case_type_id\\\":\\\"${case_type_id}\\\"\"}}}")
 
-        count=$(echo "$dlq_count_breakdown" | grep -o '"count":[0-9]*' | cut -d':' -f2)
+        if [[ -z "$dlq_count_breakdown" ]] || ! echo "$dlq_count_breakdown" | jq -e . >/dev/null 2>&1; then
+            echo "ERROR: Failed to query DLQ count for case type: ${case_type_id}" >&2
+            exit 1
+        fi
+
+        if echo "$dlq_count_breakdown" | jq -e '.error' >/dev/null 2>&1; then
+            echo "$dlq_count_breakdown" | jq -r '.error | "ERROR: Elasticsearch error (\(.type)): \(.reason)"' >&2
+            exit 1
+        fi
+
+        count=$(echo "$dlq_count_breakdown" | jq -r '.count // 0')
 
         # Append the result to the output variable if count > 0
-        if [[ -n "$count" && "$count" -gt 0 ]]; then
-            # Parse JSON response for prettier formatting
+        if [[ "$count" -gt 0 ]]; then
             total_shards=$(echo "$dlq_count_breakdown" | jq -r '._shards.total // "N/A"')
             successful_shards=$(echo "$dlq_count_breakdown" | jq -r '._shards.successful // "N/A"')
             skipped_shards=$(echo "$dlq_count_breakdown" | jq -r '._shards.skipped // "N/A"')
