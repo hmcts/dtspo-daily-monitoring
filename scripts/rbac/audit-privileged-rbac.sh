@@ -16,7 +16,7 @@ echo "Azure RBAC Privileged Access Audit - All Subscriptions"
 echo "=========================================="
 echo ""
 
-# Output file (date-stamped snapshot; overridable for CI / pipeline artifacts)
+# Output file (timestamped snapshot; overridable for CI / pipeline artifacts)
 OUTPUT_FILE=""
 OUTPUT_DIR=""
 
@@ -24,7 +24,7 @@ usage() {
     cat >&2 <<EOF
 Usage: $0 [--outputFile <path>] [--outputDir <dir>]
   --outputFile <path>  Full path to write the CSV snapshot
-  --outputDir  <dir>   Directory to write rbac-snapshot-<YYYY-MM-DD>.csv into
+  --outputDir  <dir>   Directory to write rbac-snapshot-<YYYY-MM-DDTHHMMSSZ>.csv into
                        (default: current directory)
   -h, --help           Show this help
 EOF
@@ -43,7 +43,7 @@ done
 if [[ -z "$OUTPUT_FILE" ]]; then
     OUTPUT_DIR="${OUTPUT_DIR:-.}"
     mkdir -p "$OUTPUT_DIR"
-    OUTPUT_FILE="${OUTPUT_DIR}/rbac-snapshot-$(date -u +%Y-%m-%d).csv"
+    OUTPUT_FILE="${OUTPUT_DIR}/rbac-snapshot-$(date -u +%Y-%m-%dT%H%M%SZ).csv"
 fi
 
 # Privileged roles to search for

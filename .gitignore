@@ -4,6 +4,5 @@ slack-message.txt
 .idea
 .DS_Store
 rbac-change-status.txt
-rbac-out/rbac-snapshot-2026-06-18.csv
-rbac-out/rbac-snapshot-2026-06-19.csv
+rbac-out/rbac-snapshot-*.csv
 scripts/rbac/allowlist.txt

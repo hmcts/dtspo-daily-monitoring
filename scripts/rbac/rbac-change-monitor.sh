@@ -35,8 +35,8 @@ usage() {
     Detect privileged RBAC changes between two snapshots
     ------------------------------------------------
     Usage: $0
-        [ --currentFile <path> | --currentDir <dir> ]    # today's snapshot CSV (or dir to glob)
-        [ --baselineFile <path> | --baselineDir <dir> ]  # prior snapshot CSV (or dir to glob)
+        [ --currentFile <path> | --currentDir <dir> ]    # latest snapshot CSV (or dir; picks newest)
+        [ --baselineFile <path> | --baselineDir <dir> ]  # prior snapshot CSV (default: previous-latest in current dir)
         [ -o | --outputFile <path> ]                     # report file (default: rbac-change-status.txt)
         [ -w | --windowDays <n> ]                        # window size, for the message text (default: 2)
         [ -a | --allowlistFile <path> ]                  # principals allowed to self-add (default: <script dir>/allowlist.txt)
@@ -59,23 +59,33 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Resolve a snapshot path from an explicit file or by globbing the newest
-# rbac-snapshot-*.csv in a directory (ISO date names sort chronologically).
+# Resolve a snapshot path from an explicit file, or by globbing a directory for
+# rbac-snapshot-*.csv files (timestamped names sort chronologically). 'rank'
+# selects which file, counting back from the newest: 1 = latest, 2 = previous
+# latest, and so on. Returns empty if no file matches that rank.
 resolve_csv() {
-    local file="$1" dir="$2" match=""
+    local file="$1" dir="$2" rank="${3:-1}" match=""
     if [[ -n "$file" ]]; then
         printf '%s' "$file"
         return 0
     fi
     if [[ -n "$dir" ]]; then
-        match=$(ls -1 "$dir"/rbac-snapshot-*.csv 2>/dev/null | LC_ALL=C sort | tail -n 1 || true)
+        match=$(ls -1 "$dir"/rbac-snapshot-*.csv 2>/dev/null | LC_ALL=C sort -r | sed -n "${rank}p" || true)
         printf '%s' "$match"
     fi
     return 0
 }
 
-CURRENT_CSV="$(resolve_csv "$currentFile" "$currentDir")"
-BASELINE_CSV="$(resolve_csv "$baselineFile" "$baselineDir")"
+# Current snapshot: an explicit file, else the latest snapshot in the directory.
+CURRENT_CSV="$(resolve_csv "$currentFile" "$currentDir" 1)"
+
+# Baseline snapshot: an explicit file/dir wins; otherwise fall back to the
+# "previous latest" (second-newest) snapshot in the current directory.
+if [[ -n "$baselineFile" || -n "$baselineDir" ]]; then
+    BASELINE_CSV="$(resolve_csv "$baselineFile" "$baselineDir" 1)"
+else
+    BASELINE_CSV="$(resolve_csv "" "$currentDir" 2)"
+fi
 
 # Always create the report file so the downstream sender's `cat` never fails.
 : > "$outputFile"
