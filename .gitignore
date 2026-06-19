@@ -3,3 +3,8 @@ slack-message.txt
 *.iml
 .idea
 .DS_Store
+rbac-change-status.txt
+pipelines/rbac-privileged-change-detection.yml
+rbac-out/rbac-snapshot-2026-06-18.csv
+rbac-out/rbac-snapshot-2026-06-19.csv
+scripts/rbac/allowlist.txt
