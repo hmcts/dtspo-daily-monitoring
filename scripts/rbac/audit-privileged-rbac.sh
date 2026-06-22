@@ -1,6 +1,6 @@
 # Azure Privileged RBAC Role Audit Script
 # Purpose: Identify all principals (users, service principals, managed identities, groups)
-#          with priv admin roles we are concerned about
+#          with priv admin roles directly assigned or inherited transitively 
 # Scope: All non-sandbox subscriptions
 # Excludes: Sandbox environments
 
@@ -10,6 +10,85 @@ set -e
 sanitize_json() {
     python3 -c "import sys,re; sys.stdout.write(re.sub(r'[\\x00-\\x1f]', '', sys.stdin.read()))"
 }
+
+# Read all pages from a Microsoft Graph collection endpoint and return one JSON array.
+graph_list_all() {
+    local url="$1"
+    local tmp_file=""
+    local response=""
+    local next_link=""
+
+    tmp_file="$(mktemp)"
+    next_link="$url"
+
+    while [[ -n "$next_link" ]]; do
+        response=$(az rest --method GET --url "$next_link" -o json 2>/dev/null | sanitize_json || echo '{"value":[]}')
+        if ! echo "$response" | jq -e . >/dev/null 2>&1; then
+            rm -f "$tmp_file"
+            echo "[]"
+            return 0
+        fi
+
+        echo "$response" | jq -c '.value[]?' >> "$tmp_file"
+        next_link=$(echo "$response" | jq -r '."@odata.nextLink" // empty')
+    done
+
+    if [[ -s "$tmp_file" ]]; then
+        jq -s '.' "$tmp_file"
+    else
+        echo "[]"
+    fi
+    rm -f "$tmp_file"
+}
+
+# Emit an inherited effective-permission row once per unique key.
+emit_inherited_row_once() {
+    local dedupe_file="$1"
+    local dedupe_key="$2"
+    local principal_id="$3"
+    local role_def_id="$4"
+    local display_name="$5"
+    local identifier="$6"
+    local identity_type="$7"
+    local role_name="$8"
+    local duration_type="$9"
+    local expires_on="${10}"
+    local scope="${11}"
+    local scope_type="${12}"
+    local sub_name="${13}"
+    local sub_id="${14}"
+    local assignment_id="${15}"
+    local assignment_source="${16}"
+    local inherited_group_id="${17}"
+    local inherited_group_name="${18}"
+
+    if grep -Fqx "$dedupe_key" "$dedupe_file" 2>/dev/null; then
+        return 0
+    fi
+    echo "$dedupe_key" >> "$dedupe_file"
+
+    printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+        "$(csv_field "$principal_id")" \
+        "$(csv_field "$role_def_id")" \
+        "$(csv_field "$display_name")" \
+        "$(csv_field "$identifier")" \
+        "$(csv_field "$identity_type")" \
+        "$(csv_field "$role_name")" \
+        "$(csv_field "$duration_type")" \
+        "$(csv_field "$expires_on")" \
+        "$(csv_field "$scope")" \
+        "$(csv_field "$scope_type")" \
+        "$(csv_field "$sub_name")" \
+        "$(csv_field "$sub_id")" \
+        "$(csv_field "$assignment_id")" \
+        "$(csv_field "$assignment_source")" \
+        "$(csv_field "$inherited_group_id")" \
+        "$(csv_field "$inherited_group_name")" \
+        >> "$OUTPUT_FILE"
+}
+
+# Escape any commas or double-quotes in fields for CSV safety.
+csv_field() { echo "$1" | sed 's/"/""/g' | awk '{print "\"" $0 "\"";}'; }
 
 echo "=========================================="
 echo "Azure RBAC Privileged Access Audit - All Subscriptions"
@@ -87,7 +166,14 @@ echo "Starting audit..."
 echo ""
 
 # Write CSV header
-echo "PrincipalId,RoleDefinitionId,DisplayName,Identifier,IdentityType,RoleName,DurationType,ExpiresOn,Scope,ScopeType,SubscriptionName,SubscriptionId,AssignmentId" > "$OUTPUT_FILE"
+echo "PrincipalId,RoleDefinitionId,DisplayName,Identifier,IdentityType,RoleName,DurationType,ExpiresOn,Scope,ScopeType,SubscriptionName,SubscriptionId,AssignmentId,AssignmentSource,InheritedFromGroupId,InheritedFromGroupName" > "$OUTPUT_FILE"
+
+# De-dup effective inherited rows (Bash 3.2-safe; no associative arrays).
+INHERITED_DEDUPE_FILE="$(mktemp)"
+cleanup() {
+    rm -f "$INHERITED_DEDUPE_FILE"
+}
+trap cleanup EXIT
 
 # Counter for progress
 CURRENT=0
@@ -213,11 +299,8 @@ echo "$SUBSCRIPTIONS" | jq -c '.[]' | while read -r sub; do
 
                 echo "  ✓ Found: [$IDENTITY_TYPE] $DISPLAY_NAME → $ROLE_NAME ($DURATION_TYPE${EXPIRES_ON:+, expires: $EXPIRES_ON}) at $SCOPE_TYPE"
 
-                # Escape any commas or double-quotes in fields for CSV safety
-                csv_field() { echo "$1" | sed 's/"/""/g' | awk '{print "\"" $0 "\"";}'; }
-
-                # Write CSV row
-                printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+                # Write direct-assignment CSV row
+                printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
                     "$(csv_field "$PRINCIPAL_ID")" \
                     "$(csv_field "$ROLE_DEF_ID")" \
                     "$(csv_field "$DISPLAY_NAME")" \
@@ -231,7 +314,112 @@ echo "$SUBSCRIPTIONS" | jq -c '.[]' | while read -r sub; do
                     "$(csv_field "$SUB_NAME")" \
                     "$(csv_field "$SUB_ID")" \
                     "$(csv_field "$ASSIGNMENT_ID")" \
+                    "$(csv_field "Direct")" \
+                    "$(csv_field "")" \
+                    "$(csv_field "")" \
                     >> "$OUTPUT_FILE"
+
+                # Expand group role assignments into effective inherited permissions:
+                # 1) transitive members (includes nested groups/users/SPs)
+                # 2) group owners
+                if [[ "$PRINCIPAL_TYPE" == "Group" ]]; then
+                    TRANSITIVE_MEMBERS=$(graph_list_all "https://graph.microsoft.com/v1.0/groups/${PRINCIPAL_ID}/transitiveMembers")
+                    GROUP_OWNERS=$(graph_list_all "https://graph.microsoft.com/v1.0/groups/${PRINCIPAL_ID}/owners")
+
+                    if ! echo "$TRANSITIVE_MEMBERS" | jq -e . >/dev/null 2>&1; then
+                        echo "  Warning: could not parse transitive members for group '$DISPLAY_NAME' ($PRINCIPAL_ID)"
+                    else
+                        echo "$TRANSITIVE_MEMBERS" | jq -c '.[]' | while read -r member; do
+                            MEMBER_ID=$(echo "$member" | jq -r '.id // empty')
+                            [[ -z "$MEMBER_ID" ]] && continue
+
+                            MEMBER_ODATA=$(echo "$member" | jq -r '."@odata.type" // ""')
+                            MEMBER_NAME=$(echo "$member" | jq -r '.displayName // "Unknown"')
+                            MEMBER_IDENTIFIER="N/A"
+                            MEMBER_IDENTITY_TYPE="Unknown"
+
+                            if [[ "$MEMBER_ODATA" == *"user"* ]]; then
+                                MEMBER_IDENTITY_TYPE="User"
+                                MEMBER_IDENTIFIER=$(echo "$member" | jq -r '.userPrincipalName // "Unknown"')
+                            elif [[ "$MEMBER_ODATA" == *"servicePrincipal"* ]]; then
+                                MEMBER_IDENTITY_TYPE="ServicePrincipal"
+                                MEMBER_IDENTIFIER=$(echo "$member" | jq -r '.appId // "N/A"')
+                            elif [[ "$MEMBER_ODATA" == *"group"* ]]; then
+                                MEMBER_IDENTITY_TYPE="Group"
+                            fi
+
+                            echo "  ↳ Effective(transitive): [$MEMBER_IDENTITY_TYPE] $MEMBER_NAME inherits $ROLE_NAME via group $DISPLAY_NAME"
+
+                            DEDUPE_KEY="${MEMBER_ID}|${ROLE_DEF_ID}|${SCOPE}|transitive|${PRINCIPAL_ID}"
+                            emit_inherited_row_once \
+                                "$INHERITED_DEDUPE_FILE" \
+                                "$DEDUPE_KEY" \
+                                "$MEMBER_ID" \
+                                "$ROLE_DEF_ID" \
+                                "$MEMBER_NAME" \
+                                "$MEMBER_IDENTIFIER" \
+                                "$MEMBER_IDENTITY_TYPE" \
+                                "$ROLE_NAME" \
+                                "$DURATION_TYPE" \
+                                "$EXPIRES_ON" \
+                                "$SCOPE" \
+                                "$SCOPE_TYPE" \
+                                "$SUB_NAME" \
+                                "$SUB_ID" \
+                                "${ASSIGNMENT_ID}|via:${PRINCIPAL_ID}" \
+                                "InheritedGroupTransitiveMember" \
+                                "$PRINCIPAL_ID" \
+                                "$DISPLAY_NAME"
+                        done
+                    fi
+
+                    if ! echo "$GROUP_OWNERS" | jq -e . >/dev/null 2>&1; then
+                        echo "  Warning: could not parse owners for group '$DISPLAY_NAME' ($PRINCIPAL_ID)"
+                    else
+                        echo "$GROUP_OWNERS" | jq -c '.[]' | while read -r owner; do
+                            OWNER_ID=$(echo "$owner" | jq -r '.id // empty')
+                            [[ -z "$OWNER_ID" ]] && continue
+
+                            OWNER_ODATA=$(echo "$owner" | jq -r '."@odata.type" // ""')
+                            OWNER_NAME=$(echo "$owner" | jq -r '.displayName // "Unknown"')
+                            OWNER_IDENTIFIER="N/A"
+                            OWNER_IDENTITY_TYPE="Unknown"
+
+                            if [[ "$OWNER_ODATA" == *"user"* ]]; then
+                                OWNER_IDENTITY_TYPE="User"
+                                OWNER_IDENTIFIER=$(echo "$owner" | jq -r '.userPrincipalName // "Unknown"')
+                            elif [[ "$OWNER_ODATA" == *"servicePrincipal"* ]]; then
+                                OWNER_IDENTITY_TYPE="ServicePrincipal"
+                                OWNER_IDENTIFIER=$(echo "$owner" | jq -r '.appId // "N/A"')
+                            elif [[ "$OWNER_ODATA" == *"group"* ]]; then
+                                OWNER_IDENTITY_TYPE="Group"
+                            fi
+
+                            echo "  ↳ Effective(owner): [$OWNER_IDENTITY_TYPE] $OWNER_NAME can control group $DISPLAY_NAME with $ROLE_NAME"
+
+                            DEDUPE_KEY="${OWNER_ID}|${ROLE_DEF_ID}|${SCOPE}|owner|${PRINCIPAL_ID}"
+                            emit_inherited_row_once \
+                                "$INHERITED_DEDUPE_FILE" \
+                                "$DEDUPE_KEY" \
+                                "$OWNER_ID" \
+                                "$ROLE_DEF_ID" \
+                                "$OWNER_NAME" \
+                                "$OWNER_IDENTIFIER" \
+                                "$OWNER_IDENTITY_TYPE" \
+                                "$ROLE_NAME" \
+                                "$DURATION_TYPE" \
+                                "$EXPIRES_ON" \
+                                "$SCOPE" \
+                                "$SCOPE_TYPE" \
+                                "$SUB_NAME" \
+                                "$SUB_ID" \
+                                "${ASSIGNMENT_ID}|owner-of:${PRINCIPAL_ID}" \
+                                "InheritedGroupOwner" \
+                                "$PRINCIPAL_ID" \
+                                "$DISPLAY_NAME"
+                        done
+                    fi
+                fi
                 
                 break
             fi
