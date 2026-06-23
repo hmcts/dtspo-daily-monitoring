@@ -6,3 +6,5 @@ slack-message.txt
 rbac-change-status.txt
 rbac-out/rbac-snapshot-*.csv
 scripts/rbac/allowlist.txt
+rbac-snapshot*.csv
+rbac-snapshot*.json

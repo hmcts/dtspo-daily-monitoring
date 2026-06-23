@@ -4,10 +4,12 @@
 # notifies Slack only when something changed (new permanent / added Owner /
 # User Access Administrator => red, other add/remove/elevation => amber).
 #
-# Ported from cpp-ops-daily-monitoring. dtspo differences vs cpp:
-#   * Slack bot token comes from Key Vault (AzureKeyVault@2), not a variable group.
-#   * Runs on hmcts-cftptl-agent-pool and posts to #dtspo-daily-checks.
-#   * Audit identity is the dts-management-prod-intsvc service connection.
+# NOTE: the service connection identity must have RBAC *read* (e.g. Reader)
+# across every in-scope subscription / management group to be audited.
+# * this only serves to monitor permission creep, it is not thorough enough to provide
+#   defense in the case of malicious elevation, as there are a few loopholes. Elevation 
+#   notification email should continue to be monitored as usual
+
 ---
 name: Privileged RBAC change detection (2-day)
 trigger: none
@@ -27,10 +29,8 @@ variables:
     value:  "dtspo-daily-checks"
   - name: windowDays
     value: 2
-  # Audit identity: must have RBAC *read* (e.g. Reader) across every in-scope
-  # subscription / management group AND Microsoft Graph directory read
-  # (e.g. Directory.Read.All) so principal display names resolve.
   - name: azureServiceConnection
+  # this doesn't have the read permission for PIM access, which we're not trying to monitor
     value: "dts-management-prod-intsvc"
   # Key Vault holding the Slack bot token (same KV the main daily pipeline uses).
   - name: keyVaultServiceConnection
@@ -52,9 +52,6 @@ jobs:
           keyVaultName: $(keyVaultName)
           secretsFilter: 'dtspo-daily-checks-slack-bot-token'
 
-      # NOTE: the service connection identity must have RBAC *read* (e.g. Reader)
-      # across every in-scope subscription / management group to be audited.
-      # todo check
       - task: AzureCLI@2
         displayName: 'Audit privileged RBAC assignments'
         inputs:
@@ -82,6 +79,7 @@ jobs:
           script: |
             set -euo pipefail
             MAX_TIME=$(date -u -d "$(windowDays) days ago" +%Y-%m-%dT%H:%M:%SZ)
+            # only returns baselines from SUCCESSFUL and COMPLETED runs
             URL="$(System.CollectionUri)$(System.TeamProjectId)/_apis/build/builds?definitions=$(System.DefinitionId)&resultFilter=succeeded&statusFilter=completed&queryOrder=finishTimeDescending&maxTime=${MAX_TIME}&\$top=1&api-version=7.1"
             echo "Querying successful builds finished on/before ${MAX_TIME}"
             RESP=$(curl -sS -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" "$URL")
@@ -106,7 +104,7 @@ jobs:
           pipelineId: $(baseline.buildId)
           artifactName: rbac-snapshot
           targetPath: $(Pipeline.Workspace)/baseline
-
+#todo
       - task: Bash@3
         displayName: 'Detect privileged RBAC changes'
         condition: and(succeeded(), eq(variables['baseline.found'], 'true'))

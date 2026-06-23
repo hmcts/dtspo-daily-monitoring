@@ -258,10 +258,12 @@ COVERAGE_FAIL_FILE="$(mktemp)"    # "SubscriptionId|SubscriptionName" per line: 
 WORK_DIR="$(mktemp -d)"
 
 # Max subscriptions to audit concurrently. Bounded to limit Azure CLI / Microsoft
-# Graph throttling (429s would otherwise silently thin out group expansions).
-# Override with RBAC_MAX_PARALLEL.
-MAX_PARALLEL="${RBAC_MAX_PARALLEL:-6}"
-case "$MAX_PARALLEL" in ''|*[!0-9]*) MAX_PARALLEL=6 ;; esac
+# Graph throttling (429s would otherwise silently thin out group expansions) and
+# to avoid starving the CI agent of CPU/memory/network (too many concurrent `az`
+# workers can make the DevOps agent miss heartbeats and drop the job). Override
+# with RBAC_MAX_PARALLEL.
+MAX_PARALLEL="${RBAC_MAX_PARALLEL:-4}"
+case "$MAX_PARALLEL" in ''|*[!0-9]*) MAX_PARALLEL=4 ;; esac
 [[ "$MAX_PARALLEL" -lt 1 ]] && MAX_PARALLEL=1
 
 cleanup() {
