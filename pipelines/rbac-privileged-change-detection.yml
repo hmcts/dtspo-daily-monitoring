@@ -60,7 +60,7 @@ jobs:
         inputs:
           azureSubscription: $(azureServiceConnection)
           scriptType: bash
-          scriptPath: scripts/rbac/audit-privileged-rbac.sh
+          scriptPath: scripts/rbac/audit-privileged-rbac-p.sh
           arguments: >
             --outputDir $(Build.ArtifactStagingDirectory)
 
