@@ -124,6 +124,7 @@ CURRENT_META="$CURRENT_META" BASELINE_META="$BASELINE_META" python3 - >> "$outpu
 import csv
 import json
 import os
+from collections import defaultdict
 
 RED_ROLES = {
     "Owner",
@@ -269,9 +270,54 @@ coverage, dropped_subs = coverage_report(cur_meta, base_meta)
 
 red, yellow, info = [], [], []
 
-for key, r in sorted(current.items()):
+
+def row_is_red(r):
+    return r.get("DurationType", "") == "Permanent" or r.get("RoleName", "") in RED_ROLES
+
+
+def who_label(r):
+    name = r.get("DisplayName") or "Unknown"
+    ident = r.get("Identifier") or ""
+    who = f"{name} ({ident})" if ident and ident not in ("N/A", "Unknown") else name
+    return f"[{r.get('IdentityType', '')}] {who}"
+
+
+def group_summary(verb, rows):
+    # Collapse many inherited rows for one (principal, group) pair into a single
+    # Slack line, so a membership change that grants/revokes dozens of role
+    # assignments produces ONE notification instead of one per role/scope.
+    rep = rows[0]
+    gname = rep.get("InheritedFromGroupName", "") or rep.get("InheritedFromGroupId", "") or "unknown group"
+    sources = sorted({r.get("AssignmentSource", "") for r in rows if r.get("AssignmentSource")})
+    roles = sorted({r.get("RoleName", "") for r in rows if r.get("RoleName")})
+    sub_ids = {r.get("SubscriptionId", "") for r in rows if r.get("SubscriptionId")}
+    role_cap = 8
+    roles_disp = ", ".join(roles[:role_cap])
+    if len(roles) > role_cap:
+        roles_disp += f", +{len(roles) - role_cap} more"
+    via = ", ".join(sources) if sources else "group"
+    across = f" across {len(sub_ids)} subscription(s)" if sub_ids else ""
+    return (
+        f"{who_label(rep)} {verb} {len(rows)} privileged assignment(s) via group "
+        f"\"{gname}\"{across} ({via}); roles: {roles_disp}"
+    )
+
+
+# Partition the added set: Direct assignments stay per-row (genuine individual
+# changes); inherited group rows are aggregated per (principal, group) so one
+# membership change is one notification, not ~50.
+added_direct = []
+added_groups = defaultdict(list)
+for key, r in current.items():
     if key in baseline:
         continue
+    gid = r.get("InheritedFromGroupId", "") or ""
+    if gid:
+        added_groups[(r.get("PrincipalId", ""), gid)].append(r)
+    else:
+        added_direct.append(r)
+
+for r in added_direct:
     duration = r.get("DurationType", "")
     role = r.get("RoleName", "")
     if is_allowlisted(r, allow):
@@ -282,15 +328,44 @@ for key, r in sorted(current.items()):
     else:
         yellow.append(f":yellow_circle: *ADDED* {label(r)} ({duration})")
 
-for key, r in sorted(baseline.items()):
-    if key not in current:
-        if r.get("SubscriptionId", "") in dropped_subs:
-            # The whole subscription wasn't audited this run; this is a coverage
-            # gap (already flagged red above), not a genuine role removal.
-            continue
-        yellow.append(f":yellow_circle: *REMOVED* {label(r)} ({r.get('DurationType', '')})")
+for _pidgid, rows in added_groups.items():
+    rep = rows[0]
+    if is_allowlisted(rep, allow):
+        info.append(f":white_check_mark: *ALLOWLISTED GROUP-INHERITED ADD* {group_summary('gained', rows)}")
+    elif any(row_is_red(r) for r in rows):
+        red.append(f":red_circle: *GROUP-INHERITED ADD* {group_summary('gained', rows)}")
+    else:
+        yellow.append(f":yellow_circle: *GROUP-INHERITED ADD* {group_summary('gained', rows)}")
 
-for key, cur in sorted(current.items()):
+# Partition the removed set the same way. Rows in subscriptions not audited this
+# run (dropped_subs) are excluded so a coverage gap is never mistaken for a
+# membership removal.
+removed_direct = []
+removed_groups = defaultdict(list)
+for key, r in baseline.items():
+    if key in current:
+        continue
+    if r.get("SubscriptionId", "") in dropped_subs:
+        continue
+    gid = r.get("InheritedFromGroupId", "") or ""
+    if gid:
+        removed_groups[(r.get("PrincipalId", ""), gid)].append(r)
+    else:
+        removed_direct.append(r)
+
+for r in removed_direct:
+    yellow.append(f":yellow_circle: *REMOVED* {label(r)} ({r.get('DurationType', '')})")
+
+for _pidgid, rows in removed_groups.items():
+    rep = rows[0]
+    if is_allowlisted(rep, allow):
+        info.append(f":white_check_mark: *ALLOWLISTED GROUP-INHERITED REMOVE* {group_summary('lost', rows)}")
+    else:
+        yellow.append(f":yellow_circle: *GROUP-INHERITED REMOVE* {group_summary('lost', rows)}")
+
+# Elevation (Temporary -> Permanent) stays per-row: it is a property change on a
+# specific assignment key, not a membership add/remove.
+for key, cur in current.items():
     base = baseline.get(key)
     if not base:
         continue
@@ -306,6 +381,9 @@ for key, cur in sorted(current.items()):
                 f"(was {base.get('DurationType', '')})"
             )
 
+red.sort()
+yellow.sort()
+info.sort()
 lines = coverage + red + yellow + info
 if lines:
     print("\n".join(lines))
