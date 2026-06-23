@@ -652,6 +652,52 @@ while read -r sub; do
 done < "$SUBS_NDJSON"
 wait
 
+# --- Retry transient subscription failures -----------------------------------
+# Some audits fail for transient reasons (Graph/ARM throttling, a momentary
+# connectivity blip) rather than a genuine permission or existence problem.
+# Re-attempt any failed subscription a bounded number of times, with a short
+# backoff, before finally recording it as a coverage failure. Permanent failures
+# (e.g. SubscriptionNotFound) simply fail again and are recorded as before, so
+# this never masks a real coverage gap -- it only rescues recoverable ones.
+# Override attempts with RBAC_RETRY_ATTEMPTS (0 disables) and the backoff seconds
+# with RBAC_RETRY_DELAY.
+RETRY_ATTEMPTS="${RBAC_RETRY_ATTEMPTS:-2}"
+case "$RETRY_ATTEMPTS" in ''|*[!0-9]*) RETRY_ATTEMPTS=2 ;; esac
+RETRY_DELAY="${RBAC_RETRY_DELAY:-15}"
+case "$RETRY_DELAY" in ''|*[!0-9]*) RETRY_DELAY=15 ;; esac
+
+RETRY_ROUND=1
+while [[ "$RETRY_ATTEMPTS" -gt 0 && -s "$COVERAGE_FAIL_FILE" && "$RETRY_ROUND" -le "$RETRY_ATTEMPTS" ]]; do
+    # Snapshot the current failures (ids only), then clear the fail list so this
+    # round re-records only those that fail again. Subscriptions that succeed on
+    # retry are appended to the OK list by run_one and merged normally.
+    RETRY_IDS=$(cut -d'|' -f1 "$COVERAGE_FAIL_FILE")
+    RETRY_COUNT=$(printf '%s\n' "$RETRY_IDS" | grep -c . || true)
+    : > "$COVERAGE_FAIL_FILE"
+
+    echo ""
+    echo "Retry round ${RETRY_ROUND}/${RETRY_ATTEMPTS}: re-auditing ${RETRY_COUNT} failed subscription(s) after ${RETRY_DELAY}s backoff..."
+    sleep "$RETRY_DELAY"
+
+    LAUNCHED=0
+    while read -r rsid; do
+        [[ -z "$rsid" ]] && continue
+        # Recover the full subscription JSON for this id from the ndjson list.
+        rsub=$(jq -c --arg id "$rsid" 'select(.id == $id)' "$SUBS_NDJSON" | head -n 1)
+        if [[ -z "$rsub" ]]; then
+            echo "${rsid}|" >> "$COVERAGE_FAIL_FILE"
+            continue
+        fi
+        run_one "$rsub" &
+        LAUNCHED=$((LAUNCHED + 1))
+        if [[ $((LAUNCHED % MAX_PARALLEL)) -eq 0 ]]; then
+            wait
+        fi
+    done <<< "$RETRY_IDS"
+    wait
+    RETRY_ROUND=$((RETRY_ROUND + 1))
+done
+
 # Print each worker's buffered log in stable subscription order (parallel output
 # would otherwise interleave unreadably).
 echo "$SUBSCRIPTIONS" | jq -r '.[].id' | while read -r sid; do

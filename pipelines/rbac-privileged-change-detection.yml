@@ -24,6 +24,16 @@ pr: none
 #         - master
 #     always: true
 
+resources:
+  repositories:
+    # IaC source of truth for PIM-eligible Entra ID groups. Checked out read-only
+    # so the change monitor can flag any alerting group that ISN'T declared as code.
+    - repository: cnpAzureEntraPim
+      type: github
+      name: hmcts/cnp-azure-entra-pim
+      ref: refs/heads/master
+      endpoint: 'hmcts'
+
 variables:
   - name: slackChannelName
     value:  "dtspo-daily-checks"
@@ -45,6 +55,15 @@ jobs:
     pool:
       name: 'hmcts-cftptl-agent-pool'
     steps:
+      # Explicit multi-repo checkout. Pinning paths keeps `self` at
+      # $(Build.SourcesDirectory) so every existing relative path still resolves,
+      # and places the IaC repo in a sibling folder we read group names from.
+      - checkout: self
+        path: s
+      - checkout: cnpAzureEntraPim
+        path: iac-pim
+        clean: true
+
       - task: AzureKeyVault@2
         displayName: 'Get Slack bot token from Key Vault'
         inputs:
@@ -104,6 +123,29 @@ jobs:
           pipelineId: $(baseline.buildId)
           artifactName: rbac-snapshot
           targetPath: $(Pipeline.Workspace)/baseline
+      # Extract the display names of IaC-managed PIM groups from the checked-out
+      # cnp-azure-entra-pim repo. The monitor flags any alerting group NOT in this
+      # list with an asterisk. Fails open: if the tfvars is missing we write an
+      # empty list (no flagging) rather than break change detection.
+      - task: Bash@3
+        displayName: 'Extract IaC-managed group names'
+        condition: and(succeeded(), eq(variables['baseline.found'], 'true'))
+        inputs:
+          targetType: inline
+          script: |
+            set -euo pipefail
+            TFVARS="$(Agent.BuildDirectory)/iac-pim/users/pim-eligible/groups.tfvars"
+            OUT="$(Build.SourcesDirectory)/iac-managed-groups.txt"
+            if [[ ! -f "$TFVARS" ]]; then
+              echo "WARNING: IaC tfvars not found at $TFVARS; group enrichment disabled this run." >&2
+              : > "$OUT"
+              exit 0
+            fi
+            grep -oE 'display_name[[:space:]]*=[[:space:]]*"[^"]+"' "$TFVARS" \
+              | sed -E 's/.*"([^"]+)".*/\1/' \
+              | sort -u > "$OUT"
+            echo "Extracted $(wc -l < "$OUT") IaC-managed group name(s)."
+
 #todo
       - task: Bash@3
         displayName: 'Detect privileged RBAC changes'
@@ -117,6 +159,19 @@ jobs:
             --baselineDir $(Pipeline.Workspace)/baseline
             --outputFile $(Build.SourcesDirectory)/rbac-change-status.txt
             --windowDays $(windowDays)
+            --iacGroupsFile $(Build.SourcesDirectory)/iac-managed-groups.txt
+
+      # Publish the diff report as a downloadable artifact BEFORE notifying Slack, so
+      # the exact Slack-bound message can be inspected in the run for troubleshooting
+      # (e.g. when a notification looks wrong or no alert fired). Runs even if the
+      # detect step failed so a partial/empty report is still captured for diagnosis.
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish RBAC change report artifact'
+        condition: and(always(), eq(variables['baseline.found'], 'true'))
+        inputs:
+          targetPath: $(Build.SourcesDirectory)/rbac-change-status.txt
+          artifact: rbac-change-report
+          publishLocation: pipeline
 
       - task: Bash@3
         displayName: 'Send RBAC change notification'

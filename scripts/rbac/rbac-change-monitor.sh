@@ -15,7 +15,8 @@
 #   :white_check_mark: allowlisted principal self-adding / self-elevating
 #                   (informational only; never triggers a notification on its own)
 #
-
+# design hinges on the snapshot filenames being sortable UTC timestamps 
+# the manifests sitting beside them with the exact .meta.json extension
 
 ### Setup script environment
 set -euo pipefail
@@ -29,6 +30,7 @@ baselineDir=""
 outputFile="rbac-change-status.txt"
 windowDays="2"
 allowlistFile="${SCRIPT_DIR}/allowlist.txt"
+iacGroupsFiles=()
 
 usage() {
 >&2 cat << EOF
@@ -39,8 +41,9 @@ usage() {
         [ --currentFile <path> | --currentDir <dir> ]    # latest snapshot CSV (or dir; picks newest)
         [ --baselineFile <path> | --baselineDir <dir> ]  # prior snapshot CSV (default: previous-latest in current dir)
         [ -o | --outputFile <path> ]                     # report file (default: rbac-change-status.txt)
-        [ -w | --windowDays <n> ]                        # window size, for the message text (default: 2)
+        [ -w | --windowDays <n> ]                        # window size, to compare current run against (default: 2)
         [ -a | --allowlistFile <path> ]                  # principals allowed to self-add (default: <script dir>/allowlist.txt)
+        [ --iacGroupsFile <path> ]                       # file of IaC-declared group display names (repeatable); alerting groups not listed are flagged with *
         [ -h | --help ]
 EOF
 exit 1
@@ -55,6 +58,7 @@ while [[ $# -gt 0 ]]; do
         -o|--outputFile) outputFile="$2";  shift 2 ;;
         -w|--windowDays) windowDays="$2";  shift 2 ;;
         -a|--allowlistFile) allowlistFile="$2"; shift 2 ;;
+        --iacGroupsFile) iacGroupsFiles+=("$2"); shift 2 ;;
         -h|--help) usage ;;
         *) echo "Unknown option: $1" >&2; usage ;;
     esac
@@ -110,7 +114,17 @@ else
     echo "  allowlist: (none found at $allowlistFile)"
 fi
 
-# Coverage manifests (C2) sit next to each snapshot (same stem, .meta.json) and
+# Join Access Pkgs tf IaC repo's group-list files (colon-separated) for the diff. 
+# The report flags any alerting group whose display name is absent from these
+# as not-IaC-managed. Perm changes to IaC managed AP group members is more likely to 
+# be legitimate
+IAC_GROUPS_FILES=""
+if [[ ${#iacGroupsFiles[@]} -gt 0 ]]; then
+    IAC_GROUPS_FILES=$(IFS=:; printf '%s' "${iacGroupsFiles[*]}")
+    echo "  iac groups: $IAC_GROUPS_FILES"
+fi
+
+# Subscription coverage manifests sit next to each snapshot (same stem, .meta.json) and
 # record which subscriptions were actually audited. They let us tell a genuinely
 # shrunken snapshot apart from one that is merely incomplete, and surface a
 # broken/partial audit as a loud alert instead of silent "no changes".
@@ -118,14 +132,16 @@ CURRENT_META="${CURRENT_CSV%.csv}.meta.json"
 BASELINE_META="${BASELINE_CSV%.csv}.meta.json"
 
 # The CSV is quoted (fields may contain commas), so parse it with Python's csv
-# module rather than awk. Emit Slack-ready lines to the report file.
+# module. Emit Slack-ready lines to the report file.
+# pass envvar vars into python
 CURRENT_CSV="$CURRENT_CSV" BASELINE_CSV="$BASELINE_CSV" ALLOWLIST_FILE="$allowlistFile" \
-CURRENT_META="$CURRENT_META" BASELINE_META="$BASELINE_META" python3 - >> "$outputFile" <<'PY'
+CURRENT_META="$CURRENT_META" BASELINE_META="$BASELINE_META" IAC_GROUPS_FILES="$IAC_GROUPS_FILES" \
+python3 - >> "$outputFile" <<'PY'
 import csv
 import json
 import os
 from collections import defaultdict
-
+# keep updated with RBAC privileged adm roles 
 RED_ROLES = {
     "Owner",
     "Contributor",
@@ -174,6 +190,27 @@ def load_allowlist(path):
     return entries
 
 
+def load_iac_groups(joined):
+    # Display names of groups declared in IaC (Terraform), loaded from one or more
+    # colon-separated files (one name per line; '#' full-line comments and blanks
+    # ignored). A group whose name is NOT in this set is flagged with an asterisk
+    # in the report. An empty set disables flagging entirely, so a missing/empty
+    # source never turns every group into a false 'unmanaged' alert.
+    names = set()
+    if not joined:
+        return names
+    for path in joined.split(os.pathsep):
+        path = path.strip()
+        if not path or not os.path.isfile(path):
+            continue
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                s = line.strip()
+                if not s or s.startswith("#"):
+                    continue
+                names.add(s.lower())
+    return names
+
 def is_allowlisted(r, allow):
     if not allow:
         return False
@@ -185,14 +222,18 @@ def is_allowlisted(r, allow):
 
 
 def label(r):
+    # builds slack line
     name = r.get("DisplayName") or "Unknown"
     ident = r.get("Identifier") or ""
     who = f"{name} ({ident})" if ident and ident not in ("N/A", "Unknown") else name
     path = r.get("AssignmentSource", "") or "Direct"
-    inherited_group = r.get("InheritedFromGroupName", "") or r.get("InheritedFromGroupId", "") or ""
+    raw_group = r.get("InheritedFromGroupName", "") or ""
+    inherited_group = raw_group or r.get("InheritedFromGroupId", "") or ""
     via = f" via {path}"
     if inherited_group:
         via += f" ({inherited_group})"
+        if group_unmanaged(raw_group):
+            via += " *"
     return (
         f"[{r.get('IdentityType', '')}] {who} \u2192 {r.get('RoleName', '')} "
         f"@ {r.get('ScopeType', '')} ({r.get('SubscriptionName', '')}){via}"
@@ -212,6 +253,7 @@ def load_meta(path):
 
 
 def coverage_report(cur_meta, base_meta):
+    # ensures we are notified loudly of coverage gaps
     """Return (alert_lines, dropped_subscription_ids).
 
     dropped_subscription_ids = subscriptions audited in the baseline but NOT in
@@ -262,8 +304,20 @@ current = load(os.environ["CURRENT_CSV"])
 allow = load_allowlist(os.environ.get("ALLOWLIST_FILE", ""))
 cur_meta = load_meta(os.environ.get("CURRENT_META", ""))
 base_meta = load_meta(os.environ.get("BASELINE_META", ""))
+iac_groups = load_iac_groups(os.environ.get("IAC_GROUPS_FILES", ""))
+flagged_groups = set()
 
-# Coverage / integrity checks (C1/C2): surface a broken or incomplete audit as a
+
+def group_unmanaged(name):
+    # True when we have IaC data AND this group display name isn't declared there.
+    # Records the name so the explanatory footnote is only added when something
+    # was actually flagged. With no IaC source loaded we never flag (safe default).
+    if name and iac_groups and name.strip().lower() not in iac_groups:
+        flagged_groups.add(name)
+        return True
+    return False
+
+# Coverage / integrity checks : surface a broken or incomplete audit as a
 # loud red alert instead of letting a truncated snapshot masquerade as "no
 # changes" or as a wave of legitimate removals.
 coverage, dropped_subs = coverage_report(cur_meta, base_meta)
@@ -287,7 +341,9 @@ def group_summary(verb, rows):
     # Slack line, so a membership change that grants/revokes dozens of role
     # assignments produces ONE notification instead of one per role/scope.
     rep = rows[0]
-    gname = rep.get("InheritedFromGroupName", "") or rep.get("InheritedFromGroupId", "") or "unknown group"
+    raw_gname = rep.get("InheritedFromGroupName", "") or ""
+    gname = raw_gname or rep.get("InheritedFromGroupId", "") or "unknown group"
+    star = " *" if group_unmanaged(raw_gname) else ""
     sources = sorted({r.get("AssignmentSource", "") for r in rows if r.get("AssignmentSource")})
     roles = sorted({r.get("RoleName", "") for r in rows if r.get("RoleName")})
     sub_ids = {r.get("SubscriptionId", "") for r in rows if r.get("SubscriptionId")}
@@ -299,7 +355,7 @@ def group_summary(verb, rows):
     across = f" across {len(sub_ids)} subscription(s)" if sub_ids else ""
     return (
         f"{who_label(rep)} {verb} {len(rows)} privileged assignment(s) via group "
-        f"\"{gname}\"{across} ({via}); roles: {roles_disp}"
+        f"\"{gname}\"{star}{across} ({via}); roles: {roles_disp}"
     )
 
 
@@ -363,6 +419,8 @@ for _pidgid, rows in removed_groups.items():
     else:
         yellow.append(f":yellow_circle: *GROUP-INHERITED REMOVE* {group_summary('lost', rows)}")
 
+# this is unlikely to run as our SP doesn't have the correct permissions, we can see
+# any new grants as addtional permanent additions
 # Elevation (Temporary -> Permanent) stays per-row: it is a property change on a
 # specific assignment key, not a membership add/remove.
 for key, cur in current.items():
@@ -385,6 +443,11 @@ red.sort()
 yellow.sort()
 info.sort()
 lines = coverage + red + yellow + info
+if flagged_groups:
+    lines.append(
+        "_Note: any group marked with * is NOT managed via IaC and should be "
+        "scrutinised._"
+    )
 if lines:
     print("\n".join(lines))
 PY
