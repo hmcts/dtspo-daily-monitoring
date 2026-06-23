@@ -37,8 +37,14 @@ case "$AZ_RETRIES" in ''|*[!0-9]*) AZ_RETRIES=3 ;; esac
 # first attempt whose output parses as JSON (after control-char sanitisation). The
 # backoff (5s -> 15s -> 45s, plus 0-5s random jitter) lets a throttling window clear
 # WITHOUT every parallel worker retrying in lockstep (which would re-trigger the
-# same 429). On total failure it echoes the last (unparseable) output and returns 1,
-# leaving the latest stderr in <stderr-file> for classify_az_failure to interpret.
+# same 429). A PERMANENT failure (no RBAC permission, or subscription not found/
+# disabled/not in tenant) short-circuits immediately: retrying it cannot help and
+# would only waste minutes of backoff per subscription. Only transient failures
+# (throttling, truncated paging, timeouts -- which leave no recognisable error)
+# are retried. On total failure it echoes the last (unparseable) output and returns
+# 1, leaving the latest stderr in <stderr-file> for classify_az_failure to interpret.
+# (classify_az_failure is defined later in the file; bash resolves it at call time,
+# and with_az_retry only runs from audit_subscription, well after that definition.)
 with_az_retry() {
     local errfile="$1"; shift
     local attempt=1 out="" delay=5 jitter=0
@@ -52,6 +58,13 @@ with_az_retry() {
             printf '%s' "$out"
             return 0
         fi
+        # Don't burn retries on a permanent failure -- it will fail identically.
+        case "$(classify_az_failure "$errfile")" in
+            "no permissions"*|"no access"*)
+                printf '%s' "$out"
+                return 1
+                ;;
+        esac
         if [[ "$attempt" -lt "$AZ_RETRIES" ]]; then
             jitter=$((RANDOM % 6))
             sleep "$((delay + jitter))"
