@@ -254,21 +254,28 @@ def load_meta(path):
 
 def coverage_report(cur_meta, base_meta):
     # ensures we are notified loudly of coverage gaps
-    """Return (alert_lines, dropped_subscription_ids).
+    """Return (alert_lines, dropped_subscription_ids, gained_subscription_ids).
 
     dropped_subscription_ids = subscriptions audited in the baseline but NOT in
     the current run. Their per-row 'REMOVED' diffs are suppressed (they are not
     real removals, just blind spots) in favour of one explicit coverage-loss
     alert, so an audit that silently stopped covering a subscription can never be
     mistaken for legitimate clean-up.
+
+    gained_subscription_ids = subscriptions audited in the current run but NOT in
+    the baseline (a previously-failed/uncovered subscription that recovered).
+    Their pre-existing assignments would otherwise surface as a flood of bogus
+    'ADDED' diffs; the caller suppresses those per-row adds and emits one
+    coverage-gain note per subscription instead.
     """
     lines = []
     dropped = set()
+    gained = set()
     if cur_meta is None:
         # No manifest from the current run: cannot assert coverage. Stay silent so
         # legacy snapshots still diff; the pipeline's failure heartbeat covers a
         # genuinely broken audit.
-        return lines, dropped
+        return lines, dropped, gained
 
     for f in cur_meta.get("failedSubscriptions") or []:
         sid = f.get("id", "") or ""
@@ -289,6 +296,7 @@ def coverage_report(cur_meta, base_meta):
         cur_ok = set(cur_meta.get("auditedSubscriptionIds") or [])
         base_ok = set(base_meta.get("auditedSubscriptionIds") or [])
         dropped = base_ok - cur_ok
+        gained = cur_ok - base_ok
         for sid in sorted(dropped):
             lines.append(
                 f":red_circle: *AUDIT COVERAGE LOSS* subscription {sid} was audited in the baseline "
@@ -296,7 +304,7 @@ def coverage_report(cur_meta, base_meta):
                 f"(removals for it are suppressed to avoid masking real changes)."
             )
 
-    return lines, dropped
+    return lines, dropped, gained
 
 
 baseline = load(os.environ["BASELINE_CSV"])
@@ -320,7 +328,7 @@ def group_unmanaged(name):
 # Coverage / integrity checks : surface a broken or incomplete audit as a
 # loud red alert instead of letting a truncated snapshot masquerade as "no
 # changes" or as a wave of legitimate removals.
-coverage, dropped_subs = coverage_report(cur_meta, base_meta)
+coverage, dropped_subs, gained_subs = coverage_report(cur_meta, base_meta)
 
 red, yellow, info = [], [], []
 
@@ -362,16 +370,37 @@ def group_summary(verb, rows):
 # Partition the added set: Direct assignments stay per-row (genuine individual
 # changes); inherited group rows are aggregated per (principal, group) so one
 # membership change is one notification, not ~50.
+# Rows in subscriptions newly covered this run (gained_subs) are pre-existing
+# assignments the audit simply could not see before, NOT new grants. They are
+# suppressed and collapsed into a single coverage-gain note per subscription so
+# a recovered blind spot cannot masquerade as hundreds of fresh privileged adds.
 added_direct = []
 added_groups = defaultdict(list)
+gained_counts = defaultdict(int)
+gained_names = {}
 for key, r in current.items():
     if key in baseline:
+        continue
+    sub_id = r.get("SubscriptionId", "") or ""
+    if sub_id in gained_subs:
+        gained_counts[sub_id] += 1
+        gained_names.setdefault(sub_id, r.get("SubscriptionName", "") or sub_id)
         continue
     gid = r.get("InheritedFromGroupId", "") or ""
     if gid:
         added_groups[(r.get("PrincipalId", ""), gid)].append(r)
     else:
         added_direct.append(r)
+
+# One note per newly-covered subscription (appended to the coverage section).
+for sid in sorted(gained_subs):
+    n = gained_counts.get(sid, 0)
+    name = gained_names.get(sid, sid)
+    coverage.append(
+        f":yellow_circle: *AUDIT COVERAGE GAINED* subscription {name} ({sid}) is now audited "
+        f"(it was NOT covered in the baseline); {n} pre-existing privileged assignment(s) are now "
+        f"visible and are NOT new grants (per-row adds suppressed to avoid a false alert flood)."
+    )
 
 for r in added_direct:
     duration = r.get("DurationType", "")
