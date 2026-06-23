@@ -188,9 +188,16 @@ fi
 # Enumerate subscriptions, then filter by name (exclude sandbox) and tenant in jq,
 # where --argjson keeps tenant-ID quoting safe. This is where cross-tenant bleed is
 # prevented: only subscriptions whose tenantId is in the requested set are kept.
+# Also drop the Azure CLI's synthetic "tenant level account" placeholder, which it
+# injects when the identity has tenant/management-group access but no concrete
+# subscription: its id equals the tenantId (real subscription IDs never do) and it
+# is named "N/A(tenant level account)". Auditing it just yields a permanent,
+# un-retryable SubscriptionNotFound coverage failure every run.
 SUBSCRIPTIONS=$(az account list -o json 2>/dev/null | sanitize_json | jq -c --argjson tenants "$TENANTS_JSON" '
     [ .[]
       | { id: .id, name: .name, tenantId: .tenantId }
+      | select(.id != .tenantId)
+      | select((.name | ascii_downcase | contains("tenant level account")) | not)
       | select((.name | ascii_downcase | (contains("sandbox") or contains("sbox"))) | not)
       | select((($tenants | length) == 0) or (.tenantId as $tid | ($tenants | index($tid)) != null))
     ]' || echo "")
