@@ -12,6 +12,57 @@ sanitize_json() {
     python3 -c "import sys,re; sys.stdout.write(re.sub(r'[\\x00-\\x1f]', '', sys.stdin.read()))"
 }
 
+# Resolve a per-call timeout command: GNU coreutils `timeout` (Linux CI agent) or
+# `gtimeout` (macOS via Homebrew coreutils). Empty if neither exists, in which case
+# calls run without a hard cap rather than failing outright.
+TIMEOUT_BIN=""
+if command -v timeout >/dev/null 2>&1; then
+    TIMEOUT_BIN="timeout"
+elif command -v gtimeout >/dev/null 2>&1; then
+    TIMEOUT_BIN="gtimeout"
+fi
+
+# Per-call hard timeout (seconds) and attempt count for each `az` call. ARM/Graph
+# throttling (429s) and truncated paging on large subscriptions are transient, so a
+# bounded retry recovers them; a hard timeout converts a hung call into a clean,
+# retryable failure instead of blocking a worker. Tunable via env.
+AZ_TIMEOUT="${RBAC_AZ_TIMEOUT:-150}"
+case "$AZ_TIMEOUT" in ''|*[!0-9]*) AZ_TIMEOUT=150 ;; esac
+AZ_RETRIES="${RBAC_AZ_RETRIES:-3}"
+case "$AZ_RETRIES" in ''|*[!0-9]*) AZ_RETRIES=3 ;; esac
+[[ "$AZ_RETRIES" -lt 1 ]] && AZ_RETRIES=1
+
+# with_az_retry <stderr-file> <az command...>: run an `az` call under a per-attempt
+# hard timeout with bounded exponential backoff + jitter, echoing the stdout of the
+# first attempt whose output parses as JSON (after control-char sanitisation). The
+# backoff (5s -> 15s -> 45s, plus 0-5s random jitter) lets a throttling window clear
+# WITHOUT every parallel worker retrying in lockstep (which would re-trigger the
+# same 429). On total failure it echoes the last (unparseable) output and returns 1,
+# leaving the latest stderr in <stderr-file> for classify_az_failure to interpret.
+with_az_retry() {
+    local errfile="$1"; shift
+    local attempt=1 out="" delay=5 jitter=0
+    while [[ "$attempt" -le "$AZ_RETRIES" ]]; do
+        if [[ -n "$TIMEOUT_BIN" ]]; then
+            out=$("$TIMEOUT_BIN" "$AZ_TIMEOUT" "$@" 2>"$errfile" || true)
+        else
+            out=$("$@" 2>"$errfile" || true)
+        fi
+        if printf '%s' "$out" | sanitize_json | jq -e . >/dev/null 2>&1; then
+            printf '%s' "$out"
+            return 0
+        fi
+        if [[ "$attempt" -lt "$AZ_RETRIES" ]]; then
+            jitter=$((RANDOM % 6))
+            sleep "$((delay + jitter))"
+            delay=$((delay * 3))
+        fi
+        attempt=$((attempt + 1))
+    done
+    printf '%s' "$out"
+    return 1
+}
+
 # Read all pages from a Microsoft Graph collection endpoint and return one JSON array.
 graph_list_all() {
     local url="$1"
@@ -267,10 +318,12 @@ WORK_DIR="$(mktemp -d)"
 # Max subscriptions to audit concurrently. Bounded to limit Azure CLI / Microsoft
 # Graph throttling (429s would otherwise silently thin out group expansions) and
 # to avoid starving the CI agent of CPU/memory/network (too many concurrent `az`
-# workers can make the DevOps agent miss heartbeats and drop the job). Override
-# with RBAC_MAX_PARALLEL.
-MAX_PARALLEL="${RBAC_MAX_PARALLEL:-4}"
-case "$MAX_PARALLEL" in ''|*[!0-9]*) MAX_PARALLEL=4 ;; esac
+# workers can make the DevOps agent miss heartbeats and drop the job). Default 2
+# (lowered from 4): concurrency is the dominant driver of per-call throttling, so a
+# smaller pool raises the per-attempt success rate far more than retries alone.
+# Override with RBAC_MAX_PARALLEL.
+MAX_PARALLEL="${RBAC_MAX_PARALLEL:-2}"
+case "$MAX_PARALLEL" in ''|*[!0-9]*) MAX_PARALLEL=2 ;; esac
 [[ "$MAX_PARALLEL" -lt 1 ]] && MAX_PARALLEL=1
 
 cleanup() {
@@ -348,7 +401,7 @@ audit_subscription() {
     # parallel workers cannot race on the CLI's global active-subscription state.
     echo "  Fetching role assignments..."
     local AZ_ERR_FILE="${WORK_DIR}/azerr.${SUB_ID}"
-    ASSIGNMENTS=$(az role assignment list --all --subscription "$SUB_ID" -o json 2>"$AZ_ERR_FILE" | sanitize_json || echo "")
+    ASSIGNMENTS=$(with_az_retry "$AZ_ERR_FILE" az role assignment list --all --subscription "$SUB_ID" -o json | sanitize_json || echo "")
 
     if ! echo "$ASSIGNMENTS" | jq -e . >/dev/null 2>&1; then
         local FAIL_REASON
@@ -364,11 +417,11 @@ audit_subscription() {
     # Fetch schedule instances to determine permanent vs temporary assignments
     echo "  Fetching assignment schedule data..."
     #double failure failsafe
-    SCHEDULE_INSTANCES=$(az rest --method GET \
+    SCHEDULE_INSTANCES=$(with_az_retry "${WORK_DIR}/azerr.sched.${SUB_ID}" az rest --method GET \
         --url "https://management.azure.com/subscriptions/$SUB_ID/providers/Microsoft.Authorization/roleAssignmentScheduleInstances?api-version=2020-10-01-preview" \
-        -o json 2>/dev/null \
+        -o json \
         | sanitize_json \
-        | jq '.value // []' || echo "[]")
+        | jq '.value // []' 2>/dev/null || echo "[]")
     
     # Process each assignment
     echo "$ASSIGNMENTS" | jq -c '.[]' | while read -r assignment; do
