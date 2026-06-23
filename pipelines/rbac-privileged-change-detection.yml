@@ -132,3 +132,31 @@ jobs:
             --slackChannelName D0AG03QQK9R 
             --inputFileName $(Build.SourcesDirectory)/rbac-change-status.txt
             --messageHeader ":azure: RBAC Privileged Change Detection (2-day)"
+
+      # C1 heartbeat: break the silence on failure. Every step above is gated on
+      # succeeded()/baseline.found and the sender only posts when a change marker
+      # exists, so a broken audit would otherwise send NOTHING and look identical
+      # to a clean "no changes" run. This step runs only when something failed and
+      # posts a loud red alert so a silently broken security control cannot hide.
+      # NOTE: if the Key Vault step itself failed the Slack token is unavailable,
+      # so this cannot post; rely on pipeline run-failure notifications for that case.
+      - task: Bash@3
+        displayName: 'Alert on control failure (heartbeat)'
+        condition: failed()
+        inputs:
+          targetType: inline
+          workingDirectory: $(Build.SourcesDirectory)
+          script: |
+            set -eo pipefail
+            STATUS_FILE="$(Build.SourcesDirectory)/rbac-control-failure.txt"
+            {
+              echo ":red_circle: *RBAC privileged-change detection FAILED to complete.*"
+              echo "Pipeline: $(System.DefinitionName) — run $(Build.BuildNumber)"
+              echo "One or more steps errored, so privileged RBAC changes may be UNDETECTED for this window."
+              echo "Investigate: $(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"
+            } > "$STATUS_FILE"
+            scripts/send-slack-header-thread-each-loop.sh \
+              --slackBotToken "$(dtspo-daily-checks-slack-bot-token)" \
+              --slackChannelName D0AG03QQK9R \
+              --inputFileName "$STATUS_FILE" \
+              --messageHeader ":azure: RBAC Privileged Change Detection (2-day)"

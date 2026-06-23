@@ -253,8 +253,20 @@ PIM_READ_OK=true
 COVERAGE_OK_FILE="$(mktemp)"      # one SubscriptionId per line: audited OK
 COVERAGE_FAIL_FILE="$(mktemp)"    # "SubscriptionId|SubscriptionName" per line: failed
 
+# Per-worker scratch for the parallel subscription audit: one rows/dedupe/log
+# file per subscription, merged into the snapshot after all workers finish.
+WORK_DIR="$(mktemp -d)"
+
+# Max subscriptions to audit concurrently. Bounded to limit Azure CLI / Microsoft
+# Graph throttling (429s would otherwise silently thin out group expansions).
+# Override with RBAC_MAX_PARALLEL.
+MAX_PARALLEL="${RBAC_MAX_PARALLEL:-6}"
+case "$MAX_PARALLEL" in ''|*[!0-9]*) MAX_PARALLEL=6 ;; esac
+[[ "$MAX_PARALLEL" -lt 1 ]] && MAX_PARALLEL=1
+
 cleanup() {
     rm -f "$INHERITED_DEDUPE_FILE" "$PIM_ELIGIBILITY_FILE" "$COVERAGE_OK_FILE" "$COVERAGE_FAIL_FILE"
+    rm -rf "$WORK_DIR"
 }
 trap cleanup EXIT
 
@@ -282,32 +294,37 @@ CURRENT=0
 TOTAL_FINDINGS=0
 
 # Process each subscription
-echo "$SUBSCRIPTIONS" | jq -c '.[]' | while read -r sub; do
-    CURRENT=$((CURRENT + 1))
+# audit_subscription <sub-json>: audit ONE subscription end-to-end. Designed to
+# run in its own forked subshell (see the parallel launcher below), so OUTPUT_FILE
+# and INHERITED_DEDUPE_FILE are shadowed to per-subscription temp files and merged
+# after all workers join -- concurrent workers never share a writer. Returns 0
+# only if the subscription was fully audited; non-zero on any failure so the
+# launcher records it as a coverage failure (C2).
+audit_subscription() {
+    local sub="$1"
+    local SUB_ID SUB_NAME OUTPUT_FILE INHERITED_DEDUPE_FILE
+    local ASSIGNMENTS TOTAL_ASSIGNMENTS SCHEDULE_INSTANCES
+
     SUB_ID=$(echo "$sub" | jq -r '.id')
     SUB_NAME=$(echo "$sub" | jq -r '.name')
-    
-    echo "[$CURRENT/$SUBSCRIPTION_COUNT] Processing: $SUB_NAME"
-    
-    # Set active subscription. Guard against `set -e` aborting the ENTIRE audit if
-    # a single subscription is inaccessible; record it as a coverage failure and
-    # move on, so one bad subscription cannot silently truncate the snapshot (C2).
-    if ! az account set --subscription "$SUB_ID" 2>/dev/null; then
-        echo "  Warning: cannot select subscription $SUB_NAME ($SUB_ID); recording audit FAILURE and skipping."
-        echo "${SUB_ID}|${SUB_NAME}" >> "$COVERAGE_FAIL_FILE"
-        echo ""
-        continue
-    fi
-    
-    # Get all role assignments for this subscription at all scopes (all principal types)
+
+    # Per-subscription outputs, merged into the snapshot after all workers finish.
+    OUTPUT_FILE="${WORK_DIR}/rows.${SUB_ID}.csv"
+    INHERITED_DEDUPE_FILE="${WORK_DIR}/dedupe.${SUB_ID}"
+    : > "$OUTPUT_FILE"
+    : > "$INHERITED_DEDUPE_FILE"
+
+    echo "Processing: $SUB_NAME ($SUB_ID)"
+
+    # Get all role assignments for this subscription at all scopes (all principal
+    # types). Pass --subscription explicitly instead of `az account set`, so that
+    # parallel workers cannot race on the CLI's global active-subscription state.
     echo "  Fetching role assignments..."
-    ASSIGNMENTS=$(az role assignment list --all -o json 2>/dev/null | sanitize_json || echo "")
+    ASSIGNMENTS=$(az role assignment list --all --subscription "$SUB_ID" -o json 2>/dev/null | sanitize_json || echo "")
 
     if ! echo "$ASSIGNMENTS" | jq -e . >/dev/null 2>&1; then
-        echo "  Warning: could not retrieve/parse role assignments for $SUB_NAME ($SUB_ID); recording audit FAILURE and skipping."
-        echo "${SUB_ID}|${SUB_NAME}" >> "$COVERAGE_FAIL_FILE"
-        echo ""
-        continue
+        echo "  Warning: could not retrieve/parse role assignments for $SUB_NAME ($SUB_ID); recording audit FAILURE."
+        return 1
     fi
     
     TOTAL_ASSIGNMENTS=$(echo "$ASSIGNMENTS" | jq '. | length')
@@ -597,12 +614,58 @@ echo "$SUBSCRIPTIONS" | jq -c '.[]' | while read -r sub; do
         done
     done
 
-    # Reached here => this subscription's assignments were fetched and processed
-    # end-to-end; record it as successfully audited for the coverage manifest (C2).
-    echo "$SUB_ID" >> "$COVERAGE_OK_FILE"
+    # Fully audited this subscription.
+    return 0
+}
 
-    echo ""
+# run_one <sub-json>: launch one subscription audit, buffer its log, and record
+# coverage from the worker's exit status (C2) -- success => audited OK, any
+# failure => coverage failure, so a silently truncated snapshot is detectable.
+run_one() {
+    local sub="$1" sid name
+    sid=$(echo "$sub" | jq -r '.id')
+    name=$(echo "$sub" | jq -r '.name')
+    if audit_subscription "$sub" > "${WORK_DIR}/log.${sid}" 2>&1; then
+        echo "$sid" >> "$COVERAGE_OK_FILE"
+    else
+        echo "${sid}|${name}" >> "$COVERAGE_FAIL_FILE"
+    fi
+}
+
+# Audit subscriptions in parallel to cut wall-clock time, capped at MAX_PARALLEL.
+# The subscription list is read from a file (not a pipe) so the loop runs in THIS
+# shell and the final `wait` reliably joins every worker before we merge.
+echo "Auditing $SUBSCRIPTION_COUNT subscription(s), up to $MAX_PARALLEL in parallel..."
+echo ""
+SUBS_NDJSON="${WORK_DIR}/subs.ndjson"
+echo "$SUBSCRIPTIONS" | jq -c '.[]' > "$SUBS_NDJSON"
+LAUNCHED=0
+while read -r sub; do
+    [[ -z "$sub" ]] && continue
+    run_one "$sub" &
+    LAUNCHED=$((LAUNCHED + 1))
+    if [[ $((LAUNCHED % MAX_PARALLEL)) -eq 0 ]]; then
+        wait
+    fi
+done < "$SUBS_NDJSON"
+wait
+
+# Print each worker's buffered log in stable subscription order (parallel output
+# would otherwise interleave unreadably).
+echo "$SUBSCRIPTIONS" | jq -r '.[].id' | while read -r sid; do
+    if [[ -f "${WORK_DIR}/log.${sid}" ]]; then
+        cat "${WORK_DIR}/log.${sid}"
+    fi
 done
+echo ""
+
+# Merge rows ONLY from subscriptions that completed successfully, so a worker that
+# died mid-way cannot leak partial rows into the snapshot (header already written).
+while read -r sid; do
+    if [[ -n "$sid" && -f "${WORK_DIR}/rows.${sid}.csv" ]]; then
+        cat "${WORK_DIR}/rows.${sid}.csv" >> "$OUTPUT_FILE"
+    fi
+done < "$COVERAGE_OK_FILE"
 
 # Sort data rows deterministically (header preserved) so day-to-day diffs are stable
 if [[ -f "$OUTPUT_FILE" ]]; then
