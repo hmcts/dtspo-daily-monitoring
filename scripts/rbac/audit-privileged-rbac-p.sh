@@ -295,6 +295,24 @@ fi
 CURRENT=0
 TOTAL_FINDINGS=0
 
+# classify_az_failure <stderr-file>: turn a failed `az role assignment list` into
+# a short human reason so the operator can tell a permissions gap (the audit
+# identity lacks RBAC read) apart from an access gap (subscription gone/disabled/
+# not visible to this tenant). Falls back to 'unknown' when az emitted nothing.
+classify_az_failure() {
+    local errfile="$1" msg=""
+    [[ -f "$errfile" ]] && msg=$(tr '[:upper:]' '[:lower:]' < "$errfile")
+    if [[ "$msg" == *"authorizationfailed"* || "$msg" == *"does not have authorization"* || "$msg" == *"forbidden"* || "$msg" == *"insufficient privileges"* ]]; then
+        echo "no permissions (audit identity lacks RBAC read)"
+    elif [[ "$msg" == *"subscriptionnotfound"* || "$msg" == *"not found"* || "$msg" == *"could not be found"* || "$msg" == *"disabled"* || "$msg" == *"was not found"* ]]; then
+        echo "no access (subscription not found/disabled/not in tenant)"
+    elif [[ -z "$msg" ]]; then
+        echo "unknown (no error output)"
+    else
+        echo "unknown error"
+    fi
+}
+
 # Process each subscription
 # audit_subscription <sub-json>: audit ONE subscription end-to-end. Designed to
 # run in its own forked subshell (see the parallel launcher below), so OUTPUT_FILE
@@ -322,10 +340,14 @@ audit_subscription() {
     # types). Pass --subscription explicitly instead of `az account set`, so that
     # parallel workers cannot race on the CLI's global active-subscription state.
     echo "  Fetching role assignments..."
-    ASSIGNMENTS=$(az role assignment list --all --subscription "$SUB_ID" -o json 2>/dev/null | sanitize_json || echo "")
+    local AZ_ERR_FILE="${WORK_DIR}/azerr.${SUB_ID}"
+    ASSIGNMENTS=$(az role assignment list --all --subscription "$SUB_ID" -o json 2>"$AZ_ERR_FILE" | sanitize_json || echo "")
 
     if ! echo "$ASSIGNMENTS" | jq -e . >/dev/null 2>&1; then
-        echo "  Warning: could not retrieve/parse role assignments for $SUB_NAME ($SUB_ID); recording audit FAILURE."
+        local FAIL_REASON
+        FAIL_REASON=$(classify_az_failure "$AZ_ERR_FILE")
+        printf '%s' "$FAIL_REASON" > "${WORK_DIR}/reason.${SUB_ID}"
+        echo "  Warning: could not retrieve/parse role assignments for $SUB_NAME ($SUB_ID); recording audit FAILURE ($FAIL_REASON)."
         return 1
     fi
     
@@ -624,13 +646,15 @@ audit_subscription() {
 # coverage from the worker's exit status (C2) -- success => audited OK, any
 # failure => coverage failure, so a silently truncated snapshot is detectable.
 run_one() {
-    local sub="$1" sid name
+    local sub="$1" sid name reason
     sid=$(echo "$sub" | jq -r '.id')
     name=$(echo "$sub" | jq -r '.name')
     if audit_subscription "$sub" > "${WORK_DIR}/log.${sid}" 2>&1; then
         echo "$sid" >> "$COVERAGE_OK_FILE"
     else
-        echo "${sid}|${name}" >> "$COVERAGE_FAIL_FILE"
+        reason=""
+        [[ -f "${WORK_DIR}/reason.${sid}" ]] && reason=$(cat "${WORK_DIR}/reason.${sid}")
+        echo "${sid}|${name}|${reason}" >> "$COVERAGE_FAIL_FILE"
     fi
 }
 
@@ -730,7 +754,7 @@ fi
 META_FILE="${OUTPUT_FILE%.csv}.meta.json"
 
 AUDITED_IDS_JSON=$(jq -R -s 'split("\n") | map(select(length>0))' "$COVERAGE_OK_FILE" 2>/dev/null || echo "[]")
-FAILED_JSON=$(jq -R -s 'split("\n") | map(select(length>0)) | map((split("|")) as $p | {id: $p[0], name: ($p[1] // "")})' "$COVERAGE_FAIL_FILE" 2>/dev/null || echo "[]")
+FAILED_JSON=$(jq -R -s 'split("\n") | map(select(length>0)) | map((split("|")) as $p | {id: $p[0], name: ($p[1] // ""), reason: ($p[2] // "")})' "$COVERAGE_FAIL_FILE" 2>/dev/null || echo "[]")
 
 AUDITED_COUNT=$(echo "$AUDITED_IDS_JSON" | jq 'length' 2>/dev/null || echo 0)
 FAILED_COUNT=$(echo "$FAILED_JSON" | jq 'length' 2>/dev/null || echo 0)
@@ -766,6 +790,10 @@ jq -n \
 echo "Coverage manifest written to: $META_FILE"
 if [[ "${FAILED_COUNT:-0}" -gt 0 ]]; then
     echo "  WARNING: ${FAILED_COUNT} of ${SUBSCRIPTION_COUNT} subscription(s) FAILED to audit; this snapshot is INCOMPLETE." >&2
+    while IFS='|' read -r fsid fname freason; do
+        [[ -z "$fsid" ]] && continue
+        echo "    - ${fname:-unknown} (${fsid}): ${freason:-unknown reason}" >&2
+    done < "$COVERAGE_FAIL_FILE"
 fi
 
 echo "=========================================="
@@ -779,9 +807,6 @@ echo "Summary:"
 RESULT_COUNT=$(( $(wc -l < "$OUTPUT_FILE") - 1 ))
 echo "  Subscriptions audited: $SUBSCRIPTION_COUNT"
 echo "  Total privileged assignments found: $RESULT_COUNT"
-echo ""
-echo "Breakdown by identity type:"
-tail -n +2 "$OUTPUT_FILE" | awk -F',' '{gsub(/"/,"",$5); counts[$5]++} END {for (t in counts) print "  " counts[t] " " t}'
 echo ""
 
 echo "To view results:"
