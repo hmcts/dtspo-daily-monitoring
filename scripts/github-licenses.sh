@@ -68,7 +68,7 @@ CONSUMED_LICENSES=$(jq -r .total_seats_consumed <<< "${RESULT}")
 LICENSES_LEFT=$((TOTAL_LICENSES-CONSUMED_LICENSES))
 
 LICENSE_STATUS=":red_circle:"
-if (( "$LICENSES_LEFT" >= 25 )); then
+if (( "$LICENSES_LEFT" >= 15 )); then
   LICENSE_STATUS=":green_circle:"
 elif ((  "$LICENSES_LEFT" >= 10 )); then
   LICENSE_STATUS=":yellow_circle:"
