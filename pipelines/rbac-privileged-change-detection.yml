@@ -182,7 +182,7 @@ jobs:
           filePath: scripts/send-slack-header-thread-each-loop.sh
           arguments: >
             --slackBotToken $(dtspo-daily-checks-slack-bot-token)
-            --slackChannelName D0AG03QQK9R 
+            --slackChannelName D08UQ8A63MF 
             --inputFileName $(Build.SourcesDirectory)/rbac-change-status.txt
             --messageHeader ":azure: RBAC Privileged Change Detection (2-day)"
 
