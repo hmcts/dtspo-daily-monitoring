@@ -60,109 +60,147 @@ parameters:
         timeForRed: '5'
         pipelineName: Preview_Helm_release_cleanup_-_scheduled
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '840'
         timeForAmber: '3'
         timeForRed: '5'
         pipelineName: Preview_Helm_release_cleanup_-_PR_close
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '768'
         timeForAmber: '3'
         timeForRed: '7'
         pipelineName: ACR_Cleanup
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '777'
         timeForAmber: '14'
         timeForRed: '28'
         pipelineName: Launch_Darkly_cleanup
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '472'
         timeForAmber: '3'
         timeForRed: '7'
         pipelineName: Azure_AAD_group_cleanup
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '771'
         timeForAmber: '3'
         timeForRed: '7'
         pipelineName: OWASP_DB_Update_-_Production
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '808'
         timeForAmber: '3'
         timeForRed: '7'
         pipelineName: OWASP_DB_Update_-_Sandbox
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '772'
         timeForAmber: '3'
         timeForRed: '7'
         pipelineName: ACR_Base_importer
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '635'
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: "hmcts.azure-enterprise"
         branchName: refs/heads/main
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '543'
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: sds-azure-platform
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '765'
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: azure-platform-terraform
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '821'
         timeForAmber: '5'
         timeForRed: '7'
         pipelineName: azure-app-proxy
         branchName: refs/heads/main
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '534'
         timeForAmber: '5'
         timeForRed: '7'
         pipelineName: azure-resource-locks
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '529'
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: hmcts.postgresql-cron-jobs
         branchName: refs/heads/master
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '860'
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: hmcts.crime-portal-infra
         branchName: refs/heads/main
+        weekdayOnly: true
       - project: 'PlatformOperations'
         definitionId: '927'
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: hmcts.sdrs-infra
         branchName: refs/heads/main
+        weekdayOnly: true
       - project: 'PlatformOperations'
         definitionId: '1115'
         timeForAmber: '1'
         timeForRed: '3'
         pipelineName: Gaps2_DB_Restore_STG
         branchName: refs/heads/main
+        weekdayOnly: false
       - project: 'PlatformOperations'
         definitionId: '1116'
         timeForAmber: '1'
         timeForRed: '1'
         pipelineName: Gaps2_DB_Restore_PROD
         branchName: refs/heads/main
-
+        weekdayOnly: false
+      - project: 'PlatformOperations'
+        definitionId: '518'
+        timeForAmber: '7'
+        timeForRed: '14'
+        pipelineName: jenkins-packer
+        branchName: refs/heads/master
+        weekdayOnly: true
+      - project: 'PlatformOperations'
+        definitionId: '556'
+        timeForAmber: '7'
+        timeForRed: '14'
+        pipelineName: bastion-packer
+        branchName: refs/heads/master
+        weekdayOnly: true
+      - project: 'PlatformOperations'
+        definitionId: '1147'
+        timeForAmber: '7'
+        timeForRed: '14'
+        pipelineName: azure-resource-finops-scanner
+        branchName: refs/heads/master
+        weekdayOnly: true
   - name: aks_clusters
     type: object
     default:
@@ -209,6 +247,42 @@ parameters:
         resource_group: 'bau-bais_prod_network_rg'
         front_door_name: 'hmcts-heritage-prod'
         min_cert_exp_days: '14'
+  - name: keyvault_certificates
+    type: object
+    default:
+      - subscription: 'DCD-CFTAPPS-PROD'
+        keyvault_name: 'acmedcdcftappsprod'
+        min_cert_exp_days: '14'
+      - subscription: 'DCD-CFTAPPS-STG'
+        keyvault_name: 'acmedcdcftappsstg'
+        min_cert_exp_days: '14'
+      - subscription: 'DCD-CNP-Prod'
+        keyvault_name: 'acmedcdcnpprod'
+        min_cert_exp_days: '14'
+      - subscription: 'DTS-ARCHIVING-PROD'
+        keyvault_name: 'acmedtsarchivingprod'
+        min_cert_exp_days: '14'
+      - subscription: 'DTS-CFTPTL-INTSVC'
+        keyvault_name: 'acmedtscftptlintsvc'
+        min_cert_exp_days: '14'
+      - subscription: 'DTS-SHAREDSERVICESPTL'
+        keyvault_name: 'acmedtssdsptl'
+        min_cert_exp_days: '14'
+      - subscription: 'DTS-SHAREDSERVICES-PROD'
+        keyvault_name: 'acmedtssdsprod'
+        min_cert_exp_days: '14'
+      - subscription: 'DTS-SHAREDSERVICES-STG'
+        keyvault_name: 'acmedtssdsstg'
+        min_cert_exp_days: '14'
+      - subscription: 'HMCTS-HUB-PROD-INTSVC'
+        keyvault_name: 'acmehmctshubprodintsvc'
+        min_cert_exp_days: '14'
+      - subscription: 'HMCTS-SOC-PROD'
+        keyvault_name: 'acmehmctssocprod'
+        min_cert_exp_days: '14'
+      - subscription: 'DTS-ARCHIVING-PROD'
+        keyvault_name: 'arm-kv-prod'
+        min_cert_exp_days: '14'
   - name: postgres_subscriptions
     type: object
     default:
@@ -225,19 +299,13 @@ variables:
     value: GA-development-tenant
   - name: ado_service_connection
     value: OPS-APPROVAL-GATE-MGMT-ENVS
-  - name: isMain
-    value: $[in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/master')]
-  - name: isAutoTriggered
-    value: $[in(variables['Build.Reason'], 'BatchedCI', 'IndividualCI', 'PullRequest', 'Schedule')] # does not include manually running pipeline from UI (i.e. manual trigger).
   - name: jenkins_url
     value: "http://jenkins.jenkins:8080/"
-  - name: pull_request_number
-    value: $(system.pullRequest.pullRequestNumber)
   - group: daily-checks-ghapp
 
 jobs:
   - job: DailyMonitoring
-    timeoutInMinutes: 20
+    timeoutInMinutes: 25
     pool:
       name: 'hmcts-cftptl-agent-pool'
     steps:
@@ -246,27 +314,14 @@ jobs:
         inputs:
           azureSubscription:  "DTS-CFTPTL-INTSVC"
           keyVaultName:   "cftptl-intsvc"
-          secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,dtspo-daily-checks-github-fine-grained-token,jenkins-api-user,jenkins-api-token,service-now-username,service-now-password,launchdarkly-access-token,b2c-prod-serviceprincipal-id,b2c-prod-serviceprincipal-password,b2c-prod-tenant-id'
-      # Set Channel name based on PR or not and output channel name to console for confirmation
+          secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,dtspo-daily-checks-github-fine-grained-token,dtspo-daily-checks-github-classic-token,jenkins-api-user,jenkins-api-token,launchdarkly-access-token,b2c-prod-serviceprincipal-id,b2c-prod-serviceprincipal-password,b2c-prod-tenant-id,sendgrid-hmcts-bau-nonprod-apikey'
       - task: Bash@3
         displayName: 'Set Channel Name'
-        condition: and(succeeded(), eq(variables['isMain'], true))
         inputs:
           targetType: inline
           script: |
             echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
-      - task: Bash@3
-        displayName: 'Set Channel Name - PR'
-        condition: and(succeeded(), eq(variables['isMain'], false), eq(variables['isAutoTriggered'], true))
-        inputs:
-          targetType: inline
-          script: |
-            GITHUB_USER=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GITHUB_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/hmcts/dtspo-daily-monitoring/pulls/$PULL_REQUEST_NUMBER"  | jq -r '.user.login')
-            PR_CHANNEL_NAME=$(curl -s https://raw.githubusercontent.com/hmcts/github-slack-user-mappings/master/slack.json | jq --arg GITHUB_USER "$GITHUB_USER" -r '.[][] | (select(.github | contains($GITHUB_USER)))' | jq -r '.slack')
-            echo "##vso[task.setvariable variable=main_channel]$PR_CHANNEL_NAME"
-        env:
-          GITHUB_TOKEN: $(dtspo-daily-checks-github-fine-grained-token)
-          PULL_REQUEST_NUMBER: ${{ variables.pull_request_number }}
+            echo "##vso[task.setvariable variable=testMode]false"
       - script: |
           echo "main_channel set to: $(main_channel)"
         displayName: 'Show main channel name'
@@ -292,6 +347,7 @@ jobs:
             --jenkinsURL ${{ variables.jenkins_url }}
       - task: AzureCLI@2
         displayName: 'Service Principal Check - Dev Tenant'
+        continueOnError: true
         inputs:
           scriptType: bash
           scriptPath: scripts/service-principals.sh
@@ -299,6 +355,7 @@ jobs:
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
       - task: AzureCLI@2
         displayName: 'Service Principal Check'
+        continueOnError: true
         inputs:
           scriptType: bash
           scriptPath: scripts/service-principals.sh
@@ -306,18 +363,21 @@ jobs:
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
       - task: Bash@3
         displayName: "Checking GitHub Pages review status"
+        continueOnError: true
         inputs:
           targetType: filePath
           filePath: scripts/github_pages_checks.sh
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: Bash@3
         displayName: 'Checking JIRA status'
+        continueOnError: true
         inputs:
           targetType: filePath
           filePath: scripts/jira-status.sh
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --jiraUsername $(jira-username) --jiraPassword $(jira-password)
       - task: AzureCLI@2
         displayName: 'Get Provisioning State'
+        continueOnError: true
         inputs:
           scriptType: bash
           scriptPath: scripts/cluster-state-monitor.sh
@@ -325,42 +385,68 @@ jobs:
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: Bash@3
         displayName: 'Check Toffee/Plum Status'
+        continueOnError: true
         inputs:
           targetType: filePath
           filePath: scripts/check-toffee-plum.sh
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: Bash@3
-        displayName: 'Checking servicenow status'
+        displayName: 'Github Licenses check'
+        continueOnError: true
         inputs:
           targetType: filePath
-          filePath: scripts/servicenow-status.sh
-          arguments: >
-            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
-            --slackChannelName $(main_channel)
-            --snowUsername $(service-now-username)
-            --snowPassword $(service-now-password)
-      # - task: Bash@3
-      #   displayName: 'Github Licenses check'
-      #   inputs:
-      #     targetType: filePath
-      #     filePath: scripts/github-licenses.sh
-      #     arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(dtspo-daily-checks-github-fine-grained-token)
+          filePath: scripts/github-licenses.sh
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(dtspo-daily-checks-github-classic-token)
       - task: Bash@3
         displayName: "Launchdarkly Licenses check"
+        continueOnError: true
         inputs:
           targetType: filePath
           filePath: scripts/ld-license.sh
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(launchdarkly-access-token)
       - task: Bash@3
         displayName: "Auto Shutdown status check"
+        continueOnError: true
         inputs:
           targetType: filePath
           filePath: scripts/autoShutdownChecks.sh
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      - task: AzureCLI@2
+        displayName: 'Service Principal Check - B2C Sandbox Tenant'
+        continueOnError: true
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/service-principals-b2c-tenants.sh
+          azureSubscription: ${{ variables.service_connection }}
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
+          # Send secrets to the service-principals-b2c-tenants script
+        env:
+          b2c_prod_serviceprincipal_id: $(b2c-prod-serviceprincipal-id)
+          b2c_prod_serviceprincipal_password: $(b2c-prod-serviceprincipal-password)
+          b2c_prod_tenant_id: $(b2c-prod-tenant-id)
+      - task: Bash@3
+        displayName: 'Elastic search field count check'
+        continueOnError: true
+        inputs:
+          targetType: filePath
+          filePath: scripts/elastic-search-field-count.sh
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      - task: Bash@3
+        displayName: 'ElasticSearch DLQ Case Type count check'
+        continueOnError: true
+        inputs:
+          targetType: filePath
+          filePath: scripts/elastic-search-dlq-case-type-count.sh
+          arguments: >
+            --sendgridApiKey $(sendgrid-hmcts-bau-nonprod-apikey)
+            --emailTo "cft-level2-monitoring-aaaap23kppmnpt57cp3cbwpkym@moj.org.slack.com"
+            --emailFrom bau@mail-bau-nonprod.platform.hmcts.net
+            --testMode $(testMode)
       # Checks from this point on use each loop, every iteration saves to a file and a follow up step is used to send the output if a negative status is found
       - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
         - task: AzureCLI@2
           displayName: 'Checking PostgreSQL Flexible Storage Status: ${{ postgres_sub.subscription }}'
+          continueOnError: true
           inputs:
             scriptType: bash
             scriptPath: scripts/postgres-flexible-storage.sh
@@ -368,6 +454,7 @@ jobs:
             arguments: --subscription ${{ postgres_sub.subscription }}
       - task: Bash@3
         displayName: "Send Postgres Status"
+        continueOnError: true
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-header-thread-each-loop.sh
@@ -379,6 +466,7 @@ jobs:
       - ${{ each backup_vault in parameters.recovery_services_vaults }}:
         - task: AzureCLI@2
           displayName: 'Check Backup Status'
+          continueOnError: true
           inputs:
             scriptType: bash
             scriptPath: scripts/backup-monitor.sh
@@ -386,6 +474,7 @@ jobs:
             arguments: --resourceGroup ${{backup_vault.resourceGroup}} --backupVault ${{backup_vault.vaultName}}
       - task: Bash@3
         displayName: "Send Recovery Services Vaults Status"
+        continueOnError: true
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-header-thread-each-loop.sh
@@ -394,9 +483,22 @@ jobs:
             --slackChannelName $(main_channel)
             --inputFileName azurebackup-status.txt
             --messageHeader ":azuremonitoring: Azure Backup Checks"
+      - task: AzureCLI@2
+        displayName: 'Check DR Backup Vault Job Status (weekly, Mondays only)'
+        continueOnError: true
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/dr-backup-vault-monitor.sh
+          azureSubscription: 'DCD-CNP-Prod'
+          arguments: >
+            --resourceGroup mgmt-infra-prod-rg
+            --backupVault cnp-backup-vault
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
       - ${{ each frontdoor in parameters.certificates }}:
         - task: AzureCLI@2
           displayName: 'Checking ${{ frontdoor.front_door_name }} Certificate status'
+          continueOnError: true
           inputs:
             scriptType: bash
             scriptPath: scripts/cert-check.sh
@@ -408,6 +510,7 @@ jobs:
               --minCertExpirationDays ${{ frontdoor.min_cert_exp_days }}
       - task: Bash@3
         displayName: "Send SSL Cert Status"
+        continueOnError: true
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-header-thread-each-loop.sh
@@ -416,15 +519,40 @@ jobs:
             --slackChannelName $(main_channel)
             --inputFileName cert-status.txt
             --messageHeader ":ssl-cert: SSL Certificates Checks"
+      - ${{ each keyvault in parameters.keyvault_certificates }}:
+        - task: AzureCLI@2
+          displayName: 'Checking ${{ keyvault.keyvault_name }} KeyVault Certificate status'
+          continueOnError: true
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/keyvault-cert-check.sh
+            azureSubscription: ${{ keyvault.subscription }}
+            arguments: >
+              --subscription ${{ keyvault.subscription }}
+              --keyVaultName ${{ keyvault.keyvault_name }}
+              --minCertExpirationDays ${{ keyvault.min_cert_exp_days }}
+      - task: Bash@3
+        displayName: "Send KeyVault Cert Status"
+        continueOnError: true
+        inputs:
+          targetType: filePath
+          filePath: scripts/send-slack-header-thread-each-loop.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --inputFileName keyvault-cert-status.txt
+            --messageHeader ":key: KeyVault Certificates Checks"
       - ${{ each gh_workflow in parameters.gh_workflows }}:
         - task: Bash@3
           displayName: 'Check Github workflow Runs'
+          continueOnError: true
           inputs:
             targetType: filePath
             filePath: scripts/github-scheduled-workflow-monitor.sh
             arguments: --githubToken $(dtspo-daily-checks-github-fine-grained-token) --githubRepo ${{gh_workflow.repo}} --branch ${{gh_workflow.branch}} --run ${{gh_workflow.run}}
       - task: Bash@3
         displayName: "Send Github Workflow Status"
+        continueOnError: true
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-header-thread-each-loop.sh
@@ -436,6 +564,7 @@ jobs:
       - ${{ each ado_pipeline in parameters.ado_pipelines }}:
         - task: Bash@3
           displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
+          continueOnError: true
           inputs:
             targetType: filePath
             filePath: scripts/ado-pipeline-monitor.sh
@@ -447,8 +576,10 @@ jobs:
               --adoTimeForAmber ${{ado_pipeline.timeForAmber}}
               --adoTimeForRed ${{ado_pipeline.timeForRed}}
               --adoPipelineBranch "${{ado_pipeline.branchName}}"
+              --weekdayOnly ${{ado_pipeline.weekdayOnly}}
       - task: Bash@3
         displayName: "Send ADO Pipeline Status"
+        continueOnError: true
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-header-thread-each-loop.sh
@@ -460,6 +591,7 @@ jobs:
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'AKS Cluster Status:  ${{cluster.clusterName}}'
+          continueOnError: true
           inputs:
             scriptType: bash
             scriptPath: scripts/aks-node-count.sh
@@ -467,6 +599,7 @@ jobs:
             arguments: --resourceGroup ${{cluster.resourceGroup}} --aksClusterName ${{cluster.clusterName}}
       - task: Bash@3
         displayName: "Send AKS Cluster Status"
+        continueOnError: true
         inputs:
           targetType: filePath
           filePath: scripts/send-slack-header-thread-each-loop.sh
@@ -475,21 +608,16 @@ jobs:
             --slackChannelName $(main_channel)
             --inputFileName aks-cluster-status.txt
             --messageHeader ":aks: AKS Cluster Status Checks"
+      # Final summary task - always runs and reports on any failed tasks
       - task: Bash@3
-        displayName: 'Elastic search field count check'
+        displayName: "Pipeline Summary - Report Failed Tasks"
+        condition: always()
         inputs:
           targetType: filePath
-          filePath: scripts/elastic-search-field-count.sh
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
-      - task: AzureCLI@2
-        displayName: 'Service Principal Check - B2C Sandbox Tenant'
-        inputs:
-          scriptType: bash
-          scriptPath: scripts/service-principals-b2c-tenants.sh
-          azureSubscription: ${{ variables.service_connection }}
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
-          # Send secrets to the service-principals-b2c-tenants script
-        env:
-          b2c_prod_serviceprincipal_id: $(b2c-prod-serviceprincipal-id)
-          b2c_prod_serviceprincipal_password: $(b2c-prod-serviceprincipal-password)
-          b2c_prod_tenant_id: $(b2c-prod-tenant-id)
+          filePath: scripts/pipeline-summary.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --buildId $(Build.BuildId)
+            --buildUrl "$(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"
+            --jobStatus $(Agent.JobStatus)
