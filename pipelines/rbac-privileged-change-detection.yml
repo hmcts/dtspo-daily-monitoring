@@ -92,24 +92,6 @@ jobs:
               --inputFileName "$TEST_FILE" \
               --messageHeader "RogerRBAC Slack Smoke Test"
 
-        - task: Bash@3
-            displayName: 'TEMP: Slack send smoke test'
-            inputs:
-              targetType: inline
-              workingDirectory: $(Build.SourcesDirectory)
-              script: |
-                set -eo pipefail
-                TEST_FILE="$(Build.SourcesDirectory)/testfile.txt"
-                echo ":yellow_circle: *RBAC pipeline Slack smoke test* — run $(Build.BuildNumber)" > "$TEST_FILE"
-                echo "----- testfile.txt contents -----"
-                cat "$TEST_FILE"
-                echo "---------------------------------"
-                scripts/send-slack-header-thread-each-loop.sh \
-                  --slackBotToken $(dtspo-daily-checks-slack-bot-token) \
-                  --slackChannelName C0BCGGKFG72 \
-                  --inputFileName "$TEST_FILE" \
-                  --messageHeader "Roger RBAC Slack Smoke Test"
-
 
 #       - task: AzureCLI@2
 #         displayName: 'Audit privileged RBAC assignments'
