@@ -212,6 +212,6 @@ jobs:
             } > "$STATUS_FILE"
             scripts/send-slack-header-thread-each-loop.sh \
               --slackBotToken "$(dtspo-daily-checks-slack-bot-token)" \
-              --slackChannelName D0AG03QQK9R \
+              --slackChannelName slackChannelName \
               --inputFileName "$STATUS_FILE" \
               --messageHeader ":azure: RBAC Privileged Change Detection (2-day)"
