@@ -99,7 +99,9 @@ jobs:
             set -euo pipefail
             MAX_TIME=$(date -u -d "$(windowDays) days ago" +%Y-%m-%dT%H:%M:%SZ)
             # only returns baselines from SUCCESSFUL and COMPLETED runs
-            URL="$(System.CollectionUri)$(System.TeamProjectId)/_apis/build/builds?definitions=$(System.DefinitionId)&resultFilter=succeeded&statusFilter=completed&queryOrder=finishTimeDescending&maxTime=${MAX_TIME}&\$top=1&api-version=7.1"
+            # test code to only compare against most recent run
+            # URL="$(System.CollectionUri)$(System.TeamProjectId)/_apis/build/builds?definitions=$(System.DefinitionId)&resultFilter=succeeded&statusFilter=completed&queryOrder=finishTimeDescending&maxTime=${MAX_TIME}&\$top=1&api-version=7.1"
+            URL="$(System.CollectionUri)$(System.TeamProjectId)/_apis/build/builds?definitions=$(System.DefinitionId)&resultFilter=succeeded&statusFilter=completed&queryOrder=finishTimeDescending&\$top=1&api-version=7.1"
             echo "Querying successful builds finished on/before ${MAX_TIME}"
             RESP=$(curl -sS -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" "$URL")
             BUILD_ID=$(echo "$RESP" | jq -r '.value[0].id // empty')
