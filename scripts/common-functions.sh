@@ -17,9 +17,10 @@ slackNotification() {
     local header=$3
     local message=$4
 
-    # Use jq with variables
+    # Use jq with variables - interpret escape sequences in message
+    # Use printf to convert \\n to actual newlines before passing to jq
     headerPayload=$(jq --arg header "$header" \
-                    --arg message "$message" \
+                    --arg message "$(printf '%b' "$message")" \
                     '.[0].text.text |= $header | .[1].text.text |= $message' scripts/header-block-template.json)
 
     # Construct the payload with blocks directly
@@ -29,11 +30,16 @@ slackNotification() {
             --argjson blocks "$headerPayload" \
             '{channel: $channel, username: $username, blocks: $blocks, icon_emoji: $icon_emoji, unfurl_links: false}')
 
-    RESPONSE=$(curl -s -H "Content-Type: application/json" \
+    RESPONSE=$(curl -s -H "Content-Type: application/json; charset=utf-8" \
     --data "${payload}" \
     -H "Authorization: Bearer ${slack_token}" \
-    -H application/json \
     -X POST https://slack.com/api/chat.postMessage)
+
+    # Surface API failures without printing successful responses to pipeline logs.
+    if [[ "$(echo "$RESPONSE" | jq -r '.ok')" != "true" ]]; then
+        echo "Slack post failed: $RESPONSE" >&2
+        return 1
+    fi
 
     # Extract the timestamp of the posted message
     TS=$(echo $RESPONSE | jq -r '.ts')
@@ -93,9 +99,14 @@ slackMessageUpdate() {
             '{channel: $channel, blocks: $blocks, ts: $ts, unfurl_links: false}')
 
     # Send update to slack message
-    curl -s -H "Content-Type: application/json" \
+    RESPONSE=$(curl -s -H "Content-Type: application/json; charset=utf-8" \
     --data "${payload}" \
     -H "Authorization: Bearer ${slack_token}" \
-    -H application/json \
-    -X POST https://slack.com/api/chat.update
+    -X POST https://slack.com/api/chat.update)
+
+    # Surface API failures without printing successful responses to pipeline logs.
+    if [[ "$(echo "$RESPONSE" | jq -r '.ok')" != "true" ]]; then
+        echo "Slack update failed: $RESPONSE" >&2
+        return 1
+    fi
 }

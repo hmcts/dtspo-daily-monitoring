@@ -61,35 +61,51 @@ if [ "$DOW" == "1" ]; then
   PREVIOUS_DAYS="3"
 fi
 
-OVERALL_OPEN_ISSUES_RESULT=$(curl   -u $jiraUsername:$jiraPassword -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
-  --data '{"jql":"project = DTSPO AND IssueType in (\"Support\", \"Task\")  and status not in (Done, Withdrawn, Rejected)  AND (Labels IS EMPTY OR Labels NOT IN (DTSPO-YELLOW, DTSPO-RED, DTSPO-BLUE, DTSPO-WHITE, DTSPO-Orange,TechDebt,BAUTeam-Improvement))","startAt":0,"maxResults":200,"fields":["assignee"]},"expand":"names"')
+get_issue_query_json(){
+  jql=$1
+  startAt=2
+  maxResults=200
+  fields='["assignee"]'
+  expand='["names"]'
 
-OPEN_ISSUES_RESULT=$(curl   -u $jiraUsername:$jiraPassword -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
-  --data '{"jql":"project = DTSPO AND IssueType in (\"Support\")  and status not in (Done, Withdrawn, Rejected)  AND (Labels IS EMPTY OR Labels NOT IN (DTSPO-YELLOW, DTSPO-RED, DTSPO-BLUE, DTSPO-WHITE, DTSPO-Orange,TechDebt,BAUTeam-Improvement))","startAt":0,"maxResults":200,"fields":["assignee"]},"expand":"names"')
+  jq -n --arg jql "$jql" --argjson startAt "$startAt" --argjson maxResults "$maxResults" --argjson fields "$fields" --argjson expand "$expand" -f scripts/jira-issues-query-template.jq -c
+}
+
+OVERALL_OPEN_ISSUES_QUERY=$(get_issue_query_json 'project = DTSPO AND IssueType in ("Support", "Task") and status not in (Done, Withdrawn, Rejected) AND (Labels IS EMPTY OR Labels NOT IN (DTSPO-YELLOW, DTSPO-RED, DTSPO-BLUE, DTSPO-WHITE, DTSPO-Orange, TechDebt, BAUTeam-Improvement))')
+OVERALL_OPEN_ISSUES_RESULT=$(curl -u $jiraUsername:$jiraPassword -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
+  --data "${OVERALL_OPEN_ISSUES_QUERY}")
+
+OPEN_ISSUES_QUERY=$(get_issue_query_json 'project = DTSPO AND IssueType in ("Support") AND status NOT IN (Done, Withdrawn, Rejected) AND (Labels IS EMPTY OR Labels NOT IN (DTSPO-YELLOW, DTSPO-RED, DTSPO-BLUE, DTSPO-WHITE, DTSPO-Orange, TechDebt, BAUTeam-Improvement))')
+OPEN_ISSUES_RESULT=$(curl -u $jiraUsername:$jiraPassword -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
+  --data "${OPEN_ISSUES_QUERY}")
 
 OPEN_ISSUES_COUNT=$(jq -r .total <<< "${OPEN_ISSUES_RESULT}")
 UNASSIGNED_ISSUES_COUNT=$(jq -r '[.issues[] | select(.fields.assignee==null)] | length'<<< "${OPEN_ISSUES_RESULT}")
 
 ASSIGNED_ISSUES_RESULT=$(jq -r '[.issues[] | select(.fields.assignee!=null)]| [group_by (.fields.assignee.displayName)[] | {user: .[0].fields.assignee.displayName, count: length}] | sort_by(.count) | reverse[]| [ ">_"+.user+"_", .count|tostring ] | join(": ")' <<< "${OVERALL_OPEN_ISSUES_RESULT}")
 
-CLOSED_ISSUES_RESULT=$(curl   -u $jiraUsername:$jiraPassword -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
-  --data '{"jql":"project = DTSPO AND IssueType in (\"Support\", \"Task\") AND (Labels IS EMPTY OR Labels NOT IN (DTSPO-YELLOW, DTSPO-RED, DTSPO-BLUE, DTSPO-WHITE, DTSPO-Orange,TechDebt,BAUTeam-Improvement)) AND status changed to (Done, Withdrawn, Rejected) ON -'${PREVIOUS_DAYS}'d","startAt":0,"maxResults":200,"fields":["assignee"]},"expand":"names"')
+CLOSED_ISSUES_QUERY=$(get_issue_query_json 'project = DTSPO AND IssueType IN ("Support", "Task") AND (Labels IS EMPTY OR Labels NOT IN (DTSPO-YELLOW, DTSPO-RED, DTSPO-BLUE, DTSPO-WHITE, DTSPO-Orange, TechDebt, BAUTeam-Improvement)) AND status changed to (Done, Withdrawn, Rejected) ON -'${PREVIOUS_DAYS}'d')
+CLOSED_ISSUES_RESULT=$(curl -u $jiraUsername:$jiraPassword -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
+  --data "${CLOSED_ISSUES_QUERY}")
 
 CLOSED_ISSUES_COUNT=$(jq -r .total <<< "${CLOSED_ISSUES_RESULT}")
 CLOSED_ISSUES_USER=$(jq -r '[.issues[] | select(.fields.assignee!=null)]| [group_by (.fields.assignee.displayName)[] | {user: .[0].fields.assignee.displayName, count: length}] | sort_by(.count) | reverse[]| [ ">_"+.user+"_", .count|tostring ] | join(": ")' <<< "${CLOSED_ISSUES_RESULT}")
 
+OPEN_PATCHING_ISSUES_QUERY=$(get_issue_query_json 'project = DTSPO AND IssueType IN ("Task") AND status NOT IN (Done, Withdrawn, Rejected) AND (Labels IN (Patching) AND Labels NOT IN (TechDebt, BAUTeam-Improvement))')
 OPEN_PATCHING_ISSUES_RESULT=$(curl   -u $jiraUsername:$jiraPassword -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
-  --data '{"jql":"project = DTSPO AND IssueType in (\"Task\")  and status not in (Done, Withdrawn, Rejected)  AND (Labels IN (Patching) AND Labels NOT IN (TechDebt,BAUTeam-Improvement))","startAt":0,"maxResults":200,"fields":["assignee"]},"expand":"names"')
+  --data "${OPEN_PATCHING_ISSUES_QUERY}")
 
 OPEN_PATCHING_ISSUES_COUNT=$(jq -r .total <<< "${OPEN_PATCHING_ISSUES_RESULT}")
 
+OPEN_OAT_ISSUES_QUERY=$(get_issue_query_json 'project = DTSPO AND IssueType IN ("Support", "Task") AND status NOT IN (Done, Withdrawn, Rejected) AND (Labels IN (OAT) AND Labels NOT IN (DTSPO-YELLOW, DTSPO-RED, DTSPO-BLUE, DTSPO-WHITE, DTSPO-Orange, TechDebt, BAUTeam-Improvement))')
 OPEN_OAT_ISSUES_RESULT=$(curl   -u $jiraUsername:$jiraPassword -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
-  --data '{"jql":"project = DTSPO AND IssueType in (\"Support\", \"Task\")  and status not in (Done, Withdrawn, Rejected)  AND (Labels IN (OAT) AND Labels NOT IN (DTSPO-YELLOW, DTSPO-RED, DTSPO-BLUE, DTSPO-WHITE, DTSPO-Orange,TechDebt,BAUTeam-Improvement))","startAt":0,"maxResults":200,"fields":["assignee"]},"expand":"names"')
+  --data "${OPEN_OAT_ISSUES_QUERY}")
 
 OPEN_OAT_ISSUES_COUNT=$(jq -r .total <<< "${OPEN_OAT_ISSUES_RESULT}")
 
+AUTO_WITHDRAWN_ISSUES_QUERY=$(get_issue_query_json 'project = DTSPO AND IssueType IN ("Support") AND Labels IN (auto-withdrawn) AND status changed to (Withdrawn) ON -'${PREVIOUS_DAYS}'d')
 AUTO_WITHDRAWN_ISSUES_RESULT=$(curl   -u $jiraUsername:$jiraPassword -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
-  --data '{"jql":"project = DTSPO AND IssueType in (\"Support\") AND Labels in (auto-withdrawn) AND status changed to (Withdrawn) ON -'${PREVIOUS_DAYS}'d","startAt":0,"maxResults":200,"fields":["assignee"]},"expand":"names"')
+  --data "${AUTO_WITHDRAWN_ISSUES_QUERY}")
 
 AUTO_WITHDRAWN_ISSUES_COUNT=$(jq -r .total <<< "${AUTO_WITHDRAWN_ISSUES_RESULT}")
 
