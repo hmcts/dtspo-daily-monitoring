@@ -31,6 +31,7 @@ outputFile="rbac-change-status.txt"
 windowDays="2"
 allowlistFile="${SCRIPT_DIR}/allowlist.txt"
 iacGroupsFiles=()
+standingPrivilegeCheck="false"
 
 usage() {
 >&2 cat << EOF
@@ -44,6 +45,7 @@ usage() {
         [ -w | --windowDays <n> ]                        # window size, to compare current run against (default: 2)
         [ -a | --allowlistFile <path> ]                  # principals allowed to self-add (default: <script dir>/allowlist.txt)
         [ --iacGroupsFile <path> ]                       # file of IaC-declared group display names (repeatable); alerting groups not listed are flagged with *
+        [ --standingPrivilegeCheck ]                     # also alert on privileged assignments that have PERSISTED past the window and are not IaC-managed/allowlisted (persistence-proof)
         [ -h | --help ]
 EOF
 exit 1
@@ -59,6 +61,7 @@ while [[ $# -gt 0 ]]; do
         -w|--windowDays) windowDays="$2";  shift 2 ;;
         -a|--allowlistFile) allowlistFile="$2"; shift 2 ;;
         --iacGroupsFile) iacGroupsFiles+=("$2"); shift 2 ;;
+        --standingPrivilegeCheck) standingPrivilegeCheck="true"; shift ;;
         -h|--help) usage ;;
         *) echo "Unknown option: $1" >&2; usage ;;
     esac
@@ -136,6 +139,7 @@ BASELINE_META="${BASELINE_CSV%.csv}.meta.json"
 # pass envvar vars into python
 CURRENT_CSV="$CURRENT_CSV" BASELINE_CSV="$BASELINE_CSV" ALLOWLIST_FILE="$allowlistFile" \
 CURRENT_META="$CURRENT_META" BASELINE_META="$BASELINE_META" IAC_GROUPS_FILES="$IAC_GROUPS_FILES" \
+STANDING_CHECK="$standingPrivilegeCheck" \
 python3 - >> "$outputFile" <<'PY'
 import csv
 import json
@@ -313,6 +317,7 @@ allow = load_allowlist(os.environ.get("ALLOWLIST_FILE", ""))
 cur_meta = load_meta(os.environ.get("CURRENT_META", ""))
 base_meta = load_meta(os.environ.get("BASELINE_META", ""))
 iac_groups = load_iac_groups(os.environ.get("IAC_GROUPS_FILES", ""))
+standing_check = os.environ.get("STANDING_CHECK", "false").lower() == "true"
 flagged_groups = set()
 
 
@@ -324,6 +329,15 @@ def group_unmanaged(name):
         flagged_groups.add(name)
         return True
     return False
+
+
+def iac_managed(r):
+    # An assignment is treated as IaC-legitimate only when it is inherited from a
+    # group whose display name is declared in IaC. Direct assignments (no group)
+    # are not recognisable as IaC-managed from the group-name source, so they rely
+    # on the allowlist. With no IaC source loaded this is always False.
+    name = (r.get("InheritedFromGroupName") or "").strip().lower()
+    return bool(name) and name in iac_groups
 
 # Coverage / integrity checks : surface a broken or incomplete audit as a
 # loud red alert instead of letting a truncated snapshot masquerade as "no
@@ -452,11 +466,13 @@ for _pidgid, rows in removed_groups.items():
 # any new grants as addtional permanent additions
 # Elevation (Temporary -> Permanent) stays per-row: it is a property change on a
 # specific assignment key, not a membership add/remove.
+elevated_keys = set()
 for key, cur in current.items():
     base = baseline.get(key)
     if not base:
         continue
     if base.get("DurationType") != "Permanent" and cur.get("DurationType") == "Permanent":
+        elevated_keys.add(key)
         if is_allowlisted(cur, allow):
             info.append(
                 f":white_check_mark: *ALLOWLISTED ELEVATION* {label(cur)} "
@@ -467,6 +483,59 @@ for key, cur in current.items():
                 f":red_circle: *ELEVATED \u2192 PERMANENT* {label(cur)} "
                 f"(was {base.get('DurationType', '')})"
             )
+
+# STANDING PRIVILEGE (state-based persistence check). The diff above only sees
+# transitions, so a privileged grant that ages into the baseline becomes
+# invisible: a malicious self-elevation left in place for longer than one window
+# would normalise and stop alerting. This re-derives, from the CURRENT snapshot,
+# every red-role assignment that has PERSISTED across the window (present in the
+# baseline too -- the ">24h standing" criterion, using snapshot persistence in
+# place of an assignment creation timestamp the audit does not capture) and is
+# neither allowlisted nor legitimised by IaC. Such an assignment is re-alerted on
+# every run until it is removed or explicitly approved, so persistence is no
+# longer a route to silent, undetected privilege. Legitimacy is decided by
+# Terraform IaC: an assignment inherited from an IaC-declared group is treated as
+# managed/approved; a direct assignment is not recognisable as IaC-managed from
+# the group-name source and so must be allowlisted if legitimate. Coverage is
+# continuous -- the diff covers a grant's first window (NEW/ADDED), this covers it
+# from the second window onward -- so the two checks do not double-report.
+if standing_check:
+    standing_direct = []
+    standing_groups = defaultdict(list)
+    standing_suppressed = 0
+    for key, r in current.items():
+        if not row_is_red(r):
+            continue
+        if key not in baseline:
+            continue  # brand-new this window: already covered by the diff's ADD line
+        if key in elevated_keys:
+            continue  # already reported above as an elevation (stronger signal)
+        if (r.get("SubscriptionId", "") or "") in gained_subs:
+            continue  # newly-covered blind spot, not a genuinely persisted grant
+        if is_allowlisted(r, allow) or iac_managed(r):
+            standing_suppressed += 1
+            continue
+        gid = r.get("InheritedFromGroupId", "") or ""
+        if gid:
+            standing_groups[(r.get("PrincipalId", ""), gid)].append(r)
+        else:
+            standing_direct.append(r)
+
+    for r in standing_direct:
+        red.append(
+            f":red_circle: *STANDING PRIVILEGE* {label(r)} "
+            f"({r.get('DurationType', '')}); persisted >1 window, not IaC-managed or allowlisted"
+        )
+    for _pidgid, rows in standing_groups.items():
+        red.append(
+            f":red_circle: *STANDING PRIVILEGE* {group_summary('holds', rows)}; "
+            f"persisted >1 window, group not IaC-managed or allowlisted"
+        )
+    if standing_suppressed:
+        info.append(
+            f":white_check_mark: *STANDING PRIVILEGE RECONCILED* {standing_suppressed} persisted "
+            f"privileged assignment(s) matched IaC/allowlist and were suppressed."
+        )
 
 red.sort()
 yellow.sort()
