@@ -332,12 +332,22 @@ def group_unmanaged(name):
 
 
 def iac_managed(r):
-    # An assignment is treated as IaC-legitimate only when it is inherited from a
-    # group whose display name is declared in IaC. Direct assignments (no group)
-    # are not recognisable as IaC-managed from the group-name source, so they rely
+    # An assignment is treated as IaC-legitimate when it is inherited from a group
+    # whose display name is declared in IaC, OR when the assignment's own principal
+    # is a group declared in IaC (a managed group granted a role directly -- e.g. an
+    # access-package-activated group holding its subscription role). Direct grants to
+    # non-group principals are not recognisable from the group-name source and rely
     # on the allowlist. With no IaC source loaded this is always False.
+    if not iac_groups:
+        return False
     name = (r.get("InheritedFromGroupName") or "").strip().lower()
-    return bool(name) and name in iac_groups
+    if name and name in iac_groups:
+        return True
+    if (r.get("IdentityType", "") or "") == "Group":
+        disp = (r.get("DisplayName") or "").strip().lower()
+        if disp and disp in iac_groups:
+            return True
+    return False
 
 # Coverage / integrity checks : surface a broken or incomplete audit as a
 # loud red alert instead of letting a truncated snapshot masquerade as "no
@@ -506,6 +516,8 @@ if standing_check:
     for key, r in current.items():
         if not row_is_red(r):
             continue
+        if (r.get("IdentityType", "") or "") in ("ServicePrincipal", "ManagedIdentity"):
+            continue  # SP and managed-identity role assignments are governed by platform terraform IaC and handled elsewhere, not by the membership/access-package sources this check reconciles against
         if key not in baseline:
             continue  # brand-new this window: already covered by the diff's ADD line
         if key in elevated_keys:
