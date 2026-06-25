@@ -101,7 +101,8 @@ jobs:
           scriptType: bash
           scriptPath: scripts/rbac/audit-privileged-rbac-p.sh
           arguments: >
-            --subscription DCD-ROBOTICS-DEV
+          #todo changeback
+            --subscription DTS-ARCHIVING-PROD
             --outputDir $(Build.ArtifactStagingDirectory)
 
       - task: PublishPipelineArtifact@1
