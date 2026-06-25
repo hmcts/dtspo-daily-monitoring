@@ -32,6 +32,7 @@ windowDays="2"
 allowlistFile="${SCRIPT_DIR}/allowlist.txt"
 iacGroupsFiles=()
 standingPrivilegeCheck="false"
+ledgerFile=""
 
 usage() {
 >&2 cat << EOF
@@ -46,6 +47,7 @@ usage() {
         [ -a | --allowlistFile <path> ]                  # principals allowed to self-add (default: <script dir>/allowlist.txt)
         [ --iacGroupsFile <path> ]                       # file of IaC-declared group display names (repeatable); alerting groups not listed are flagged with *
         [ --standingPrivilegeCheck ]                     # also alert on privileged assignments that have PERSISTED past the window and are not IaC-managed/allowlisted (persistence-proof)
+        [ --ledgerFile <path> ]                          # JSON first-seen ledger (read+rewritten) used to report how long each standing privilege has been held across runs
         [ -h | --help ]
 EOF
 exit 1
@@ -62,6 +64,7 @@ while [[ $# -gt 0 ]]; do
         -a|--allowlistFile) allowlistFile="$2"; shift 2 ;;
         --iacGroupsFile) iacGroupsFiles+=("$2"); shift 2 ;;
         --standingPrivilegeCheck) standingPrivilegeCheck="true"; shift ;;
+        --ledgerFile) ledgerFile="$2"; shift 2 ;;
         -h|--help) usage ;;
         *) echo "Unknown option: $1" >&2; usage ;;
     esac
@@ -139,12 +142,13 @@ BASELINE_META="${BASELINE_CSV%.csv}.meta.json"
 # pass envvar vars into python
 CURRENT_CSV="$CURRENT_CSV" BASELINE_CSV="$BASELINE_CSV" ALLOWLIST_FILE="$allowlistFile" \
 CURRENT_META="$CURRENT_META" BASELINE_META="$BASELINE_META" IAC_GROUPS_FILES="$IAC_GROUPS_FILES" \
-STANDING_CHECK="$standingPrivilegeCheck" \
+STANDING_CHECK="$standingPrivilegeCheck" LEDGER_FILE="$ledgerFile" \
 python3 - >> "$outputFile" <<'PY'
 import csv
 import json
 import os
 from collections import defaultdict
+from datetime import datetime, timezone
 # keep updated with RBAC privileged adm roles 
 RED_ROLES = {
     "Owner",
@@ -319,6 +323,48 @@ base_meta = load_meta(os.environ.get("BASELINE_META", ""))
 iac_groups = load_iac_groups(os.environ.get("IAC_GROUPS_FILES", ""))
 standing_check = os.environ.get("STANDING_CHECK", "false").lower() == "true"
 flagged_groups = set()
+
+# First-seen ledger: a JSON map of {assignment-key -> first-flagged UTC ISO}. It is
+# read at the start and rewritten (pruned to only currently-standing keys) at the
+# end, so the standing-privilege alert can report how long a grant has been held
+# across runs -- the audit/snapshot has no assignment creation timestamp, so this
+# is the only available source of age.
+ledger_path = os.environ.get("LEDGER_FILE", "")
+ledger = {}
+if ledger_path and os.path.isfile(ledger_path):
+    try:
+        with open(ledger_path, encoding="utf-8") as fh:
+            ledger = json.load(fh) or {}
+    except (ValueError, OSError):
+        ledger = {}
+now_dt = datetime.now(timezone.utc)
+now_iso = now_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def keystr(key):
+    # Serialise the 5-tuple assignment key to a JSON-safe string (unit separator
+    # \u001f cannot appear in any of the id/scope fields, so it is collision-safe).
+    return "\u001f".join(key)
+
+
+def age_phrase(first_iso):
+    # Human-readable age since a standing privilege was first flagged. Falls back
+    # to the original "persisted >1 window" wording if the timestamp is unusable
+    # or the grant was only first seen this run (no meaningful age yet).
+    try:
+        first = datetime.strptime(first_iso, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    except (ValueError, TypeError):
+        return "persisted >1 window"
+    secs = (now_dt - first).total_seconds()
+    if secs < 60:
+        return "first flagged this run (persisted >1 window)"
+    if secs < 3600:
+        dur = f"~{int(secs // 60)}m"
+    elif secs < 86400:
+        dur = f"~{int(secs // 3600)}h"
+    else:
+        dur = f"~{int(secs // 86400)}d"
+    return f"held {dur} (first flagged {first.strftime('%Y-%m-%d')})"
 
 
 def group_unmanaged(name):
@@ -513,6 +559,7 @@ if standing_check:
     standing_direct = []
     standing_groups = defaultdict(list)
     standing_suppressed = 0
+    new_ledger = {}
     for key, r in current.items():
         if not row_is_red(r):
             continue
@@ -527,27 +574,50 @@ if standing_check:
         if is_allowlisted(r, allow) or iac_managed(r):
             standing_suppressed += 1
             continue
+        # Genuine standing-privilege hit: stamp (or carry forward) its first-seen
+        # timestamp in the new ledger so its held-for age can be reported and so it
+        # persists across runs. An assignment absent from the prior ledger is being
+        # flagged for the first time and gets now as its first-seen.
+        ks = keystr(key)
+        first_iso = ledger.get(ks, now_iso)
+        new_ledger[ks] = first_iso
         gid = r.get("InheritedFromGroupId", "") or ""
         if gid:
-            standing_groups[(r.get("PrincipalId", ""), gid)].append(r)
+            standing_groups[(r.get("PrincipalId", ""), gid)].append((first_iso, r))
         else:
-            standing_direct.append(r)
+            standing_direct.append((first_iso, r))
 
-    for r in standing_direct:
+    for first_iso, r in standing_direct:
         red.append(
             f":red_circle: *STANDING PRIVILEGE* {label(r)} "
-            f"({r.get('DurationType', '')}); persisted >1 window, not IaC-managed or allowlisted"
+            f"({r.get('DurationType', '')}); {age_phrase(first_iso)}, not IaC-managed or allowlisted"
         )
     for _pidgid, rows in standing_groups.items():
+        # Report the OLDEST first-seen across the group's rows (the membership
+        # typically granted them together, so the earliest stamp is the true age).
+        oldest_iso = min(fi for fi, _ in rows)
+        plain_rows = [rr for _, rr in rows]
         red.append(
-            f":red_circle: *STANDING PRIVILEGE* {group_summary('holds', rows)}; "
-            f"persisted >1 window, group not IaC-managed or allowlisted"
+            f":red_circle: *STANDING PRIVILEGE* {group_summary('holds', plain_rows)}; "
+            f"{age_phrase(oldest_iso)}, group not IaC-managed or allowlisted"
         )
     if standing_suppressed:
         info.append(
             f":white_check_mark: *STANDING PRIVILEGE RECONCILED* {standing_suppressed} persisted "
             f"privileged assignment(s) matched IaC/allowlist and were suppressed."
         )
+
+    # Persist the ledger, pruned to only currently-standing keys so remediated or
+    # removed grants do not accumulate, and a later re-grant is treated as newly
+    # standing (fresh age) instead of inheriting a stale timestamp.
+    if ledger_path:
+        try:
+            with open(ledger_path, "w", encoding="utf-8") as fh:
+                json.dump(new_ledger, fh, indent=2, sort_keys=True)
+        except OSError as e:
+            red.append(
+                f":red_circle: *STANDING LEDGER WRITE FAILED* age tracking will reset next run ({e})"
+            )
 
 red.sort()
 yellow.sort()
