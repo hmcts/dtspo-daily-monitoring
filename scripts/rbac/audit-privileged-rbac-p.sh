@@ -165,10 +165,13 @@ OUTPUT_FILE=""
 OUTPUT_DIR=""
 # Entra tenant IDs to restrict the audit to (empty => every tenant in the CLI cache).
 TENANT_FILTER=()
+# Subscription names or IDs to restrict the audit to (empty => all in-scope subs).
+# Mainly for testing: target a single small subscription instead of the full estate.
+SUBSCRIPTION_FILTER=()
 
 usage() {
     cat >&2 <<EOF
-Usage: $0 [--outputFile <path>] [--outputDir <dir>] [--tenant <id[,id,...]>]
+Usage: $0 [--outputFile <path>] [--outputDir <dir>] [--tenant <id[,id,...]>] [--subscription <name|id[,...]>]
   --outputFile <path>  Full path to write the CSV snapshot
   --outputDir  <dir>   Directory to write rbac-snapshot-<YYYY-MM-DDTHHMMSSZ>.csv into
                        (default: current directory)
@@ -176,6 +179,10 @@ Usage: $0 [--outputFile <path>] [--outputDir <dir>] [--tenant <id[,id,...]>]
                        Restrict the audit to subscriptions in these Entra tenant
                        IDs. Repeatable and/or comma-separated. Without it, EVERY
                        tenant in the Azure CLI's cached logins is audited.
+  -s, --subscription <name|id[,name|id,...]>
+                       Restrict the audit to these subscriptions, matched on name
+                       OR id (case-insensitive). Repeatable and/or comma-separated.
+                       Useful for targeting one small subscription when testing.
   -h, --help           Show this help
 EOF
     exit 1
@@ -191,6 +198,15 @@ while [[ $# -gt 0 ]]; do
             for _t in "${_tlist[@]}"; do
                 _t="$(printf '%s' "$_t" | tr -d '[:space:]')"
                 [[ -n "$_t" ]] && TENANT_FILTER+=("$_t")
+            done
+            shift 2 ;;
+        -s|--subscription|--subscriptions)
+            # Accept comma-separated lists and allow the flag to be repeated.
+            IFS=',' read -r -a _slist <<< "$2"
+            for _s in "${_slist[@]}"; do
+                # Trim surrounding whitespace only (names may contain internal spaces).
+                _s="$(printf '%s' "$_s" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+                [[ -n "$_s" ]] && SUBSCRIPTION_FILTER+=("$_s")
             done
             shift 2 ;;
         -h|--help)       usage ;;
@@ -249,6 +265,15 @@ else
     echo "           audit to known Entra tenants (recommended for a security control)." >&2
 fi
 
+# Build a JSON array of requested subscription names/ids, lower-cased for
+# case-insensitive matching (empty => no subscription filter).
+if [[ ${#SUBSCRIPTION_FILTER[@]} -gt 0 ]]; then
+    SUBS_FILTER_JSON=$(printf '%s\n' "${SUBSCRIPTION_FILTER[@]}" | jq -R -s 'split("\n") | map(select(length>0) | ascii_downcase)')
+    echo "Restricting to subscription(s): ${SUBSCRIPTION_FILTER[*]}"
+else
+    SUBS_FILTER_JSON='[]'
+fi
+
 # Enumerate subscriptions, then filter by name (exclude sandbox) and tenant in jq,
 # where --argjson keeps tenant-ID quoting safe. This is where cross-tenant bleed is
 # prevented: only subscriptions whose tenantId is in the requested set are kept.
@@ -257,13 +282,14 @@ fi
 # subscription: its id equals the tenantId (real subscription IDs never do) and it
 # is named "N/A(tenant level account)". Auditing it just yields a permanent,
 # un-retryable SubscriptionNotFound coverage failure every run.
-SUBSCRIPTIONS=$(az account list -o json 2>/dev/null | sanitize_json | jq -c --argjson tenants "$TENANTS_JSON" '
+SUBSCRIPTIONS=$(az account list -o json 2>/dev/null | sanitize_json | jq -c --argjson tenants "$TENANTS_JSON" --argjson subs "$SUBS_FILTER_JSON" '
     [ .[]
       | { id: .id, name: .name, tenantId: .tenantId }
       | select(.id != .tenantId)
       | select((.name | ascii_downcase | contains("tenant level account")) | not)
       | select((.name | ascii_downcase | (contains("sandbox") or contains("sbox"))) | not)
       | select((($tenants | length) == 0) or (.tenantId as $tid | ($tenants | index($tid)) != null))
+      | select((($subs | length) == 0) or (.id | ascii_downcase) as $sid | (.name | ascii_downcase) as $sname | ($subs | index($sid)) != null or ($subs | index($sname)) != null)
     ]' || echo "")
 
 if ! echo "$SUBSCRIPTIONS" | jq -e . >/dev/null 2>&1; then
@@ -282,6 +308,9 @@ if [[ "${SUBSCRIPTION_COUNT:-0}" -eq 0 ]]; then
     if [[ ${#TENANT_FILTER[@]} -gt 0 ]]; then
         echo "Error: no subscriptions found for the requested tenant(s): ${TENANT_FILTER[*]}." >&2
         echo "       Verify the tenant IDs and that you are logged in to each (az login --tenant <id>)." >&2
+    elif [[ ${#SUBSCRIPTION_FILTER[@]} -gt 0 ]]; then
+        echo "Error: no subscriptions matched the requested --subscription filter: ${SUBSCRIPTION_FILTER[*]}." >&2
+        echo "       Verify the subscription name(s)/id(s) and that they are not sandbox-excluded." >&2
     else
         echo "Error: no subscriptions found in the current Azure CLI login." >&2
     fi
