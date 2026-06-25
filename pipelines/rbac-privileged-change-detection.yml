@@ -93,7 +93,7 @@ jobs:
       #           --inputFileName "$TEST_FILE" \
       #           --messageHeader "Roger RBAC Slack Smoke Test"
 
-
+                #todo changeback
       - task: AzureCLI@2
         displayName: 'Audit privileged RBAC assignments'
         inputs:
@@ -101,9 +101,9 @@ jobs:
           scriptType: bash
           scriptPath: scripts/rbac/audit-privileged-rbac-p.sh
           arguments: >
-          #todo changeback
             --subscription DTS-ARCHIVING-PROD
             --outputDir $(Build.ArtifactStagingDirectory)
+
 
       - task: PublishPipelineArtifact@1
         displayName: 'Publish RBAC snapshot artifact'
