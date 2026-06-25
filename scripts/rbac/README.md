@@ -7,6 +7,24 @@ baseline: **anything that is not declared in IaC (or explicitly allowlisted) is
 red-flagged**, so a manually granted elevation cannot "age out" of alerting and
 poison the baseline.
 
+
+# items of concern
+roles need to be monitored - definition of priv admin roles goes by perms not by rolename, if a new priv role is released which we haven't got on the audit list - this is a blindspot
+role scope not covered (if you grant reader role owner across the estate )
+api permissions not covered
+service principals /managed identities not covered
+
+# intended functionality
+all assignments to permissive groups should be done in iac via azure access
+should alert for users who activate access package repeatedly for monitoring purposes
+script only monitors human users and short term permission scope creep
+
+script should update it's source of truth from azure-access
+allow list only for covering break glass accounts
+investigate list for the DCD /ancient groups that need looking at
+
+holistic monitoring via access reviews, azgovviz and service principals + other posture monitoring is still required
+
 ## Components
 
 ### `extract-iac-groups.sh`
