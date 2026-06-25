@@ -74,23 +74,6 @@ jobs:
       # TEMP: smoke-test the Slack target. Writes a test message (with a marker so
       # the sender actually posts), echoes it to the build console for inspection,
       # then sends it. Remove once the channel/token are confirmed working.
-      - task: Bash@3
-        displayName: 'TEMP: Slack send smoke test'
-        inputs:
-          targetType: inline
-          workingDirectory: $(Build.SourcesDirectory)
-          script: |
-            set -eo pipefail
-            TEST_FILE="$(Build.SourcesDirectory)/testfile.txt"
-            echo ":yellow_circle: *RBAC pipeline Slack smoke test* — run $(Build.BuildNumber)" > "$TEST_FILE"
-            echo "----- testfile.txt contents -----"
-            cat "$TEST_FILE"
-            echo "---------------------------------"
-            scripts/send-slack-header-thread-each-loop.sh \
-              --slackBotToken $(dtspo-daily-checks-slack-bot-token) \
-              --slackChannelName dtspo-daily-checks \
-              --inputFileName "$TEST_FILE" \
-              --messageHeader "RogerRBAC Slack Smoke Test"
 
       - task: Bash@3
         displayName: 'TEMP: Slack send smoke test'
@@ -106,7 +89,7 @@ jobs:
               echo "---------------------------------"
               scripts/send-slack-header-thread-each-loop.sh \
                 --slackBotToken $(dtspo-daily-checks-slack-bot-token) \
-                --slackChannelName C0BCGGKFG72 \
+                --slackChannelName C0BD4U9R01F \
                 --inputFileName "$TEST_FILE" \
                 --messageHeader "Roger RBAC Slack Smoke Test"
 
