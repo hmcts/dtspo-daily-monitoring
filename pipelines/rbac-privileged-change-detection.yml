@@ -241,6 +241,7 @@ jobs:
             --baselineDir $(Pipeline.Workspace)/baseline
             --outputFile $(Build.SourcesDirectory)/rbac-change-status.txt
             --windowDays $(windowDays)
+            --groupAllowlistFile $(Build.SourcesDirectory)/scripts/rbac/group-allowlist.txt
             --iacGroupsFile $(Build.SourcesDirectory)/iac-managed-groups.txt
             --standingPrivilegeCheck
             --ledgerFile $(Build.SourcesDirectory)/rbac-standing-ledger.json

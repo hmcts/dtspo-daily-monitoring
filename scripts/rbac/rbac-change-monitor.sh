@@ -30,6 +30,7 @@ baselineDir=""
 outputFile="rbac-change-status.txt"
 windowDays="2"
 allowlistFile="${SCRIPT_DIR}/allowlist.txt"
+groupAllowlistFile="${SCRIPT_DIR}/group-allowlist.txt"
 iacGroupsFiles=()
 standingPrivilegeCheck="false"
 ledgerFile=""
@@ -45,6 +46,7 @@ usage() {
         [ -o | --outputFile <path> ]                     # report file (default: rbac-change-status.txt)
         [ -w | --windowDays <n> ]                        # window size, to compare current run against (default: 2)
         [ -a | --allowlistFile <path> ]                  # principals allowed to self-add (default: <script dir>/allowlist.txt)
+        [ -g | --groupAllowlistFile <path> ]             # groups sanctioned to hold STANDING privileged roles (default: <script dir>/group-allowlist.txt)
         [ --iacGroupsFile <path> ]                       # file of IaC-declared group display names (repeatable); alerting groups not listed are flagged with *
         [ --standingPrivilegeCheck ]                     # also alert on privileged assignments that have PERSISTED past the window and are not IaC-managed/allowlisted (persistence-proof)
         [ --ledgerFile <path> ]                          # JSON first-seen ledger (read+rewritten) used to report how long each standing privilege has been held across runs
@@ -62,6 +64,7 @@ while [[ $# -gt 0 ]]; do
         -o|--outputFile) outputFile="$2";  shift 2 ;;
         -w|--windowDays) windowDays="$2";  shift 2 ;;
         -a|--allowlistFile) allowlistFile="$2"; shift 2 ;;
+        -g|--groupAllowlistFile) groupAllowlistFile="$2"; shift 2 ;;
         --iacGroupsFile) iacGroupsFiles+=("$2"); shift 2 ;;
         --standingPrivilegeCheck) standingPrivilegeCheck="true"; shift ;;
         --ledgerFile) ledgerFile="$2"; shift 2 ;;
@@ -119,6 +122,11 @@ if [[ -f "$allowlistFile" ]]; then
 else
     echo "  allowlist: (none found at $allowlistFile)"
 fi
+if [[ -f "$groupAllowlistFile" ]]; then
+    echo "  group allowlist: $groupAllowlistFile"
+else
+    echo "  group allowlist: (none found at $groupAllowlistFile)"
+fi
 
 # Join Access Pkgs tf IaC repo's group-list files (colon-separated) for the diff. 
 # The report flags any alerting group whose display name is absent from these
@@ -141,6 +149,7 @@ BASELINE_META="${BASELINE_CSV%.csv}.meta.json"
 # module. Emit Slack-ready lines to the report file.
 # pass envvar vars into python
 CURRENT_CSV="$CURRENT_CSV" BASELINE_CSV="$BASELINE_CSV" ALLOWLIST_FILE="$allowlistFile" \
+GROUP_ALLOWLIST_FILE="$groupAllowlistFile" \
 CURRENT_META="$CURRENT_META" BASELINE_META="$BASELINE_META" IAC_GROUPS_FILES="$IAC_GROUPS_FILES" \
 STANDING_CHECK="$standingPrivilegeCheck" LEDGER_FILE="$ledgerFile" \
 python3 - >> "$outputFile" <<'PY'
@@ -195,6 +204,27 @@ def load_allowlist(path):
             token = line.split("#", 1)[0].strip()
             if token:
                 entries.add(token.lower())
+    return entries
+
+
+def load_group_allowlist(path):
+    # Display names (or object-ID GUIDs) of groups SANCTIONED to hold standing
+    # privileged roles. The intended governance model is that privilege is held by
+    # groups -- members granted via PIM-eligible / access-package membership -- not
+    # by individuals, so a sanctioned group carrying a permanent privileged role is
+    # expected and must NOT raise the standing-privilege alert. Full-line '#'
+    # comments and blank lines are ignored; names are matched case-insensitively.
+    # Group display names are kept verbatim (only full-line comments are stripped)
+    # so a name may safely contain any character.
+    entries = set()
+    if not path or not os.path.isfile(path):
+        return entries
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            s = line.strip()
+            if not s or s.startswith("#"):
+                continue
+            entries.add(s.lower())
     return entries
 
 
@@ -318,6 +348,7 @@ def coverage_report(cur_meta, base_meta):
 baseline = load(os.environ["BASELINE_CSV"])
 current = load(os.environ["CURRENT_CSV"])
 allow = load_allowlist(os.environ.get("ALLOWLIST_FILE", ""))
+group_allow = load_group_allowlist(os.environ.get("GROUP_ALLOWLIST_FILE", ""))
 cur_meta = load_meta(os.environ.get("CURRENT_META", ""))
 base_meta = load_meta(os.environ.get("BASELINE_META", ""))
 iac_groups = load_iac_groups(os.environ.get("IAC_GROUPS_FILES", ""))
@@ -368,12 +399,15 @@ def age_phrase(first_iso):
 
 
 def group_unmanaged(name):
-    # True when we have IaC data AND this group display name isn't declared there.
-    # Records the name so the explanatory footnote is only added when something
-    # was actually flagged. With no IaC source loaded we never flag (safe default).
-    if name and iac_groups and name.strip().lower() not in iac_groups:
-        flagged_groups.add(name)
-        return True
+    # True when we have IaC data AND this group display name isn't declared there
+    # NOR sanctioned in the group allowlist. Records the name so the explanatory
+    # footnote is only added when something was actually flagged. With no IaC source
+    # loaded we never flag (safe default).
+    if name and iac_groups:
+        key = name.strip().lower()
+        if key not in iac_groups and key not in group_allow:
+            flagged_groups.add(name)
+            return True
     return False
 
 
@@ -392,6 +426,30 @@ def iac_managed(r):
     if (r.get("IdentityType", "") or "") == "Group":
         disp = (r.get("DisplayName") or "").strip().lower()
         if disp and disp in iac_groups:
+            return True
+    return False
+
+
+def is_group_allowlisted(r, group_allow):
+    # A standing privileged assignment is sanctioned when the GROUP carrying it is
+    # explicitly allowlisted: the group it is inherited from, or -- for a role
+    # granted directly to a group principal -- the principal group itself. Matches
+    # on group display name OR object-ID GUID; never on a user UPN, so a user with a
+    # direct grant can never be silenced through this group list.
+    if not group_allow:
+        return False
+    name = (r.get("InheritedFromGroupName") or "").strip().lower()
+    if name and name in group_allow:
+        return True
+    gid = (r.get("InheritedFromGroupId") or "").strip().lower()
+    if gid and gid in group_allow:
+        return True
+    if (r.get("IdentityType", "") or "") == "Group":
+        disp = (r.get("DisplayName") or "").strip().lower()
+        if disp and disp in group_allow:
+            return True
+        pid = (r.get("PrincipalId") or "").strip().lower()
+        if pid and pid in group_allow:
             return True
     return False
 
@@ -571,7 +629,7 @@ if standing_check:
             continue  # already reported above as an elevation (stronger signal)
         if (r.get("SubscriptionId", "") or "") in gained_subs:
             continue  # newly-covered blind spot, not a genuinely persisted grant
-        if is_allowlisted(r, allow) or iac_managed(r):
+        if is_allowlisted(r, allow) or iac_managed(r) or is_group_allowlisted(r, group_allow):
             standing_suppressed += 1
             continue
         # Genuine standing-privilege hit: stamp (or carry forward) its first-seen
@@ -604,7 +662,7 @@ if standing_check:
     if standing_suppressed:
         info.append(
             f":white_check_mark: *STANDING PRIVILEGE RECONCILED* {standing_suppressed} persisted "
-            f"privileged assignment(s) matched IaC/allowlist and were suppressed."
+            f"privileged assignment(s) matched IaC, the allowlist, or the group allowlist and were suppressed."
         )
 
     # Persist the ledger, pruned to only currently-standing keys so remediated or

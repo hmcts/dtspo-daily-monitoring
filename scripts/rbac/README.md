@@ -23,6 +23,10 @@ script should update it's source of truth from azure-access
 allow list only for covering break glass accounts
 investigate list for the DCD /ancient groups that need looking at
 
+malicious entry into legit eligible groups is not monitored
+
+malicous modification of allowlist
+doesnt monitor subs or tenants that the SP has no read access to
 holistic monitoring via access reviews, azgovviz and service principals + other posture monitoring is still required
 
 ## Components

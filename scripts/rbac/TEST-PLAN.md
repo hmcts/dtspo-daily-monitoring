@@ -27,16 +27,6 @@ reconciled the same as "IaC add" — the meaningful distinctions are
 **direct vs group** and **IaC-group vs non-IaC-group**. The matrix below covers
 that plus the anti-poisoning, coverage, and operational guarantees.
 
-## Safety preconditions (live run)
-
-- Scope every audit with the `--subscription <small-test-sub>` flag so you never
-  touch the prod estate.
-- Use a disposable **test principal** (a throwaway user/SP) and a **test group**;
-  never a real admin.
-- Record every grant you make and **remove it in the cleanup column**.
-- Keep two terminals: one to mutate access, one to run `audit → monitor`
-  back-to-back so each "run" is a fresh snapshot.
-
 ## Test matrix
 
 ### 1. Core diff detection (transitions)

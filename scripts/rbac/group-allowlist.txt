@@ -1,0 +1,63 @@
+# Privileged RBAC group allowlist
+# -----------------------------------------------------------------------------
+# Groups listed here are SANCTIONED to hold standing (permanent) privileged
+# roles. The intended governance model is that privilege is carried by GROUPS --
+# whose membership is itself governed (PIM-eligible activation / access
+# packages) -- rather than assigned to individuals. A sanctioned group holding a
+# permanent privileged role is therefore expected and is suppressed from the
+# :red_circle: STANDING PRIVILEGE alert (reported as RECONCILED instead).
+#
+# This is the GROUP equivalent of allowlist.txt (which covers individual
+# principals). It is consulted only by the --standingPrivilegeCheck.
+#
+# Format:
+#   - One group per line.
+#   - Lines beginning with '#' and blank lines are ignored.
+#   - Match is on EITHER of, case-insensitively:
+#       * the group DISPLAY NAME exactly as it appears in the Slack alert /
+#         snapshot (e.g. DTS Owners (mg:HMCTS))            [convenient]
+#       * the group OBJECT ID GUID (InheritedFromGroupId / PrincipalId) [robust]
+#   - A grant is suppressed when the group the role is assigned to is listed:
+#       * inherited assignments  -> the InheritedFromGroup (name or id)
+#       * direct group grants    -> the principal group itself (name or id)
+#     so allowlisting a parent group also covers nested member groups/users
+#     that merely inherit its privilege.
+#
+# SECURITY NOTES:
+#   - This NEVER matches a user UPN, so a user with a DIRECT privileged grant can
+#     never be silenced via this file -- use allowlist.txt (by object ID/UPN) for
+#     genuinely-sanctioned individuals.
+#   - Display names are mutable; prefer the object ID for break-glass / high-risk
+#     groups so a rename cannot silently change what is suppressed.
+#   - This file MUST be committed so the pipeline checkout includes it; an
+#     untracked file is invisible to the agent and suppresses nothing.
+#
+# To find a group object ID:
+#   az ad group show --group "DTS Owners (mg:HMCTS)" --query id -o tsv
+#
+# -----------------------------------------------------------------------------
+# Initial set: governance groups surfaced by the standing-privilege baseline.
+
+# Owners (Owner @ management-group / subscription scopes)
+DTS Owners (mg:HMCTS)
+DTS Owners (mg:SDS)
+DTS Owners (mg:SDS-Prod)
+DTS Owners (sub:dts-archiving-prod)
+
+# Contributors (Contributor / Azure Contributor Role minus deletes)
+DTS Contributors (mg:HMCTS)
+DTS Contributors (mg:SDS)
+DTS Contributors (mg:SDS-Prod)
+DTS Contributors (sub:dts-archiving-prod)
+
+# User Access Administrators
+DTS User Access Administrators (mg:HMCTS)
+DTS User Access Administrators (mg:SDS)
+DTS User Access Administrators (mg:SDS-Prod)
+
+# Global / platform administration
+DTS Global Admins
+
+# Operational groups holding (or inheriting) standing privilege
+DTS Operations (env:prod)
+DTS Production DB Reporting
