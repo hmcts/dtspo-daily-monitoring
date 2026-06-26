@@ -126,13 +126,14 @@ emit_inherited_row_once() {
     local assignment_source="${16}"
     local inherited_group_id="${17}"
     local inherited_group_name="${18}"
+    local membership_origin="${19}"
 
     if grep -Fqx "$dedupe_key" "$dedupe_file" 2>/dev/null; then
         return 0
     fi
     echo "$dedupe_key" >> "$dedupe_file"
 
-    printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+    printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
         "$(csv_field "$principal_id")" \
         "$(csv_field "$role_def_id")" \
         "$(csv_field "$display_name")" \
@@ -149,6 +150,7 @@ emit_inherited_row_once() {
         "$(csv_field "$assignment_source")" \
         "$(csv_field "$inherited_group_id")" \
         "$(csv_field "$inherited_group_name")" \
+        "$(csv_field "$membership_origin")" \
         >> "$OUTPUT_FILE"
 }
 
@@ -331,7 +333,7 @@ echo "Starting audit..."
 echo ""
 
 # Write CSV header
-echo "PrincipalId,RoleDefinitionId,DisplayName,Identifier,IdentityType,RoleName,DurationType,ExpiresOn,Scope,ScopeType,SubscriptionName,SubscriptionId,AssignmentId,AssignmentSource,InheritedFromGroupId,InheritedFromGroupName" > "$OUTPUT_FILE"
+echo "PrincipalId,RoleDefinitionId,DisplayName,Identifier,IdentityType,RoleName,DurationType,ExpiresOn,Scope,ScopeType,SubscriptionName,SubscriptionId,AssignmentId,AssignmentSource,InheritedFromGroupId,InheritedFromGroupName,MembershipOrigin" > "$OUTPUT_FILE"
 
 # De-dup effective inherited rows (Bash 3.2-safe; no associative arrays).
 INHERITED_DEDUPE_FILE="$(mktemp)"
@@ -345,6 +347,21 @@ INHERITED_DEDUPE_FILE="$(mktemp)"
 PIM_ELIGIBILITY_FILE="$(mktemp)"
 echo "[]" > "$PIM_ELIGIBILITY_FILE"
 PIM_READ_OK=true
+
+# Membership-origin classification data (tenant-wide, fetched once like PIM
+# eligibility above). These let the audit say HOW a principal became a member of
+# a privileged group -- via an access package, via a PIM group assignment, or by
+# a plain direct add -- so a direct add (the ungoverned, higher-risk path) can be
+# told apart from governed membership.
+#   ENTITLEMENT_MAP_FILE : lines "userObjectId|groupObjectId" for every active
+#                          access-package assignment that grants membership of a
+#                          group (joined from assignments x package resource roles).
+#   PIM_ACTIVE_MAP_FILE  : lines "principalId|groupId|assignmentType" for active
+#                          PIM group memberships (assignmentType Activated|Assigned).
+ENTITLEMENT_MAP_FILE="$(mktemp)"; : > "$ENTITLEMENT_MAP_FILE"
+PIM_ACTIVE_MAP_FILE="$(mktemp)"; : > "$PIM_ACTIVE_MAP_FILE"
+ENTITLEMENT_READ_OK=false
+PIM_ASSIGN_READ_OK=false
 
 # Coverage tracking for snapshot integrity (C2): record which subscriptions were
 # audited end-to-end vs. which failed, so a silently truncated snapshot (e.g. a
@@ -369,7 +386,7 @@ case "$MAX_PARALLEL" in ''|*[!0-9]*) MAX_PARALLEL=2 ;; esac
 [[ "$MAX_PARALLEL" -lt 1 ]] && MAX_PARALLEL=1
 
 cleanup() {
-    rm -f "$INHERITED_DEDUPE_FILE" "$PIM_ELIGIBILITY_FILE" "$COVERAGE_OK_FILE" "$COVERAGE_FAIL_FILE"
+    rm -f "$INHERITED_DEDUPE_FILE" "$PIM_ELIGIBILITY_FILE" "$ENTITLEMENT_MAP_FILE" "$PIM_ACTIVE_MAP_FILE" "$COVERAGE_OK_FILE" "$COVERAGE_FAIL_FILE"
     rm -rf "$WORK_DIR"
 }
 trap cleanup EXIT
@@ -392,6 +409,98 @@ else
     graph_list_all "https://graph.microsoft.com/v1.0/identityGovernance/privilegedAccess/group/eligibilityScheduleInstances?\$expand=principal" > "$PIM_ELIGIBILITY_FILE"
     echo "  Collected $(jq 'length' "$PIM_ELIGIBILITY_FILE" 2>/dev/null || echo 0) eligible group assignment(s)."
 fi
+
+# --- Membership-origin maps (one-time, tenant-wide) ---------------------------
+# 1) Access-package memberships. An access-package assignment delivers one or
+#    more "resource roles"; for AadGroup resources that role IS membership of a
+#    group. Joining (user -> package) assignments with (package -> group) resource
+#    roles yields every (user, group) pair whose membership was granted via an
+#    access package -- the governed self-service path.
+echo "Fetching access-package assignments (one-time, for membership-origin)..."
+ENT_PREFLIGHT_ERR="$(az rest --method GET \
+    --url "https://graph.microsoft.com/v1.0/identityGovernance/entitlementManagement/assignments?\$top=1" \
+    -o json 2>&1 >/dev/null || true)"
+if [[ -n "$ENT_PREFLIGHT_ERR" ]]; then
+    echo "  WARNING: cannot read entitlement-management assignments; membership origin cannot" >&2
+    echo "           distinguish access-package grants from direct adds (origin will be 'Unknown')." >&2
+    echo "           Grant the audit identity the Microsoft Graph application permission" >&2
+    echo "           'EntitlementManagement.Read.All' and admin-consent it to close this gap." >&2
+    echo "           Underlying error: $(echo "$ENT_PREFLIGHT_ERR" | head -1)" >&2
+else
+    ENTITLEMENT_READ_OK=true
+    ENT_ASSIGN_TMP="$(mktemp)"   # lines: userObjectId|packageId
+    ENT_PKGGRP_TMP="$(mktemp)"   # lines: packageId|groupObjectId
+    graph_list_all "https://graph.microsoft.com/v1.0/identityGovernance/entitlementManagement/assignments?\$filter=state%20eq%20'Delivered'&\$expand=target,accessPackage" \
+        | jq -r '.[] | select((.target.objectId // "") != "" and (.accessPackage.id // "") != "") | "\(.target.objectId)|\(.accessPackage.id)"' \
+        | sort -u > "$ENT_ASSIGN_TMP"
+    # For each distinct package referenced by an assignment, resolve which groups
+    # its resource roles grant membership of (originSystem AadGroup).
+    cut -d'|' -f2 "$ENT_ASSIGN_TMP" | sort -u | while read -r _pkg; do
+        [[ -z "$_pkg" ]] && continue
+        graph_list_all "https://graph.microsoft.com/v1.0/identityGovernance/entitlementManagement/accessPackages/${_pkg}/resourceRoleScopes?\$expand=scope" \
+            | jq -r --arg pkg "$_pkg" '.[] | select((.scope.originSystem // "") == "AadGroup") | "\($pkg)|\(.scope.originId)"' \
+            | sort -u >> "$ENT_PKGGRP_TMP"
+    done
+    # Join assignments (user|pkg) with package->group (pkg|group) on package id,
+    # emitting user|group pairs. BSD/GNU join compatible.
+    if [[ -s "$ENT_ASSIGN_TMP" && -s "$ENT_PKGGRP_TMP" ]]; then
+        join -t'|' -1 2 -2 1 -o 1.1,2.2 \
+            <(sort -t'|' -k2,2 "$ENT_ASSIGN_TMP") \
+            <(sort -t'|' -k1,1 "$ENT_PKGGRP_TMP") \
+            2>/dev/null | sort -u > "$ENTITLEMENT_MAP_FILE" || : > "$ENTITLEMENT_MAP_FILE"
+    fi
+    echo "  Mapped $(wc -l < "$ENTITLEMENT_MAP_FILE" | tr -d ' ') access-package group membership(s)."
+    rm -f "$ENT_ASSIGN_TMP" "$ENT_PKGGRP_TMP"
+fi
+
+# 2) Active PIM group memberships (assignmentScheduleInstances). assignmentType
+#    'Activated' = a just-in-time activation; 'Assigned' = a standing PIM-managed
+#    membership. Either is governed (distinct from a raw direct add).
+echo "Fetching active PIM group memberships (one-time, for membership-origin)..."
+PIMA_PREFLIGHT_ERR="$(az rest --method GET \
+    --url "https://graph.microsoft.com/v1.0/identityGovernance/privilegedAccess/group/assignmentScheduleInstances?\$top=1" \
+    -o json 2>&1 >/dev/null || true)"
+if [[ -n "$PIMA_PREFLIGHT_ERR" ]]; then
+    echo "  WARNING: cannot read active PIM group memberships; PIM-assigned/activated members" >&2
+    echo "           may be reported as 'Unknown' rather than classified." >&2
+    echo "           Grant 'PrivilegedAccess.Read.AzureADGroup' (already needed for eligibility)" >&2
+    echo "           and admin-consent it to close this gap." >&2
+    echo "           Underlying error: $(echo "$PIMA_PREFLIGHT_ERR" | head -1)" >&2
+else
+    PIM_ASSIGN_READ_OK=true
+    graph_list_all "https://graph.microsoft.com/v1.0/identityGovernance/privilegedAccess/group/assignmentScheduleInstances" \
+        | jq -r '.[] | select((.principalId // "") != "" and (.groupId // "") != "") | "\(.principalId)|\(.groupId)|\(.assignmentType // "Assigned")"' \
+        | sort -u > "$PIM_ACTIVE_MAP_FILE"
+    echo "  Collected $(wc -l < "$PIM_ACTIVE_MAP_FILE" | tr -d ' ') active PIM group membership(s)."
+fi
+
+# classify_membership_origin <member_id> <group_id> <is_direct_member:true|false>
+# Determine how a principal holds membership of a privileged group. Only a DIRECT
+# member can be classified definitively; a transitive (nested) member reaches the
+# role through another group whose own row carries the authoritative origin.
+classify_membership_origin() {
+    local mid="$1" gid="$2" direct="$3" atype=""
+    if [[ "$direct" != "true" ]]; then
+        echo "NestedGroupMember"
+        return 0
+    fi
+    if [[ "$ENTITLEMENT_READ_OK" == "true" ]] && grep -Fqx "${mid}|${gid}" "$ENTITLEMENT_MAP_FILE" 2>/dev/null; then
+        echo "AccessPackage"
+        return 0
+    fi
+    if [[ "$PIM_ASSIGN_READ_OK" == "true" ]]; then
+        atype=$(grep -F "${mid}|${gid}|" "$PIM_ACTIVE_MAP_FILE" 2>/dev/null | head -1 | cut -d'|' -f3)
+        if [[ "$atype" == "Activated" ]]; then echo "PIMActivated"; return 0; fi
+        if [[ -n "$atype" ]]; then echo "PIMAssigned"; return 0; fi
+    fi
+    # Direct member with no governed-membership record. Only assert 'DirectAdd'
+    # when BOTH governance sources were readable; otherwise we cannot be sure.
+    if [[ "$ENTITLEMENT_READ_OK" == "true" && "$PIM_ASSIGN_READ_OK" == "true" ]]; then
+        echo "DirectAdd"
+    else
+        echo "Unknown"
+    fi
+}
 
 # Counter for progress
 CURRENT=0
@@ -554,7 +663,7 @@ audit_subscription() {
                 echo "  ✓ Found: [$IDENTITY_TYPE] $DISPLAY_NAME → $ROLE_NAME ($DURATION_TYPE${EXPIRES_ON:+, expires: $EXPIRES_ON}) at $SCOPE_TYPE"
 
                 # Write direct-assignment CSV row
-                printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+                printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
                     "$(csv_field "$PRINCIPAL_ID")" \
                     "$(csv_field "$ROLE_DEF_ID")" \
                     "$(csv_field "$DISPLAY_NAME")" \
@@ -571,6 +680,7 @@ audit_subscription() {
                     "$(csv_field "Direct")" \
                     "$(csv_field "")" \
                     "$(csv_field "")" \
+                    "$(csv_field "N/A")" \
                     >> "$OUTPUT_FILE"
 
                 # Expand group role assignments into effective inherited permissions:
@@ -580,6 +690,14 @@ audit_subscription() {
                 if [[ "$PRINCIPAL_TYPE" == "Group" ]]; then
                     TRANSITIVE_MEMBERS=$(graph_list_all "https://graph.microsoft.com/v1.0/groups/${PRINCIPAL_ID}/transitiveMembers")
                     GROUP_OWNERS=$(graph_list_all "https://graph.microsoft.com/v1.0/groups/${PRINCIPAL_ID}/owners")
+
+                    # Direct (non-transitive) members of this role-holding group. A
+                    # member present here is a DIRECT member whose origin can be
+                    # classified (access package / PIM / direct add); a transitive
+                    # member NOT in this set reaches the role via a nested group.
+                    DIRECT_IDS_FILE="${WORK_DIR}/direct.${SUB_ID}.${PRINCIPAL_ID}"
+                    graph_list_all "https://graph.microsoft.com/v1.0/groups/${PRINCIPAL_ID}/members" \
+                        | jq -r '.[].id // empty' 2>/dev/null | sort -u > "$DIRECT_IDS_FILE" || : > "$DIRECT_IDS_FILE"
 
                     if ! echo "$TRANSITIVE_MEMBERS" | jq -e . >/dev/null 2>&1; then
                         echo "  Warning: could not parse transitive members for group '$DISPLAY_NAME' ($PRINCIPAL_ID)"
@@ -603,7 +721,14 @@ audit_subscription() {
                                 MEMBER_IDENTITY_TYPE="Group"
                             fi
 
-                            echo "  ↳ Effective(transitive): [$MEMBER_IDENTITY_TYPE] $MEMBER_NAME inherits $ROLE_NAME via group $DISPLAY_NAME"
+                            if grep -Fqx "$MEMBER_ID" "$DIRECT_IDS_FILE" 2>/dev/null; then
+                                MEMBER_IS_DIRECT="true"
+                            else
+                                MEMBER_IS_DIRECT="false"
+                            fi
+                            MEMBER_ORIGIN=$(classify_membership_origin "$MEMBER_ID" "$PRINCIPAL_ID" "$MEMBER_IS_DIRECT")
+
+                            echo "  ↳ Effective(transitive): [$MEMBER_IDENTITY_TYPE] $MEMBER_NAME inherits $ROLE_NAME via group $DISPLAY_NAME [origin: $MEMBER_ORIGIN]"
 
                             DEDUPE_KEY="${MEMBER_ID}|${ROLE_DEF_ID}|${SCOPE}|transitive|${PRINCIPAL_ID}"
                             emit_inherited_row_once \
@@ -624,7 +749,8 @@ audit_subscription() {
                                 "${ASSIGNMENT_ID}|via:${PRINCIPAL_ID}" \
                                 "InheritedGroupTransitiveMember" \
                                 "$PRINCIPAL_ID" \
-                                "$DISPLAY_NAME"
+                                "$DISPLAY_NAME" \
+                                "$MEMBER_ORIGIN"
                         done
                     fi
 
@@ -671,7 +797,8 @@ audit_subscription() {
                                 "${ASSIGNMENT_ID}|owner-of:${PRINCIPAL_ID}" \
                                 "InheritedGroupOwner" \
                                 "$PRINCIPAL_ID" \
-                                "$DISPLAY_NAME"
+                                "$DISPLAY_NAME" \
+                                "N/A"
                         done
                     fi
 
@@ -730,7 +857,8 @@ audit_subscription() {
                                 "${ASSIGNMENT_ID}|${ELIG_VIA}:${PRINCIPAL_ID}" \
                                 "$ELIG_SOURCE" \
                                 "$PRINCIPAL_ID" \
-                                "$DISPLAY_NAME"
+                                "$DISPLAY_NAME" \
+                                "N/A"
                         done
                     fi
                 fi
@@ -864,6 +992,8 @@ ROW_COUNT=$(( $(wc -l < "$OUTPUT_FILE" 2>/dev/null || echo 1) - 1 ))
 [[ "$ROW_COUNT" -lt 0 ]] && ROW_COUNT=0
 
 if [[ "$PIM_READ_OK" == "true" ]]; then PIM_READABLE_JSON=true; else PIM_READABLE_JSON=false; fi
+if [[ "$ENTITLEMENT_READ_OK" == "true" ]]; then ENT_READABLE_JSON=true; else ENT_READABLE_JSON=false; fi
+if [[ "$PIM_ASSIGN_READ_OK" == "true" ]]; then PIMA_READABLE_JSON=true; else PIMA_READABLE_JSON=false; fi
 
 jq -n \
     --arg generatedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
@@ -872,6 +1002,8 @@ jq -n \
     --argjson failed "${FAILED_COUNT:-0}" \
     --argjson rowCount "${ROW_COUNT:-0}" \
     --argjson pimEligibleReadable "$PIM_READABLE_JSON" \
+    --argjson entitlementReadable "$ENT_READABLE_JSON" \
+    --argjson pimActiveReadable "$PIMA_READABLE_JSON" \
     --argjson requestedTenants "${TENANTS_JSON:-[]}" \
     --argjson auditedTenants "${AUDITED_TENANTS_JSON:-[]}" \
     --argjson auditedSubscriptionIds "$AUDITED_IDS_JSON" \
@@ -883,6 +1015,8 @@ jq -n \
         subscriptionsFailed: $failed,
         snapshotRowCount: $rowCount,
         pimEligibleReadable: $pimEligibleReadable,
+        entitlementReadable: $entitlementReadable,
+        pimActiveReadable: $pimActiveReadable,
         requestedTenants: $requestedTenants,
         auditedTenants: $auditedTenants,
         auditedSubscriptionIds: $auditedSubscriptionIds,

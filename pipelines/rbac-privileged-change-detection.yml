@@ -41,6 +41,7 @@ variables:
     value: 2
   - name: azureServiceConnection
   # this doesn't have the read permission for PIM access, which we're not trying to monitor
+  #should get read for access packages and pim todo
     value: "dts-management-prod-intsvc"
   # Key Vault holding the Slack bot token (same KV the main daily pipeline uses).
   - name: keyVaultServiceConnection

@@ -37,4 +37,4 @@ b2cadmin@hmcts.net
 dtsazure@HMCTS.NET
 # ??
 platform-ops-db-manager@HMCTS.NET
-rpe-azure-devops
+rpe-azure-devops@hmcts.net

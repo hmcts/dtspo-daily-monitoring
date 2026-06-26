@@ -496,9 +496,19 @@ def group_summary(verb, rows):
         roles_disp += f", +{len(roles) - role_cap} more"
     via = ", ".join(sources) if sources else "group"
     across = f" across {len(sub_ids)} subscription(s)" if sub_ids else ""
+    # Surface HOW the members hold their membership of the role-granting group
+    # (AccessPackage / PIMActivated / PIMAssigned / DirectAdd / NestedGroupMember /
+    # Unknown) so a governed self-service grant can be told apart from a raw direct
+    # add. Only show when the audit actually populated it (older snapshots / N/A
+    # rows carry no useful origin).
+    origins = sorted({
+        o for o in (r.get("MembershipOrigin", "") for r in rows)
+        if o and o not in ("N/A", "")
+    })
+    origin_disp = f"; membership: {', '.join(origins)}" if origins else ""
     return (
         f"{who_label(rep)} {verb} {len(rows)} privileged assignment(s) via group "
-        f"\"{gname}\"{star}{across} ({via}); roles: {roles_disp}"
+        f"\"{gname}\"{star}{across} ({via}); roles: {roles_disp}{origin_disp}"
     )
 
 

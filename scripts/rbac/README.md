@@ -64,6 +64,53 @@ shrunken snapshot can be told apart from an incomplete audit (coverage
 loss/gain is surfaced as its own alert rather than a flood of bogus
 adds/removals).
 
+## Membership origin — how a principal got into a privileged group
+
+A row whose `AssignmentSource` is `InheritedGroupTransitiveMember` tells you a
+principal holds a role **because they are a member of a privileged group** — but
+not *how that membership was obtained*. The snapshot's `MembershipOrigin` column
+(produced by `audit-privileged-rbac-p.sh`) classifies that, so a governed
+self-service grant can be told apart from a raw direct add (the higher-risk,
+ungoverned path):
+
+| `MembershipOrigin` | Meaning |
+| --- | --- |
+| `AccessPackage` | Direct member; membership was delivered by an **Entra access-package assignment** (governed self-service). |
+| `PIMActivated` | Direct member; membership is an **active PIM just-in-time activation**. |
+| `PIMAssigned` | Direct member; membership is a **standing PIM-assigned** group role. |
+| `DirectAdd` | Direct member with **no** access-package or PIM record — added straight to the group (manual / script / IaC). The path to scrutinise. |
+| `NestedGroupMember` | Reached the role **via a nested group**, not by direct membership of the role-holding group; the origin is attributable to that nested group's own row. |
+| `Unknown` | Origin data could not be read (missing Graph permission — see below). |
+| `N/A` | Not a group-membership row (a direct role assignment, group owner, or PIM-eligible row). |
+
+The monitor surfaces this on group-inherited and standing-privilege lines as
+`…; membership: <origins>`.
+
+### Graph permissions required on the audit service principal
+
+`MembershipOrigin` is populated from Microsoft Graph. Grant these **application**
+permissions to the audit identity's app registration and **admin-consent** them
+**in the tenant that owns the groups** (app-only, since it runs unattended):
+
+| Graph application permission | Enables |
+| --- | --- |
+| `EntitlementManagement.Read.All` | Read access-package assignments + resource roles → the `AccessPackage` classification. |
+| `PrivilegedAccess.Read.AzureADGroup` | Read PIM group eligibility **and** active assignment schedule instances → `PIMActivated` / `PIMAssigned` (also already needed for eligible-member coverage). |
+| `GroupMember.Read.All` | Read `/groups/{id}/members` and `/transitiveMembers` to distinguish direct from nested membership. |
+| `User.Read.All` | Resolve principal object IDs to UPN / display name (usually already granted). |
+
+Each is independently pre-flighted: if one is missing the audit **degrades
+gracefully** (logs a one-line warning naming the permission, records
+`entitlementReadable` / `pimActiveReadable` / `pimEligibleReadable` in the
+`.meta.json`, and emits `Unknown` rather than a false `DirectAdd`) instead of
+failing. A confident `DirectAdd` is only asserted when **both** the entitlement
+and PIM-active reads succeeded.
+
+> **Attribution caveat.** `MembershipOrigin` says *how* the membership exists,
+> not *who added it or when*. For actor + timestamp on a manual add you need the
+> directory audit log (`AuditLog.Read.All`, `auditLogs/directoryAudits`), which
+> is out of scope for this snapshot.
+
 ## The standing-privilege check (`--standingPrivilegeCheck`)
 
 A plain snapshot diff only sees **transitions**. A privileged grant left in
