@@ -433,27 +433,24 @@ def iac_managed(r):
 
 
 def is_group_allowlisted(r, group_allow):
-    # Suppress ONLY the sanctioned standing-privilege model: an allowlisted GROUP
-    # that DIRECTLY holds the privileged role itself (the group is the assignment's
-    # own principal). That is the intended design -- privilege lives on a governed
-    # group, not on individuals.
+    # Suppress the sanctioned standing-privilege model: an allowlisted GROUP that
+    # holds the privileged role -- whether DIRECTLY (the group is the assignment's
+    # own principal) or TRANSITIVELY (the allowlisted group is itself nested as a
+    # member of another privileged group). Either way the principal that gained the
+    # privilege IS a governed, sanctioned group, which is the intended design --
+    # privilege lives on governed groups, not on individuals.
     #
-    # It deliberately does NOT match on InheritedFromGroup: a row that is INHERITED
-    # via membership in an allowlisted group means some principal (a user, SP, or a
-    # nested group) has GAINED that privilege through group membership, which is
-    # exactly what must still alert -- otherwise anyone adding themselves to
-    # "DTS Owners (mg:HMCTS)" would be silently sanctioned. Such a member can only be
-    # cleared individually via the principal allowlist (break-glass).
+    # The gate is the PRINCIPAL's identity type, not how the role was reached: only
+    # rows whose own principal is a Group can match here. A user (or SP) inheriting
+    # privilege via membership in a group has IdentityType User/ServicePrincipal and
+    # is rejected below, so someone adding *themselves* to "DTS Owners (mg:HMCTS)"
+    # still alerts and can only be cleared via the principal allowlist (break-glass).
     #
     # Matches on the principal group's display name OR object-ID GUID; never on a
     # user UPN, so an individual can never be silenced through this group list.
     if not group_allow:
         return False
     if (r.get("IdentityType", "") or "") != "Group":
-        return False
-    if (r.get("InheritedFromGroupId") or "").strip() or (r.get("InheritedFromGroupName") or "").strip():
-        # Inherited via membership in a group -> a gained privilege, not the group
-        # itself holding the role. Never suppressed here.
         return False
     disp = (r.get("DisplayName") or "").strip().lower()
     if disp and disp in group_allow:
