@@ -399,15 +399,17 @@ def age_phrase(first_iso):
 
 
 def group_unmanaged(name):
-    # True when we have IaC data AND this group display name isn't declared there
-    # NOR sanctioned in the group allowlist. Records the name so the explanatory
-    # footnote is only added when something was actually flagged. With no IaC source
-    # loaded we never flag (safe default).
-    if name and iac_groups:
-        key = name.strip().lower()
-        if key not in iac_groups and key not in group_allow:
-            flagged_groups.add(name)
-            return True
+    # True when we have IaC data AND this group display name isn't declared there.
+    # Records the name so the explanatory footnote is only added when something
+    # was actually flagged. With no IaC source loaded we never flag (safe default).
+    #
+    # The group allowlist is intentionally NOT consulted here: it sanctions a group
+    # DIRECTLY holding a role, not membership of it. A member inheriting privilege
+    # via an allowlisted group still alerts, and the asterisk correctly notes that
+    # the inheriting group is not IaC-declared.
+    if name and iac_groups and name.strip().lower() not in iac_groups:
+        flagged_groups.add(name)
+        return True
     return False
 
 
@@ -431,26 +433,34 @@ def iac_managed(r):
 
 
 def is_group_allowlisted(r, group_allow):
-    # A standing privileged assignment is sanctioned when the GROUP carrying it is
-    # explicitly allowlisted: the group it is inherited from, or -- for a role
-    # granted directly to a group principal -- the principal group itself. Matches
-    # on group display name OR object-ID GUID; never on a user UPN, so a user with a
-    # direct grant can never be silenced through this group list.
+    # Suppress ONLY the sanctioned standing-privilege model: an allowlisted GROUP
+    # that DIRECTLY holds the privileged role itself (the group is the assignment's
+    # own principal). That is the intended design -- privilege lives on a governed
+    # group, not on individuals.
+    #
+    # It deliberately does NOT match on InheritedFromGroup: a row that is INHERITED
+    # via membership in an allowlisted group means some principal (a user, SP, or a
+    # nested group) has GAINED that privilege through group membership, which is
+    # exactly what must still alert -- otherwise anyone adding themselves to
+    # "DTS Owners (mg:HMCTS)" would be silently sanctioned. Such a member can only be
+    # cleared individually via the principal allowlist (break-glass).
+    #
+    # Matches on the principal group's display name OR object-ID GUID; never on a
+    # user UPN, so an individual can never be silenced through this group list.
     if not group_allow:
         return False
-    name = (r.get("InheritedFromGroupName") or "").strip().lower()
-    if name and name in group_allow:
+    if (r.get("IdentityType", "") or "") != "Group":
+        return False
+    if (r.get("InheritedFromGroupId") or "").strip() or (r.get("InheritedFromGroupName") or "").strip():
+        # Inherited via membership in a group -> a gained privilege, not the group
+        # itself holding the role. Never suppressed here.
+        return False
+    disp = (r.get("DisplayName") or "").strip().lower()
+    if disp and disp in group_allow:
         return True
-    gid = (r.get("InheritedFromGroupId") or "").strip().lower()
-    if gid and gid in group_allow:
+    pid = (r.get("PrincipalId") or "").strip().lower()
+    if pid and pid in group_allow:
         return True
-    if (r.get("IdentityType", "") or "") == "Group":
-        disp = (r.get("DisplayName") or "").strip().lower()
-        if disp and disp in group_allow:
-            return True
-        pid = (r.get("PrincipalId") or "").strip().lower()
-        if pid and pid in group_allow:
-            return True
     return False
 
 # Coverage / integrity checks : surface a broken or incomplete audit as a
