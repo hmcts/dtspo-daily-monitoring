@@ -76,11 +76,30 @@ window** (present in the baseline too) and is **neither allowlisted nor
 legitimised by IaC**, and re-alerts on it every run until it is removed or
 explicitly approved.
 
-Legitimacy is decided by Terraform IaC: an assignment inherited from an
-IaC-declared group is treated as managed/approved; a direct assignment is not
-recognisable as IaC-managed from the group-name source and so must be
-allowlisted if legitimate. Service principals and managed identities are
-excluded (governed by platform Terraform elsewhere).
+Legitimacy is decided by three sources, in order of preference:
+
+1. **Terraform IaC** (`--iacGroupsFile`): an assignment inherited from — or
+   granted directly to — a group declared in IaC is treated as managed/approved.
+2. **Group allowlist** (`--groupAllowlistFile`, default `group-allowlist.txt`):
+   governance **groups** that are sanctioned to hold standing privileged roles.
+   This is the intended model — privilege is carried by a group whose membership
+   is itself governed (PIM-eligible activation / access packages), not assigned
+   to individuals — so a sanctioned group holding a permanent privileged role is
+   expected and suppressed. Matches on group **display name or object-ID GUID**
+   only; it never matches a user UPN, so a user with a **direct** grant can never
+   be silenced through it.
+3. **Principal allowlist** (`--allowlistFile`, default `allowlist.txt`):
+   individual principals (by object ID / UPN) sanctioned to hold a direct grant,
+   for the rare cases a direct assignment is genuinely approved.
+
+A direct assignment is not recognisable as IaC-managed from the group-name
+source, so it must be covered by the principal allowlist (or, if it is a group,
+the group allowlist) if legitimate. Service principals and managed identities
+are excluded (governed by platform Terraform elsewhere).
+
+> **Both allowlist files must be committed.** They are read from the pipeline's
+> fresh checkout; an untracked file is invisible to the agent and suppresses
+> nothing (every listed principal/group would still alert).
 
 Coverage is continuous and non-overlapping:
 
@@ -100,6 +119,7 @@ so the two checks never double-report.
 ./rbac-change-monitor.sh \
   --currentDir . \
   --iacGroupsFile /tmp/iac-groups.txt \
+  --groupAllowlistFile group-allowlist.txt \
   --standingPrivilegeCheck \
   -o rbac-change-status.txt
 ```

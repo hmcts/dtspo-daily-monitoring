@@ -55,13 +55,16 @@ jobs:
     pool:
       name: 'hmcts-cftptl-agent-pool'
     steps:
-      # Explicit multi-repo checkout. Pinning paths keeps `self` at
-      # $(Build.SourcesDirectory) so every existing relative path still resolves,
-      # and places the IaC repo in a sibling folder we read group names from.
+      # Multi-repo checkout using DEFAULT paths. `self` lands at
+      # $(Build.SourcesDirectory) (so every existing relative path resolves) and the
+      # IaC repo at $(Build.SourcesDirectory)/cnp-azure-entra-pim. Custom `path:`
+      # values are deliberately avoided: on the persistent self-hosted agent a
+      # pinned path differs from the previous run's default checkout location, so
+      # the agent tries to move-and-reuse the existing repo and logs
+      # '##[warning]Unable move and reuse existing repository' every build. Defaults
+      # are stable across runs and clone in place without the warning.
       - checkout: self
-        path: s
       - checkout: cnpAzureEntraPim
-        path: iac-pim
         clean: true
 
       - task: AzureKeyVault@2
@@ -235,7 +238,7 @@ jobs:
           targetType: inline
           script: |
             set -euo pipefail
-            TFVARS="$(Agent.BuildDirectory)/iac-pim/users/pim-eligible/groups.tfvars"
+            TFVARS="$(Build.SourcesDirectory)/cnp-azure-entra-pim/users/pim-eligible/groups.tfvars"
             OUT="$(Build.SourcesDirectory)/iac-managed-groups.txt"
             if [[ ! -f "$TFVARS" ]]; then
               echo "WARNING: IaC tfvars not found at $TFVARS; group enrichment disabled this run." >&2
