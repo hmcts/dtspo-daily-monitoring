@@ -69,29 +69,26 @@ jobs:
     timeoutInMinutes: 30
     pool:
       name: 'hmcts-cftptl-agent-pool'
-    # Wipe $(Agent.BuildDirectory) before the job on the persistent self-hosted
-    # pool. Any source repo previously checked out at its DEFAULT multi-repo
-    # location (under …/s/<reponame>) before these `path:` pins existed would
-    # otherwise make the agent try to move-and-reuse it into the pinned path every
-    # build, logging '##[warning]Unable move and reuse existing repository'.
-    # `clean: all` removes those stale checkouts so each repo clones straight into
-    # its pinned sibling path and the warning stops.
-    workspace:
-      clean: all
     steps:
-      # Explicit multi-repo checkout. Pinning paths keeps `self` at
-      # $(Build.SourcesDirectory) and places each source repo in a known sibling
-      # folder the extract script is pointed at via *_DIR env overrides.
+      # Multi-repo checkout. `self` is pinned to `s` so $(Build.SourcesDirectory)
+      # stays …/s and the extract script (run with workingDirectory s) resolves.
+      # The three source repos use their DEFAULT multi-repo locations (subfolders
+      # of `s` named after each repo: …/s/azure-access etc.) and are read from
+      # there via the *_DIR env overrides. They are deliberately NOT pinned to
+      # custom paths: on the persistent self-hosted pool the agent's source
+      # tracking always treats a repo's default location as where it "currently"
+      # is, so a custom `path:` makes every build try (and fail) to move-and-reuse
+      # it, logging '##[warning]Unable move and reuse existing repository'. Using
+      # the default locations means no move is attempted and the warning never
+      # fires. (clean: all does NOT fix this -- the tracking metadata lives outside
+      # $(Agent.BuildDirectory).)
       - checkout: self
         path: s
       - checkout: azureAccess
-        path: azure-access
         clean: true
       - checkout: azureAccessPackages
-        path: azure-access-packages
         clean: true
       - checkout: azureEnterprise
-        path: azure-enterprise
         clean: true
 
       - task: AzureKeyVault@2
@@ -104,9 +101,9 @@ jobs:
       - task: Bash@3
         displayName: 'Run extraction and stage artifact'
         env:
-          AZURE_ACCESS_DIR: $(Agent.BuildDirectory)/azure-access
-          AZURE_ACCESS_PACKAGES_DIR: $(Agent.BuildDirectory)/azure-access-packages
-          AZURE_ENTERPRISE_DIR: $(Agent.BuildDirectory)/azure-enterprise
+          AZURE_ACCESS_DIR: $(Build.SourcesDirectory)/azure-access
+          AZURE_ACCESS_PACKAGES_DIR: $(Build.SourcesDirectory)/azure-access-packages
+          AZURE_ENTERPRISE_DIR: $(Build.SourcesDirectory)/azure-enterprise
         inputs:
           targetType: inline
           workingDirectory: $(Build.SourcesDirectory)

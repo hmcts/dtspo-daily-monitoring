@@ -54,27 +54,21 @@ jobs:
     timeoutInMinutes: 60
     pool:
       name: 'hmcts-cftptl-agent-pool'
-    # Clean the agent's whole working directory before the job. On the persistent
-    # self-hosted pool a previous run may have checked the IaC repo out at the
-    # DEFAULT multi-repo location (…/s/cnp-azure-entra-pim) before the pinned
-    # `path: iac-pim` below existed. That leftover makes the agent try to
-    # move-and-reuse it into the pinned path every build, logging
-    # '##[warning]Unable move and reuse existing repository'. `clean: all` wipes
-    # $(Agent.BuildDirectory) (covering both the stale default under …/s and the
-    # pinned …/iac-pim), so each repo is cloned straight into its pinned path and
-    # the warning stops. Trades a little checkout time for a deterministic layout.
-    workspace:
-      clean: all
     steps:
-      # Explicit multi-repo checkout. `self` is pinned to `s` so
-      # $(Build.SourcesDirectory) stays …/s and every self-relative path resolves;
-      # the IaC repo is pinned to its own sibling folder `iac-pim` (read via
-      # $(Agent.BuildDirectory)/iac-pim). Both paths are fixed, non-nested siblings
-      # so locations are identical run-to-run.
+      # Multi-repo checkout. `self` is pinned to `s` so $(Build.SourcesDirectory)
+      # stays …/s and every self-relative path resolves. The IaC repo uses its
+      # DEFAULT multi-repo location (a subfolder of `s` named after the repo:
+      # …/s/cnp-azure-entra-pim) and is read from there. It is deliberately NOT
+      # pinned to a custom path: on the persistent self-hosted pool the agent's
+      # source tracking always treats the repo's default location as where it
+      # "currently" is, so a custom `path:` makes every build try (and fail) to
+      # move-and-reuse it, logging '##[warning]Unable move and reuse existing
+      # repository'. Checking it out at its default location means no move is ever
+      # attempted and the warning never fires. (clean: all does NOT fix this -- the
+      # tracking metadata lives outside $(Agent.BuildDirectory).)
       - checkout: self
         path: s
       - checkout: cnpAzureEntraPim
-        path: iac-pim
         clean: true
 
       - task: AzureKeyVault@2
@@ -248,7 +242,7 @@ jobs:
           targetType: inline
           script: |
             set -euo pipefail
-            TFVARS="$(Agent.BuildDirectory)/iac-pim/users/pim-eligible/groups.tfvars"
+            TFVARS="$(Build.SourcesDirectory)/cnp-azure-entra-pim/users/pim-eligible/groups.tfvars"
             OUT="$(Build.SourcesDirectory)/iac-managed-groups.txt"
             if [[ ! -f "$TFVARS" ]]; then
               echo "WARNING: IaC tfvars not found at $TFVARS; group enrichment disabled this run." >&2
