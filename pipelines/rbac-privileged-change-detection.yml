@@ -138,12 +138,18 @@ jobs:
             RESP=$(curl -sS -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" "$URL" || echo '{}')
             BUILD_IDS=$(echo "$RESP" | jq -r '.value[]?.id // empty')
             FOUND_ID=""
+            HAS_LEDGER="null"
             for bid in $BUILD_IDS; do
               ART_URL="${BASE_URL}/builds/${bid}/artifacts?api-version=7.1"
-              HAS=$(curl -sS -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" "$ART_URL" \
-                    | jq -r '[.value[]?.name] | index("rbac-snapshot")' 2>/dev/null || echo "null")
-              if [[ "$HAS" != "null" && -n "$HAS" ]]; then
+              NAMES=$(curl -sS -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" "$ART_URL" \
+                    | jq -c '[.value[]?.name]' 2>/dev/null || echo '[]')
+              HAS_SNAP=$(echo "$NAMES" | jq -r 'index("rbac-snapshot")')
+              if [[ "$HAS_SNAP" != "null" && -n "$HAS_SNAP" ]]; then
                 FOUND_ID="$bid"
+                # The ledger is published alongside the snapshot, but a pre-ledger
+                # baseline (or any build that didn't publish one) won't have it.
+                # Record its presence so the download is only attempted when the
+                HAS_LEDGER=$(echo "$NAMES" | jq -r 'index("rbac-standing-ledger")')
                 break
               fi
               echo "  build $bid succeeded but has no rbac-snapshot artifact; skipping."
@@ -152,10 +158,18 @@ jobs:
               echo "No prior successful build with an rbac-snapshot artifact; skipping change detection."
               echo "This run's snapshot will seed the baseline for the next run (no notification sent)."
               echo "##vso[task.setvariable variable=found;isOutput=true]false"
+              echo "##vso[task.setvariable variable=hasLedger;isOutput=true]false"
             else
               echo "Baseline build id: $FOUND_ID"
               echo "##vso[task.setvariable variable=found;isOutput=true]true"
               echo "##vso[task.setvariable variable=buildId;isOutput=true]$FOUND_ID"
+              if [[ "$HAS_LEDGER" != "null" && -n "$HAS_LEDGER" ]]; then
+                echo "Baseline build has a standing-privilege ledger artifact."
+                echo "##vso[task.setvariable variable=hasLedger;isOutput=true]true"
+              else
+                echo "Baseline build has no ledger artifact; age tracking starts fresh this run."
+                echo "##vso[task.setvariable variable=hasLedger;isOutput=true]false"
+              fi
             fi
 
       - task: DownloadPipelineArtifact@2
@@ -171,12 +185,13 @@ jobs:
           targetPath: $(Pipeline.Workspace)/baseline
 
       # First-seen ledger from the most recent successful run, used to report how
-      # long each standing privilege has been held. Optional: the first ever run
-      # has no prior ledger, so this is allowed to fail (continueOnError) and the
-      # monitor simply starts a fresh ledger.
+      # long each standing privilege has been held. Only attempted when the chosen
+      # baseline build ACTUALLY published a ledger (baseline.hasLedger): a pre-ledger
+      # baseline would otherwise raise '##[error] Artifact ... was not found'. The
+      # first ever ledger-enabled run thus skips this cleanly and seeds a fresh one.
       - task: DownloadPipelineArtifact@2
         displayName: 'Download standing-privilege ledger (previous run)'
-        condition: and(succeeded(), eq(variables['baseline.found'], 'true'))
+        condition: and(succeeded(), eq(variables['baseline.hasLedger'], 'true'))
         continueOnError: true
         inputs:
           buildType: specific
@@ -188,10 +203,14 @@ jobs:
           targetPath: $(Pipeline.Workspace)/ledger
 
       # Seed the working ledger path from the downloaded artifact if present. The
-      # monitor reads and rewrites this same file in place.
+      # monitor reads and rewrites this same file in place. Runs on EVERY run --
+      # including the bootstrap run with no baseline -- so a ledger file always
+      # exists for the publish step below to emit. This is what lets the very first
+      # run produce a rbac-standing-ledger artifact and break the chicken-and-egg
+      # loop (no ledger could ever appear because no prior run had published one).
       - task: Bash@3
         displayName: 'Seed standing-privilege ledger'
-        condition: and(succeeded(), eq(variables['baseline.found'], 'true'))
+        condition: succeeded()
         inputs:
           targetType: inline
           script: |
@@ -247,11 +266,12 @@ jobs:
             --ledgerFile $(Build.SourcesDirectory)/rbac-standing-ledger.json
 
       # Publish the updated ledger so the next run can compute held-for ages. Runs
-      # even if the detect step failed (the monitor rewrites the ledger before any
-      # later failure), so age tracking is not lost on a partial run.
+      # on EVERY run (even the bootstrap run with no baseline, which publishes the
+      # seeded {} ledger), so the next run's chosen baseline always has a ledger to
+      # download -- this is the half of the fix that stops the first-run loop.
       - task: PublishPipelineArtifact@1
         displayName: 'Publish standing-privilege ledger'
-        condition: and(always(), eq(variables['baseline.found'], 'true'))
+        condition: always()
         # Best-effort state artifact: never fail the control if it is missing
         # (a missing ledger just means next run starts fresh age tracking).
         continueOnError: true
