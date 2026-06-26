@@ -108,6 +108,67 @@ Coverage is continuous and non-overlapping:
 
 so the two checks never double-report.
 
+## Decision flow — what alerts and what doesn't
+
+Every privileged assignment row from the current snapshot is routed through the
+logic below. The three legitimacy sources are consulted in precedence order
+(IaC → group allowlist → principal allowlist); a match on **any** of them
+suppresses a standing-privilege alert.
+
+```mermaid
+flowchart TD
+    A[Privileged RBAC assignment row<br/>from current snapshot] --> B{IdentityType is<br/>ServicePrincipal /<br/>ManagedIdentity?}
+    B -->|Yes| Z[NOT MONITORED<br/>governed by platform Terraform]
+    B -->|No| C{Present in baseline?<br/>i.e. new this window?}
+
+    C -->|No — brand new| D{Principal in<br/>principal allowlist?}
+    D -->|Yes| W1[":white_check_mark: ALLOWLISTED ADD<br/>info only — no notification"]
+    D -->|No| E{Permanent OR<br/>Owner / UAA role?}
+    E -->|Yes| R1[":red_circle: NEW PERMANENT / ADDED"]
+    E -->|No| Y1[":yellow_circle: ADDED — temporary / lesser"]
+
+    C -->|Yes — persisted| F{Temporary → Permanent<br/>elevation this window?}
+    F -->|Yes, allowlisted| W2[":white_check_mark: ALLOWLISTED ELEVATION"]
+    F -->|Yes, not allowlisted| R2[":red_circle: ELEVATED → PERMANENT"]
+    F -->|No| G{Red-role assignment<br/>persisted across window?<br/>--standingPrivilegeCheck}
+
+    G -->|No| Y2[":yellow_circle: other change / removal"]
+    G -->|Yes| H{Legitimacy check<br/>any source matches?}
+
+    H -->|"IaC-managed<br/>(inherited from IaC group)"| S[":white_check_mark: STANDING RECONCILED — suppressed"]
+    H -->|"Group allowlist<br/>(principal IS a sanctioned group —<br/>direct OR via nesting)"| S
+    H -->|"Principal allowlist<br/>(break-glass individual)"| S
+    H -->|"No source matches"| R3[":red_circle: STANDING PRIVILEGE<br/>not IaC-managed or allowlisted"]
+```
+
+### What SHOULD alert (`:red_circle:`)
+
+| Scenario | Why it alerts |
+| --- | --- |
+| A **user** gains a privileged role by adding themselves to a privileged group (e.g. joining `DTS Owners (mg:HMCTS)`), and is **not** a break-glass individual. | The principal's identity type is `User`, so neither allowlist clears it. Self-elevation via group membership is exactly the abuse path being watched. |
+| A **user** holds a **direct** permanent privileged assignment not declared in IaC and not allowlisted. | Direct individual grants are never IaC-managed and are not sanctioned unless explicitly break-glass. |
+| A nested **group** that is **not** in IaC or the group allowlist holds / inherits a privileged role. | An ungoverned group carrying standing privilege is drift. |
+| A new **Permanent** assignment, or any added **Owner / User Access Administrator**, appears this window. | First-window red transition (diff path). |
+| A **Temporary → Permanent** elevation on an existing assignment (not allowlisted). | A time-bound grant being made standing. |
+| A red-role grant **persists** into later windows without an IaC/allowlist match. | The standing-privilege check re-alerts every run so it can't "age out" of the baseline. |
+
+### What SHOULD NOT alert
+
+| Scenario | Outcome | Why |
+| --- | --- | --- |
+| A group **declared in IaC** holds a standing privileged role. | Suppressed (`STANDING RECONCILED`). | Governed by Terraform — the approved model. |
+| A **sanctioned governance group** in `group-allowlist.txt` holds a privileged role — **directly OR transitively** (nested inside another privileged group). | Suppressed (`STANDING RECONCILED`). | Privilege lives on a group whose membership is itself governed (PIM-eligible / access packages). The check matches the **principal group** by display name or object-ID GUID, regardless of how it reached the role. |
+| A **break-glass individual** in `allowlist.txt` self-adds, self-elevates, or holds a sanctioned direct grant. | `:white_check_mark:` info only (or suppressed standing). | Explicitly approved exception; informational, never a notification on its own. |
+| A **service principal / managed identity** holds a privileged role. | Not monitored. | Governed by platform Terraform elsewhere; out of scope for this membership/access-package reconciliation. |
+| A pre-existing assignment becomes visible only because a subscription's audit **coverage was gained** this run. | Collapsed into a single `AUDIT COVERAGE GAINED` note. | A recovered blind spot is not a fresh grant. |
+
+> **Critical distinction:** the group allowlist suppresses a **group** principal
+> holding privilege; it can **never** suppress a **user**. A user who inherits
+> privilege through membership in an allowlisted group still alerts and can only
+> be cleared individually via the principal allowlist (break-glass). This keeps
+> the sanctioned model (privilege on governed groups) distinct from the abuse
+> path (individuals self-joining those groups).
+
 ## Typical invocation
 
 ```bash
