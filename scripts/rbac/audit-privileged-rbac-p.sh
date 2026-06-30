@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Azure Privileged RBAC Role Audit Script
 # Purpose: Identify all principals (users, service principals, managed identities, groups)
 #          with priv admin roles directly assigned, inherited via active group
@@ -442,12 +443,15 @@ else
             | sort -u >> "$ENT_PKGGRP_TMP"
     done
     # Join assignments (user|pkg) with package->group (pkg|group) on package id,
-    # emitting user|group pairs. BSD/GNU join compatible.
+    # emitting user|group pairs. BSD/GNU join compatible. Pre-sort into temp files
+    # (instead of process substitution) so this works regardless of shell.
     if [[ -s "$ENT_ASSIGN_TMP" && -s "$ENT_PKGGRP_TMP" ]]; then
-        join -t'|' -1 2 -2 1 -o 1.1,2.2 \
-            <(sort -t'|' -k2,2 "$ENT_ASSIGN_TMP") \
-            <(sort -t'|' -k1,1 "$ENT_PKGGRP_TMP") \
+        ENT_ASSIGN_SORTED="$(mktemp)"; ENT_PKGGRP_SORTED="$(mktemp)"
+        sort -t'|' -k2,2 "$ENT_ASSIGN_TMP" > "$ENT_ASSIGN_SORTED"
+        sort -t'|' -k1,1 "$ENT_PKGGRP_TMP" > "$ENT_PKGGRP_SORTED"
+        join -t'|' -1 2 -2 1 -o 1.1,2.2 "$ENT_ASSIGN_SORTED" "$ENT_PKGGRP_SORTED" \
             2>/dev/null | sort -u > "$ENTITLEMENT_MAP_FILE" || : > "$ENTITLEMENT_MAP_FILE"
+        rm -f "$ENT_ASSIGN_SORTED" "$ENT_PKGGRP_SORTED"
     fi
     echo "  Mapped $(wc -l < "$ENTITLEMENT_MAP_FILE" | tr -d ' ') access-package group membership(s)."
     rm -f "$ENT_ASSIGN_TMP" "$ENT_PKGGRP_TMP"

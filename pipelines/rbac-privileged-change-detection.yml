@@ -102,6 +102,7 @@ jobs:
       #           --messageHeader "Roger RBAC Slack Smoke Test"
 
                 #todo changeback
+                #todo to do don't leave this in
       - task: AzureCLI@2
         displayName: 'Audit privileged RBAC assignments'
         inputs:
