@@ -1,0 +1,227 @@
+# =============================================================================
+# Production Privileged Role Audit - Exceptions
+# =============================================================================
+# Add entries here to suppress findings from the audit report.
+#
+# excluded_subscriptions:
+#   List subscription names (as shown in Azure Portal) to skip entirely.
+#   All role assignments within that subscription will be ignored.
+#
+# allowed_assignments:
+#   Approved exceptions for specific principal+role+scope combinations.
+#   Fields:
+#     principal_name  - matches against UPN, display name, or group name
+#                       (case-insensitive, partial match)
+#     role            - exact role name, or * to match any role
+#     scope           - full Azure scope path; child scopes are also matched
+#     comment         - free-text reason for the exception
+# =============================================================================
+
+excluded_subscriptions:
+  - DTS-CFTSBOX-INTSVC
+  - DTS-SHAREDSERVICESPTL-SBOX
+
+allowed_assignments:
+  - principal_name: cactus-group
+    role: Contributor
+    scope: /subscriptions/8cbc6f36-7c56-4963-9d36-739db5d00b27/resourceGroups/cactus-prod-rg
+    comment: Approved by platops team - cactus-group requires Contributor on cactus-prod-rg
+  - principal_name: cactus-group
+    role: Contributor
+    scope: /subscriptions/96c274ce-846d-4e48-89a7-d528432298a7/resourceGroups/cactus-staging-rg
+    comment: Approved by platops team - cactus-group requires Contributor on cactus-prod-rg
+
+
+  # ── Users ────────────────────────────────────────────────────────────────────
+
+  - principal_name: platform-ops-db-manager
+    role: Azure Contributor Role minus deletes
+    scope: /providers/Microsoft.Management/managementGroups/HMCTS
+    comment: Service account - approved for Azure Contributor minus deletes at HMCTS MG level
+
+  - principal_name: rpe-azure-devops
+    role: Azure Contributor Role minus deletes
+    scope: /providers/Microsoft.Management/managementGroups/HMCTS
+    comment: Service account - approved for Azure Contributor minus deletes at HMCTS MG level
+
+  - principal_name: paul.miles
+    role: Contributor
+    scope: /subscriptions/ef8dd153-3fba-47a4-be65-15775bcde240
+    comment: Paul Miles - approved Contributor via AAD-RBAC-ATL-LIVE-INFRASTRUCTURE on CRIME-ADO-POC
+
+  # ── Groups ───────────────────────────────────────────────────────────────────
+
+  - principal_name: DTS DLRM Synapse workspace contributors
+    role: Contributor
+    scope: /subscriptions/74dacd4f-a248-45bb-a2f0-af700dc4cf68/resourceGroups/baubais-data-factory-rg-stg
+    comment: Approved for Synapse workspace access
+
+  - principal_name: DTS DLRM Synapse workspace contributors
+    role: Contributor
+    scope: /subscriptions/5ca62022-6aa2-4cee-aaa7-e7536c8d566c/resourceGroups/baubais-data-factory-rg-prod
+    comment: Approved for Synapse workspace access
+
+  - principal_name: DTS LibraGoB Admin
+    role: Contributor
+    scope: /subscriptions/5ca62022-6aa2-4cee-aaa7-e7536c8d566c/resourceGroups/libragob-prod-rg/providers/Microsoft.Portal/dashboards/b0a9798a-2515-45c8-8bb8-02c0496fb5b7
+    comment: Approved dashboard contributor access for LibraGoB
+
+  - principal_name: DTS Ref Data SC
+    role: Contributor
+    scope: /subscriptions/8999dec3-0104-4a27-94ee-6588559729d1/resourceGroups/rd-prod
+    comment: Approved Contributor on rd-prod RG and child resources (storage accounts)
+
+  - principal_name: DARTS Storage Account Owner Production
+    role: Owner
+    scope: /subscriptions/5ca62022-6aa2-4cee-aaa7-e7536c8d566c/resourceGroups/darts-migration-prod-rg
+    comment: Approved Owner on DARTS migration resource group
+
+  - principal_name: dcd_group_fpl_v2
+    role: Contributor
+    scope: /subscriptions/8999dec3-0104-4a27-94ee-6588559729d1/resourceGroups/SendGrid-prod/providers/Microsoft.SaaS/resources/fpl-prod
+    comment: Approved Contributor on FPL SaaS resource
+
+  - principal_name: DTS CFT DNS Contributor
+    role: Contributor
+    scope: /subscriptions/8999dec3-0104-4a27-94ee-6588559729d1/resourceGroups/core-infra-idam-vault-prod2/providers/Microsoft.KeyVault/vaults/idamvaultprod2
+    comment: Approved Contributor on IDAM Key Vault
+
+  - principal_name: DTS CFT Software Engineering
+    role: Contributor
+    scope: /subscriptions/8999dec3-0104-4a27-94ee-6588559729d1/resourceGroups/pipelinemetrics-database-prod
+    comment: Approved Contributor on pipeline metrics database RG
+
+  - principal_name: DTS CNP Purview Root Collection Access
+    role: Contributor
+    scope: /subscriptions/8cbc6f36-7c56-4963-9d36-739db5d00b27/resourceGroups/cft-purview-rg-prod/providers/Microsoft.Purview/accounts/cft-purview-prod
+    comment: Approved Contributor on CFT Purview account
+
+  - principal_name: DTS Crime Legacy Data Migration Admin
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest05-network-prod
+    comment: Approved Owner for crime legacy data migration
+
+  - principal_name: DTS Crime Legacy Data Migration Admin
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest05-logic-prod
+    comment: Approved Owner for crime legacy data migration
+
+  - principal_name: DTS Crime Legacy Data Migration Admin
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest05-main-prod
+    comment: Approved Owner for crime legacy data migration
+
+  - principal_name: DTS DLRM ARIA Migration
+    role: Contributor
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest00-main-prod/providers/Microsoft.Storage/storageAccounts/ingest00sftpprod
+    comment: Approved Contributor on ARIA migration SFTP storage account
+
+  - principal_name: DTS DLRM ARIA Migration
+    role: Contributor
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/dlrm-ingest-ai-prod
+    comment: Approved Contributor on DLRM AI ingest RG and child resources
+
+  - principal_name: DTS DLRM Data Ingestion Admin (env:production)
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest00-logic-prod
+    comment: Approved Owner for DLRM data ingestion
+
+  - principal_name: DTS DLRM Data Ingestion Admin (env:production)
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest00-network-prod
+    comment: Approved Owner for DLRM data ingestion
+
+  - principal_name: DTS DLRM Data Ingestion Admin (env:production)
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest00-main-prod
+    comment: Approved Owner for DLRM data ingestion
+
+  - principal_name: DTS FinOps Contributors
+    role: Contributor
+    scope: /subscriptions/1baf5470-1c3e-40d3-a6f7-74bfbce4b348/resourceGroups/finopsdataptlrg/providers/Microsoft.Storage/storageAccounts/finopsdataptlsa
+    comment: Approved Contributor on FinOps storage account
+
+  - principal_name: b2cadmin
+    role: User Access Administrator
+    scope: /
+    comment: b2cadmin@hmcts.net - approved direct User Access Administrator at tenant root scope
+
+  - principal_name: Thomas.ThorntonGA
+    role: Owner
+    scope: /providers/Microsoft.Management/managementGroups/HMCTS
+    comment: Thomas Thornton GA - Owner via DTS Owners (mg:HMCTS) group at HMCTS Management Group
+
+  - principal_name: b2cadmin
+    role: Owner
+    scope: /providers/Microsoft.Management/managementGroups/HMCTS
+    comment: b2cadmin GA - Owner via DTS Owners (mg:HMCTS) group at HMCTS Management Group
+
+  - principal_name: felix.eyetanga
+    role: Owner
+    scope: /providers/Microsoft.Management/managementGroups/HMCTS
+    comment: Felix Eyetan GA - Owner via DTS Owners (mg:HMCTS) group at HMCTS Management Group
+
+  - principal_name: hmctsdcd_outlook.com
+    role: Owner
+    scope: /providers/Microsoft.Management/managementGroups/Crime
+    comment: O365 Admin GA (hmctsdcd_outlook.com#EXT#) - approved direct Owner at Crime Management Group
+
+  - principal_name: Michael.Hayes_justice.gov.uk
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest05-logic-prod
+    comment: Hayes, Michael - approved direct Owner on ingest05-logic-prod RG
+
+  - principal_name: Michael.Hayes_justice.gov.uk
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest05-main-prod
+    comment: Hayes, Michael - approved direct Owner on ingest05-main-prod RG
+
+  - principal_name: Michael.Hayes_justice.gov.uk
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest05-network-prod
+    comment: Hayes, Michael - approved direct Owner on ingest05-network-prod RG
+
+  - principal_name: Qiang.Zhou
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest00-network-prod
+    comment: Qiang Zhou - approved direct Owner on ingest00-network-prod RG
+
+  - principal_name: Qiang.Zhou
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest00-logic-prod
+    comment: Qiang Zhou - approved direct Owner on ingest00-logic-prod RG
+
+  - principal_name: Qiang.Zhou
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest00-main-prod
+    comment: Qiang Zhou - approved direct Owner on ingest00-main-prod RG
+
+  - principal_name: dominic.leary_justice.gov.uk
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest00-main-prod
+    comment: Leary, Dominic - approved direct Owner on ingest00-main-prod RG
+
+  - principal_name: dominic.leary_justice.gov.uk
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest00-network-prod
+    comment: Leary, Dominic - approved direct Owner on ingest00-network-prod RG
+
+  - principal_name: dominic.leary_justice.gov.uk
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest00-logic-prod
+    comment: Leary, Dominic - approved direct Owner on ingest00-logic-prod RG
+
+  - principal_name: prasanna.krishnan_justice.gov.uk
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest00-logic-prod
+    comment: Krishnan, Prasanna - approved direct Owner on ingest00-logic-prod RG
+
+  - principal_name: prasanna.krishnan_justice.gov.uk
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest00-network-prod
+    comment: Krishnan, Prasanna - approved direct Owner on ingest00-network-prod RG
+
+  - principal_name: prasanna.krishnan_justice.gov.uk
+    role: Owner
+    scope: /subscriptions/e9674938-57cb-43ff-a440-1917658e468c/resourceGroups/ingest00-main-prod
+    comment: Krishnan, Prasanna - approved direct Owner on ingest00-main-prod RG
