@@ -701,7 +701,10 @@ FINDING_COUNT=$(python3 -c "import json; d=json.load(open('$FINDINGS_JSON')); pr
 UNIQUE_USERS=$(python3 -c "import json; d=json.load(open('$FINDINGS_JSON')); print(len(set(e['upn'] for e in d)))")
 
 if [[ "$FINDING_COUNT" -eq 0 ]]; then
-    echo "No findings — no Slack notification required."
+    slackNotification "$slackBotToken" "$slackChannelName" \
+        ":green_circle: Production Privileged Role Audit — No violations found" \
+        "Scope: CFT/Crime/Heritage/Platform/SDS/SPS Production MGs + HMCTS-SOC-PROD | All assignments are within approved exceptions."
+    echo "No findings — green notification sent."
     exit 0
 fi
 

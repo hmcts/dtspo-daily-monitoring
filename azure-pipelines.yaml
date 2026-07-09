@@ -305,7 +305,7 @@ variables:
 
 jobs:
   - job: DailyMonitoring
-    timeoutInMinutes: 25
+    timeoutInMinutes: 60
     pool:
       name: 'hmcts-cftptl-agent-pool'
     steps:
@@ -472,6 +472,7 @@ jobs:
       - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
         - task: AzureCLI@2
           displayName: 'Checking PostgreSQL Flexible Storage Status: ${{ postgres_sub.subscription }}'
+          condition: false
           continueOnError: true
           inputs:
             scriptType: bash
@@ -493,6 +494,7 @@ jobs:
       - ${{ each backup_vault in parameters.recovery_services_vaults }}:
         - task: AzureCLI@2
           displayName: 'Check Backup Status'
+          condition: false
           continueOnError: true
           inputs:
             scriptType: bash
@@ -527,6 +529,7 @@ jobs:
       - ${{ each frontdoor in parameters.certificates }}:
         - task: AzureCLI@2
           displayName: 'Checking ${{ frontdoor.front_door_name }} Certificate status'
+          condition: false
           continueOnError: true
           inputs:
             scriptType: bash
@@ -552,6 +555,7 @@ jobs:
       - ${{ each keyvault in parameters.keyvault_certificates }}:
         - task: AzureCLI@2
           displayName: 'Checking ${{ keyvault.keyvault_name }} KeyVault Certificate status'
+          condition: false
           continueOnError: true
           inputs:
             scriptType: bash
@@ -576,6 +580,7 @@ jobs:
       - ${{ each gh_workflow in parameters.gh_workflows }}:
         - task: Bash@3
           displayName: 'Check Github workflow Runs'
+          condition: false
           continueOnError: true
           inputs:
             targetType: filePath
@@ -596,6 +601,7 @@ jobs:
       - ${{ each ado_pipeline in parameters.ado_pipelines }}:
         - task: Bash@3
           displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
+          condition: false
           continueOnError: true
           inputs:
             targetType: filePath
@@ -624,6 +630,7 @@ jobs:
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'AKS Cluster Status:  ${{cluster.clusterName}}'
+          condition: false
           continueOnError: true
           inputs:
             scriptType: bash
