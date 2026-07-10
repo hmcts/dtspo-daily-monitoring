@@ -545,34 +545,44 @@ for gid in group_ids:
     except:
         group_members[gid] = []
 
-# Check audit logs for recently-added group members (access package grants < 24h)
+# Check audit logs for recently-added group members (skip members added < 24h ago)
+# Graph audit log structure for "Add member to group":
+#   targetResources[0]: the group  -> type == "Group", id == group object ID
+#   targetResources[1]: the member -> type == "User",  id == user object ID
 from datetime import datetime, timedelta, timezone
 since = (datetime.now(timezone.utc) - timedelta(hours=25)).strftime('%Y-%m-%dT%H:%M:%SZ')
 recently_added_to_group = set()
 try:
+    url = (
+        "https://graph.microsoft.com/v1.0/auditLogs/directoryAudits"
+        f"?$filter=activityDisplayName eq 'Add member to group'"
+        f" and activityDateTime ge {since}&$top=500"
+    )
     result = subprocess.run(
-        ['az', 'rest', '--method', 'GET',
-         '--url', f"https://graph.microsoft.com/v1.0/auditLogs/directoryAudits?$filter=activityDisplayName eq 'Add member to group' and activityDateTime ge {since}"],
+        ['az', 'rest', '--method', 'GET', '--url', url],
         capture_output=True, text=True, timeout=120
     )
     if result.returncode == 0:
         audit_data = json.loads(result.stdout)
         group_ids_set = set(g.lower() for g in group_ids)
-        for entry in audit_data.get('value', []):
+        entries = audit_data.get('value', [])
+        print(f"  Audit log: {len(entries)} 'Add member to group' events in last 25h")
+        for entry in entries:
             target_resources = entry.get('targetResources', [])
             matched_group_id = None
             added_user_id = None
             for tr in target_resources:
-                for prop in tr.get('modifiedProperties', []):
-                    if prop.get('displayName') == 'Group.ObjectID':
-                        new_val = prop.get('newValue', '').strip('"').lower()
-                        if new_val in group_ids_set:
-                            matched_group_id = new_val
-                        break
-                if tr.get('type') == 'User' or tr.get('@odata.type', '').endswith('user'):
-                    added_user_id = tr.get('id', '')
+                tr_type = (tr.get('type') or '').lower()
+                tr_id = (tr.get('id') or '').lower()
+                if tr_type == 'group' and tr_id in group_ids_set:
+                    matched_group_id = tr_id
+                elif tr_type == 'user' and tr.get('id'):
+                    added_user_id = tr.get('id')
             if matched_group_id and added_user_id:
                 recently_added_to_group.add((matched_group_id, added_user_id))
+        print(f"  Members added to in-scope groups in last 25h: {len(recently_added_to_group)}")
+    else:
+        print(f"  WARNING: Audit log query failed (exit {result.returncode}): {result.stderr[:300]}")
 except Exception as e:
     print(f"  WARNING: Could not query audit logs: {e}")
 
@@ -602,7 +612,7 @@ for a in group_assignments:
     role = a.get('resolvedRoleName', a.get('roleDefinitionName', ''))
     scope = a.get('scope', '')
     for m in group_members.get(gid, []):
-        if (gid.lower(), m['id']) in recently_added_to_group:
+        if (gid.lower(), m['id'].lower()) in recently_added_to_group:
             continue
         if is_allowed_exception(m['upn'], m['displayName'], role, scope, gname):
             continue
