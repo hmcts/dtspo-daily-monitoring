@@ -577,7 +577,7 @@ try:
                 if tr_type == 'group' and tr_id in group_ids_set:
                     matched_group_id = tr_id
                 elif tr_type == 'user' and tr.get('id'):
-                    added_user_id = tr.get('id')
+                    added_user_id = tr.get('id', '').lower()
             if matched_group_id and added_user_id:
                 recently_added_to_group.add((matched_group_id, added_user_id))
         print(f"  Members added to in-scope groups in last 25h: {len(recently_added_to_group)}")
