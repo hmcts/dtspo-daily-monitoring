@@ -305,7 +305,7 @@ variables:
 
 jobs:
   - job: DailyMonitoring
-    timeoutInMinutes: 25
+    timeoutInMinutes: 60
     pool:
       name: 'hmcts-cftptl-agent-pool'
     steps:
@@ -382,6 +382,14 @@ jobs:
           scriptType: bash
           scriptPath: scripts/cluster-state-monitor.sh
           azureSubscription: ${{ variables.ado_service_connection }}
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      - task: AzureCLI@2
+        displayName: 'Production Privileged Role Audit'
+        continueOnError: true
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/rbac-privileged-role-audit.sh
+          azureSubscription: 'GA-Prod-Tenant'
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: Bash@3
         displayName: 'Check Toffee/Plum Status'
