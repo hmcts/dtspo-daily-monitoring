@@ -104,10 +104,10 @@ parameters:
         branchName: refs/heads/master
         weekdayOnly: false
       - project: 'PlatformOperations'
-        definitionId: '772'
+        definitionId: '1167'
         timeForAmber: '3'
         timeForRed: '7'
-        pipelineName: ACR_Base_importer
+        pipelineName: "hmcts.trivy-acr-scan-import"
         branchName: refs/heads/master
         weekdayOnly: false
       - project: 'PlatformOperations'
