@@ -20,6 +20,7 @@
 excluded_subscriptions:
   - DTS-CFTSBOX-INTSVC
   - DTS-SHAREDSERVICESPTL-SBOX
+  - DTS-SHAREDSERVICES-STG
 
 allowed_assignments:
   - principal_name: cactus-group
