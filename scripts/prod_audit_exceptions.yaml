@@ -2,7 +2,7 @@
 # Production Privileged Role Audit - Exceptions
 # =============================================================================
 # Add entries here to suppress findings from the audit report.
-#
+#   
 # excluded_subscriptions:
 #   List subscription names (as shown in Azure Portal) to skip entirely.
 #   All role assignments within that subscription will be ignored.
