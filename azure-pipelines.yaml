@@ -320,7 +320,11 @@ jobs:
         inputs:
           targetType: inline
           script: |
-            echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
+            if [ "$(Build.Reason)" = "PullRequest" ]; then
+              echo "##vso[task.setvariable variable=main_channel]C0BD4U9R01F"
+            else
+              echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
+            fi
             echo "##vso[task.setvariable variable=testMode]false"
       - script: |
           echo "main_channel set to: $(main_channel)"
@@ -328,6 +332,7 @@ jobs:
       # The following checks use the common-functions.sh slack notifications and threads functions and will only send if negative status is found
       - task: Bash@3
         displayName: 'Orphaned Resource Status Check'
+        condition: false
         continueOnError: true
         inputs:
           targetType: filePath
@@ -335,6 +340,7 @@ jobs:
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: Bash@3
         displayName: 'Checking Jenkins status'
+        condition: false
         continueOnError: true
         inputs:
           targetType: filePath
@@ -347,6 +353,7 @@ jobs:
             --jenkinsURL ${{ variables.jenkins_url }}
       - task: AzureCLI@2
         displayName: 'Service Principal Check - Dev Tenant'
+        condition: false
         continueOnError: true
         inputs:
           scriptType: bash
@@ -355,6 +362,7 @@ jobs:
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
       - task: AzureCLI@2
         displayName: 'Service Principal Check'
+        condition: false
         continueOnError: true
         inputs:
           scriptType: bash
@@ -363,6 +371,7 @@ jobs:
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
       - task: Bash@3
         displayName: "Checking GitHub Pages review status"
+        condition: false
         continueOnError: true
         inputs:
           targetType: filePath
@@ -370,6 +379,7 @@ jobs:
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: Bash@3
         displayName: 'Checking JIRA status'
+        condition: false
         continueOnError: true
         inputs:
           targetType: filePath
@@ -377,6 +387,7 @@ jobs:
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --jiraUsername $(jira-username) --jiraPassword $(jira-password)
       - task: AzureCLI@2
         displayName: 'Get Provisioning State'
+        condition: false
         continueOnError: true
         inputs:
           scriptType: bash
@@ -393,6 +404,7 @@ jobs:
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: Bash@3
         displayName: 'Check Toffee/Plum Status'
+        condition: false
         continueOnError: true
         inputs:
           targetType: filePath
@@ -400,6 +412,7 @@ jobs:
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: Bash@3
         displayName: 'Github Licenses check'
+        condition: false
         continueOnError: true
         inputs:
           targetType: filePath
@@ -407,6 +420,7 @@ jobs:
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(dtspo-daily-checks-github-classic-token)
       - task: Bash@3
         displayName: "Launchdarkly Licenses check"
+        condition: false
         continueOnError: true
         inputs:
           targetType: filePath
@@ -414,6 +428,7 @@ jobs:
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(launchdarkly-access-token)
       - task: Bash@3
         displayName: "Auto Shutdown status check"
+        condition: false
         continueOnError: true
         inputs:
           targetType: filePath
@@ -421,6 +436,7 @@ jobs:
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: AzureCLI@2
         displayName: 'Service Principal Check - B2C Sandbox Tenant'
+        condition: false
         continueOnError: true
         inputs:
           scriptType: bash
@@ -434,6 +450,7 @@ jobs:
           b2c_prod_tenant_id: $(b2c-prod-tenant-id)
       - task: Bash@3
         displayName: 'Elastic search field count check'
+        condition: false
         continueOnError: true
         inputs:
           targetType: filePath
@@ -441,6 +458,7 @@ jobs:
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: Bash@3
         displayName: 'ElasticSearch DLQ Case Type count check'
+        condition: false
         continueOnError: true
         inputs:
           targetType: filePath
@@ -454,6 +472,7 @@ jobs:
       - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
         - task: AzureCLI@2
           displayName: 'Checking PostgreSQL Flexible Storage Status: ${{ postgres_sub.subscription }}'
+          condition: false
           continueOnError: true
           inputs:
             scriptType: bash
@@ -462,6 +481,7 @@ jobs:
             arguments: --subscription ${{ postgres_sub.subscription }}
       - task: Bash@3
         displayName: "Send Postgres Status"
+        condition: false
         continueOnError: true
         inputs:
           targetType: filePath
@@ -474,6 +494,7 @@ jobs:
       - ${{ each backup_vault in parameters.recovery_services_vaults }}:
         - task: AzureCLI@2
           displayName: 'Check Backup Status'
+          condition: false
           continueOnError: true
           inputs:
             scriptType: bash
@@ -482,6 +503,7 @@ jobs:
             arguments: --resourceGroup ${{backup_vault.resourceGroup}} --backupVault ${{backup_vault.vaultName}}
       - task: Bash@3
         displayName: "Send Recovery Services Vaults Status"
+        condition: false
         continueOnError: true
         inputs:
           targetType: filePath
@@ -493,6 +515,7 @@ jobs:
             --messageHeader ":azuremonitoring: Azure Backup Checks"
       - task: AzureCLI@2
         displayName: 'Check DR Backup Vault Job Status (weekly, Mondays only)'
+        condition: false
         continueOnError: true
         inputs:
           scriptType: bash
@@ -506,6 +529,7 @@ jobs:
       - ${{ each frontdoor in parameters.certificates }}:
         - task: AzureCLI@2
           displayName: 'Checking ${{ frontdoor.front_door_name }} Certificate status'
+          condition: false
           continueOnError: true
           inputs:
             scriptType: bash
@@ -518,6 +542,7 @@ jobs:
               --minCertExpirationDays ${{ frontdoor.min_cert_exp_days }}
       - task: Bash@3
         displayName: "Send SSL Cert Status"
+        condition: false
         continueOnError: true
         inputs:
           targetType: filePath
@@ -530,6 +555,7 @@ jobs:
       - ${{ each keyvault in parameters.keyvault_certificates }}:
         - task: AzureCLI@2
           displayName: 'Checking ${{ keyvault.keyvault_name }} KeyVault Certificate status'
+          condition: false
           continueOnError: true
           inputs:
             scriptType: bash
@@ -541,6 +567,7 @@ jobs:
               --minCertExpirationDays ${{ keyvault.min_cert_exp_days }}
       - task: Bash@3
         displayName: "Send KeyVault Cert Status"
+        condition: false
         continueOnError: true
         inputs:
           targetType: filePath
@@ -553,6 +580,7 @@ jobs:
       - ${{ each gh_workflow in parameters.gh_workflows }}:
         - task: Bash@3
           displayName: 'Check Github workflow Runs'
+          condition: false
           continueOnError: true
           inputs:
             targetType: filePath
@@ -560,6 +588,7 @@ jobs:
             arguments: --githubToken $(dtspo-daily-checks-github-fine-grained-token) --githubRepo ${{gh_workflow.repo}} --branch ${{gh_workflow.branch}} --run ${{gh_workflow.run}}
       - task: Bash@3
         displayName: "Send Github Workflow Status"
+        condition: false
         continueOnError: true
         inputs:
           targetType: filePath
@@ -572,6 +601,7 @@ jobs:
       - ${{ each ado_pipeline in parameters.ado_pipelines }}:
         - task: Bash@3
           displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
+          condition: false
           continueOnError: true
           inputs:
             targetType: filePath
@@ -587,6 +617,7 @@ jobs:
               --weekdayOnly ${{ado_pipeline.weekdayOnly}}
       - task: Bash@3
         displayName: "Send ADO Pipeline Status"
+        condition: false
         continueOnError: true
         inputs:
           targetType: filePath
@@ -599,6 +630,7 @@ jobs:
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'AKS Cluster Status:  ${{cluster.clusterName}}'
+          condition: false
           continueOnError: true
           inputs:
             scriptType: bash
@@ -607,6 +639,7 @@ jobs:
             arguments: --resourceGroup ${{cluster.resourceGroup}} --aksClusterName ${{cluster.clusterName}}
       - task: Bash@3
         displayName: "Send AKS Cluster Status"
+        condition: false
         continueOnError: true
         inputs:
           targetType: filePath

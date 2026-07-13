@@ -50,6 +50,11 @@ allowed_assignments:
     scope: /subscriptions/ef8dd153-3fba-47a4-be65-15775bcde240
     comment: Paul Miles - approved Contributor via AAD-RBAC-ATL-LIVE-INFRASTRUCTURE on CRIME-ADO-POC
 
+  - principal_name: hmctsdcd_outlook.com#EXT#
+    role: Owner
+    scope: /providers/Microsoft.Management/managementGroups/Crime
+    comment: O365 Admin GA - approved Owner on Crime management group
+
   # ── Groups ───────────────────────────────────────────────────────────────────
 
   - principal_name: DTS DLRM Synapse workspace contributors
