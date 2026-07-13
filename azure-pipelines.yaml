@@ -201,6 +201,13 @@ parameters:
         pipelineName: azure-resource-finops-scanner
         branchName: refs/heads/master
         weekdayOnly: true
+      - project: 'PlatformOperations'
+        definitionId: '1230'
+        timeForAmber: '1'
+        timeForRed: '3'
+        pipelineName: "hmcts.azure-resource-finops-scanner (cost-export-merge)"
+        branchName: refs/heads/master
+        weekdayOnly: false
   - name: aks_clusters
     type: object
     default:
