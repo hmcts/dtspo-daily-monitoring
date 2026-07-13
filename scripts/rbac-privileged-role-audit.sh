@@ -78,23 +78,83 @@ echo "Azure Production Privileged Role Audit"
 echo "============================================================================="
 
 # =============================================================================
-# Step 1: Write privileged role definitions
+# Step 1: Dynamically fetch privileged role definitions from Azure
 # =============================================================================
-echo "[Step 1/4] Loading privileged role definitions..."
+echo "[Step 1/4] Fetching privileged role definitions from Azure..."
 
-cat > "$PRIVILEGED_ROLES_FILE" << 'PRIV_ROLES_JSON'
-{
-  "roles": {
-    "8e3af657-a8ff-443c-a75c-2fe8c4bcb635": { "roleName": "Owner",                                          "roleType": "BuiltInRole" },
-    "b24988ac-6180-42a0-ab88-20f7382dd24c": { "roleName": "Contributor",                                    "roleType": "BuiltInRole" },
-    "18d7d88d-d35e-4fb5-a5c3-7773c20a72d9": { "roleName": "User Access Administrator",                      "roleType": "BuiltInRole" },
-    "f58310d9-a9f6-439a-9e8d-f62e7b41a168": { "roleName": "Role Based Access Control Administrator",        "roleType": "BuiltInRole" },
-    "76cc9ee4-d5d3-4a45-a930-26add3d73475": { "roleName": "Access Review Operator Service Principal",       "roleType": "BuiltInRole" }
-  }
+python3 - "$PRIVILEGED_ROLES_FILE" << 'FETCH_ROLES_PY'
+import json
+import sys
+import subprocess
+
+output_file = sys.argv[1]
+
+# Privileged action patterns — roles granting any of these are considered privileged
+PRIVILEGED_ACTION_PATTERNS = [
+    "*",                                          # Owner (full control)
+    "Microsoft.Authorization/*/write",            # RBAC write
+    "Microsoft.Authorization/roleAssignments/write",
+    "Microsoft.Authorization/roleDefinitions/write",
+    "Microsoft.Authorization/elevateAccess/Action",
+    "Microsoft.Authorization/accessReviewScheduleDefinitions/write",
+]
+
+def is_privileged(actions):
+    for action in actions:
+        a = action.strip().lower()
+        for pattern in PRIVILEGED_ACTION_PATTERNS:
+            if a == pattern.lower() or a == "*":
+                return True
+    return False
+
+print("  Querying Azure role definitions...")
+try:
+    result = subprocess.run(
+        ['az', 'role', 'definition', 'list',
+         '--query', "[].{id:name,roleName:roleName,roleType:roleType,actions:permissions[0].actions}",
+         '-o', 'json'],
+        capture_output=True, text=True, timeout=120
+    )
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr[:300])
+    all_roles = json.loads(result.stdout)
+except Exception as e:
+    print(f"  ERROR fetching role definitions: {e}")
+    print("  Falling back to built-in privileged role list.")
+    all_roles = []
+
+privileged_roles = {}
+for role in all_roles:
+    actions = role.get('actions') or []
+    if is_privileged(actions):
+        role_id = role.get('id', '')
+        # role definition id is a GUID (last segment of the full resource path)
+        guid = role_id.split('/')[-1] if '/' in role_id else role_id
+        if guid:
+            privileged_roles[guid] = {
+                'roleName': role.get('roleName', guid),
+                'roleType': role.get('roleType', 'BuiltInRole'),
+            }
+
+# Always include these critical roles as a safety net in case the query misses them
+FALLBACK_ROLES = {
+    "8e3af657-a8ff-443c-a75c-2fe8c4bcb635": {"roleName": "Owner",                                    "roleType": "BuiltInRole"},
+    "b24988ac-6180-42a0-ab88-20f7382dd24c": {"roleName": "Contributor",                              "roleType": "BuiltInRole"},
+    "18d7d88d-d35e-4fb5-a5c3-7773c20a72d9": {"roleName": "User Access Administrator",                "roleType": "BuiltInRole"},
+    "f58310d9-a9f6-439a-9e8d-f62e7b41a168": {"roleName": "Role Based Access Control Administrator",  "roleType": "BuiltInRole"},
+    "76cc9ee4-d5d3-4a45-a930-26add3d73475": {"roleName": "Access Review Operator Service Principal", "roleType": "BuiltInRole"},
 }
-PRIV_ROLES_JSON
+for guid, info in FALLBACK_ROLES.items():
+    privileged_roles.setdefault(guid, info)
 
-echo "  Roles loaded."
+with open(output_file, 'w') as f:
+    json.dump({'roles': privileged_roles}, f, indent=2)
+
+print(f"  Privileged roles identified: {len(privileged_roles)}")
+for guid, info in sorted(privileged_roles.items(), key=lambda x: x[1]['roleName']):
+    print(f"    [{info['roleType']}] {info['roleName']} ({guid})")
+FETCH_ROLES_PY
+
 echo ""
 
 # =============================================================================
