@@ -3,3 +3,7 @@ slack-message.txt
 *.iml
 .idea
 .DS_Store
+rbac-change-status.txt
+rbac-out/rbac-snapshot-*.csv
+rbac-snapshot*.csv
+rbac-snapshot*.json
