@@ -7,8 +7,11 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common-functions.sh"
 slackBotToken=
 slackChannelName=
 ACCOUNTS='felix.eyetanga@HMCTS.NET,Thomas.ThorntonGA@HMCTS.NET'
-REPORT_FILE="${PWD}/breakglass-signin-review.csv"
-REPORT_MD="${PWD}/breakglass-signin-review.md"
+REPORT_DIR="${PWD}/breakglass-signin-reports"
+REPORT_FILE="$REPORT_DIR/breakglass-signin-review.csv"
+REPORT_MD="$REPORT_DIR/breakglass-signin-review.md"
+
+mkdir -p "$REPORT_DIR"
 
 usage() {
     cat << EOF

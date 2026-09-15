@@ -406,6 +406,12 @@ jobs:
           scriptPath: scripts/break-glass-signin-check.sh
           azureSubscription: 'GA-Prod-Tenant'
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish break-glass sign-in report'
+        condition: always()
+        inputs:
+          targetPath: '$(System.DefaultWorkingDirectory)/breakglass-signin-reports'
+          artifact: 'breakglass-signin-report'
       - task: Bash@3
         displayName: 'Check Toffee/Plum Status'
         continueOnError: true
