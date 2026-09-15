@@ -398,6 +398,14 @@ jobs:
           scriptPath: scripts/rbac-privileged-role-audit.sh
           azureSubscription: 'GA-Prod-Tenant'
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      - task: AzureCLI@2
+        displayName: 'Check break-glass sign-ins'
+        continueOnError: true
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/break-glass-signin-check.sh
+          azureSubscription: 'GA-Prod-Tenant'
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: Bash@3
         displayName: 'Check Toffee/Plum Status'
         continueOnError: true
