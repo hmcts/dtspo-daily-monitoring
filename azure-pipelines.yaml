@@ -412,7 +412,7 @@ jobs:
         displayName: 'Publish break-glass sign-in report'
         condition: always()
         inputs:
-          targetPath: '$(System.DefaultWorkingDirectory)/breakglass-signin-reports'
+          targetPath: '$(System.DefaultWorkingDirectory)/scripts'
           artifact: 'breakglass-signin-report'
       - task: Bash@3
         displayName: 'Commit break-glass sign-in report'
@@ -422,10 +422,10 @@ jobs:
           script: |
             set -euo pipefail
 
-            git config user.email "azure-pipelines@hmcts.net"
+            git config user.email "${BUILD_REQUESTEDFOREMAIL:-azure-devops@local}"
             git config user.name "Azure Pipelines"
-            git add breakglass-signin-reports/breakglass-signin-review.csv \
-              breakglass-signin-reports/breakglass-signin-review.md
+            git add scripts/breakglass-signin-review.csv \
+              scripts/breakglass-signin-review.md
 
             if git diff --cached --quiet; then
               echo "No changes to the break-glass sign-in report."

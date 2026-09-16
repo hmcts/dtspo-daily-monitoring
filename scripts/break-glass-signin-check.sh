@@ -9,8 +9,7 @@ slackChannelName=
 # Update this list when GA break-glass accounts are added, removed, or changed.
 ACCOUNTS='felix.eyetanga@HMCTS.NET,Thomas.ThorntonGA@HMCTS.NET,salim.abdulkareem@HMCTS.NET'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-REPORT_DIR="$REPO_DIR/breakglass-signin-reports"
+REPORT_DIR="$SCRIPT_DIR"
 REPORT_FILE="$REPORT_DIR/breakglass-signin-review.csv"
 REPORT_MD="$REPORT_DIR/breakglass-signin-review.md"
 
