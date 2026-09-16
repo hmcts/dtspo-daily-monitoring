@@ -7,7 +7,7 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common-functions.sh"
 slackBotToken=
 slackChannelName=
 # Update this list when GA break-glass accounts are added, removed, or changed.
-ACCOUNTS='felix.eyetanga@HMCTS.NET,Thomas.ThorntonGA@HMCTS.NET,salim.abdulkareem@HMCTS.NET'
+ACCOUNTS='felix.eyetanga@HMCTS.NET,Thomas.ThorntonGA@HMCTS.NET'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPORT_DIR="$SCRIPT_DIR"
 REPORT_FILE="$REPORT_DIR/breakglass-signin-review.csv"
