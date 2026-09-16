@@ -1,0 +1,40 @@
+---
+name: Break-glass sign-in test
+trigger: none
+pr: none
+
+variables:
+  - group: daily-checks-ghapp
+  - name: test_channel
+    value: dtspo-daily-checks-test
+
+jobs:
+  - job: BreakGlassSignInTest
+    timeoutInMinutes: 15
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - task: AzureKeyVault@2
+        displayName: 'Get Slack token'
+        inputs:
+          azureSubscription: 'DTS-CFTPTL-INTSVC'
+          keyVaultName: 'cftptl-intsvc'
+          secretsFilter: 'dtspo-daily-checks-slack-bot-token'
+
+      - task: AzureCLI@2
+        displayName: 'Test break-glass sign-ins'
+        continueOnError: true
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/break-glass-signin-check.sh
+          azureSubscription: 'GA-Prod-Tenant'
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(test_channel)
+
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish break-glass sign-in test report'
+        condition: always()
+        inputs:
+          targetPath: '$(System.DefaultWorkingDirectory)/breakglass-signin-reports'
+          artifact: 'breakglass-signin-test-report'
