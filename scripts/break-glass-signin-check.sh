@@ -127,8 +127,8 @@ if [[ "$has_stale_account" == true ]]; then
     if [[ -n "$slackBotToken" && -n "$slackChannelName" ]]; then
         slackNotification "$slackBotToken" "$slackChannelName" \
             ":red_circle: Break-glass sign-in review" \
-            "One or more break-glass accounts require chase follow-up."
-        slackThreadResponse "$slackBotToken" "$slackChannelName" "$chase_details" "$TS"
+            "For Platform Access posture, break-glass GA accounts must sign in to the CNP tenant at least once every 12 months.\n\nAction required: please update the script if new break-glass GA accounts have been added, or chase the affected users to sign in to the CNP tenant."
+        slackThreadResponse "$slackBotToken" "$slackChannelName" "Affected accounts and latest sign-in details:$chase_details" "$TS"
     else
         echo "Slack notification skipped: token or channel was not supplied." >&2
     fi
