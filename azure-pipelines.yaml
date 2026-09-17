@@ -443,7 +443,17 @@ jobs:
                 source_ref=$(printf '%s' "$pr_json" | jq -r '.sourceRefName // empty')
               fi
 
-              source_branch="${source_ref#refs/heads/}"
+              if [[ -z "$source_ref" || "$source_ref" == refs/pull/* ]]; then
+                echo "Unable to determine the pull request source branch."
+                exit 1
+              fi
+
+              if [[ "$source_ref" == refs/heads/* ]]; then
+                source_branch="${source_ref#refs/heads/}"
+              else
+                source_branch="$source_ref"
+                source_ref="refs/heads/$source_branch"
+              fi
 
               if [[ -z "$source_branch" || "$source_branch" == "$source_ref" ]]; then
                 echo "Unable to determine the pull request source branch."
