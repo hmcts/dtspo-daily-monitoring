@@ -424,6 +424,19 @@ jobs:
 
             if [[ "$(Build.Reason)" == "PullRequest" ]]; then
               source_ref="$(System.PullRequest.SourceBranch)"
+
+              if [[ -z "$source_ref" ]]; then
+                echo "System.PullRequest.SourceBranch was empty; querying the pull request source ref."
+                if [[ -z "${SYSTEM_ACCESSTOKEN:-}" ]]; then
+                  echo "System.AccessToken is unavailable. Enable 'Allow scripts to access the OAuth token' for this pipeline job."
+                  exit 1
+                fi
+                pr_json=$(curl --fail --silent --show-error \
+                  -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" \
+                  "$(System.CollectionUri)$(System.TeamProject)/_apis/git/repositories/$(Build.Repository.ID)/pullRequests/$(System.PullRequest.PullRequestId)?api-version=7.1")
+                source_ref=$(printf '%s' "$pr_json" | jq -r '.sourceRefName // empty')
+              fi
+
               source_branch="${source_ref#refs/heads/}"
 
               if [[ -z "$source_branch" || "$source_branch" == "$source_ref" ]]; then
@@ -450,6 +463,8 @@ jobs:
 
             git commit -m "Update break-glass sign-in report [skip ci]"
             git push origin "HEAD:refs/heads/$source_branch"
+          env:
+            SYSTEM_ACCESSTOKEN: $(System.AccessToken)
       - task: Bash@3
         displayName: 'Check Toffee/Plum Status'
         continueOnError: true
