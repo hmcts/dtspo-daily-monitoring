@@ -316,6 +316,8 @@ jobs:
     pool:
       name: 'hmcts-cftptl-agent-pool'
     steps:
+      - checkout: self
+        persistCredentials: true
       - task: AzureKeyVault@2
         displayName: 'Get secrets from Keyvault'
         inputs:
@@ -398,6 +400,40 @@ jobs:
           scriptPath: scripts/rbac-privileged-role-audit.sh
           azureSubscription: 'GA-Prod-Tenant'
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      - task: AzureCLI@2
+        displayName: 'Check break-glass sign-ins'
+        continueOnError: true
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/break-glass-signin-check.sh
+          azureSubscription: 'GA-Prod-Tenant'
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish break-glass sign-in report'
+        condition: always()
+        inputs:
+          targetPath: '$(System.DefaultWorkingDirectory)/scripts'
+          artifact: 'breakglass-signin-report'
+      - task: Bash@3
+        displayName: 'Commit break-glass sign-in report'
+        continueOnError: true
+        condition: and(always(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+        inputs:
+          targetType: inline
+          script: |
+            set -euo pipefail
+
+            git config user.email "${BUILD_REQUESTEDFOREMAIL:-azure-devops@local}"
+            git config user.name "Azure Pipelines"
+            git add scripts/breakglass-signin-review.md
+
+            if git diff --cached --quiet; then
+              echo "No changes to the break-glass sign-in report."
+              exit 0
+            fi
+
+            git commit -m "Update break-glass sign-in report [skip ci]"
+            git push origin "HEAD:refs/heads/master"
       - task: Bash@3
         displayName: 'Check Toffee/Plum Status'
         continueOnError: true
