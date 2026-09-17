@@ -423,7 +423,7 @@ jobs:
             set -euo pipefail
 
             if [[ "$(Build.Reason)" == "PullRequest" ]]; then
-              source_ref="$(System.PullRequest.SourceBranch)"
+              source_ref="${SYSTEM_PULLREQUEST_SOURCEBRANCH:-}"
 
               if [[ -z "$source_ref" ]]; then
                 echo "System.PullRequest.SourceBranch was empty; querying the pull request source ref."
@@ -431,9 +431,15 @@ jobs:
                   echo "System.AccessToken is unavailable. Enable 'Allow scripts to access the OAuth token' for this pipeline job."
                   exit 1
                 fi
+                if [[ -z "${SYSTEM_PULLREQUEST_PULLREQUESTID:-}" || -z "${BUILD_REPOSITORY_ID:-}" ]]; then
+                  echo "Missing PR metadata: pullRequestId='${SYSTEM_PULLREQUEST_PULLREQUESTID:-}' repositoryId='${BUILD_REPOSITORY_ID:-}'."
+                  exit 1
+                fi
+                project_path=$(printf '%s' "${SYSTEM_TEAMPROJECT:-}" | jq -sRr @uri)
+                echo "Querying PR ${SYSTEM_PULLREQUEST_PULLREQUESTID} in repository ${BUILD_REPOSITORY_ID}."
                 pr_json=$(curl --fail --silent --show-error \
                   -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" \
-                  "$(System.CollectionUri)$(System.TeamProject)/_apis/git/repositories/$(Build.Repository.ID)/pullRequests/$(System.PullRequest.PullRequestId)?api-version=7.1")
+                  "${SYSTEM_COLLECTIONURI}${project_path}/_apis/git/repositories/${BUILD_REPOSITORY_ID}/pullRequests/${SYSTEM_PULLREQUEST_PULLREQUESTID}?api-version=7.1")
                 source_ref=$(printf '%s' "$pr_json" | jq -r '.sourceRefName // empty')
               fi
 
@@ -465,6 +471,11 @@ jobs:
             git push origin "HEAD:refs/heads/$source_branch"
         env:
           SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+          SYSTEM_PULLREQUEST_SOURCEBRANCH: $(System.PullRequest.SourceBranch)
+          SYSTEM_PULLREQUEST_PULLREQUESTID: $(System.PullRequest.PullRequestId)
+          SYSTEM_COLLECTIONURI: $(System.CollectionUri)
+          SYSTEM_TEAMPROJECT: $(System.TeamProject)
+          BUILD_REPOSITORY_ID: $(Build.Repository.ID)
       - task: Bash@3
         displayName: 'Check Toffee/Plum Status'
         continueOnError: true
