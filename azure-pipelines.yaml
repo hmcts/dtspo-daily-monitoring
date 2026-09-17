@@ -416,11 +416,27 @@ jobs:
           artifact: 'breakglass-signin-report'
       - task: Bash@3
         displayName: 'Commit break-glass sign-in report'
-        condition: and(always(), ne(variables['Build.Reason'], 'PullRequest'))
+        condition: always()
         inputs:
           targetType: inline
           script: |
             set -euo pipefail
+
+            if [[ "$(Build.Reason)" == "PullRequest" ]]; then
+              source_ref="$(System.PullRequest.SourceBranch)"
+              source_branch="${source_ref#refs/heads/}"
+
+              if [[ -z "$source_branch" || "$source_branch" == "$source_ref" ]]; then
+                echo "Unable to determine the pull request source branch."
+                exit 1
+              fi
+
+              git fetch origin "$source_ref"
+              git checkout -B "$source_branch" "origin/$source_branch"
+            else
+              source_branch="$(Build.SourceBranch)"
+              source_branch="${source_branch#refs/heads/}"
+            fi
 
             git config user.email "${BUILD_REQUESTEDFOREMAIL:-azure-devops@local}"
             git config user.name "Azure Pipelines"
@@ -433,7 +449,7 @@ jobs:
             fi
 
             git commit -m "Update break-glass sign-in report [skip ci]"
-            git push origin "HEAD:$(Build.SourceBranch)"
+            git push origin "HEAD:refs/heads/$source_branch"
       - task: Bash@3
         displayName: 'Check Toffee/Plum Status'
         continueOnError: true
