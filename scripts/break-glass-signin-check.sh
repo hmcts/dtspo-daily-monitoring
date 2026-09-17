@@ -33,8 +33,8 @@ while :; do
     esac
 done
 
-if [[ "$forceRun" != true && "$(date -u +'%m-%d')" != '01-01' && "$(date -u +'%m-%d')" != '07-01' ]]; then
-    echo "Skipping break-glass sign-in review; scheduled for 1 January and 1 July."
+if [[ "$forceRun" != true && "$(date -u +'%m-%d')" != '03-17' && "$(date -u +'%m-%d')" != '09-17' ]]; then
+    echo "Skipping break-glass sign-in review; scheduled for 17 March and 17 September."
     exit 0
 fi
 
@@ -127,6 +127,7 @@ fi
 echo "Report written to $REPORT_MD"
 
 if [[ "$has_stale_account" == true ]]; then
+    echo "##vso[task.logissue type=warning]One or more break-glass accounts require sign-in follow-up. See scripts/breakglass-signin-review.md."
     if [[ -n "$slackBotToken" && -n "$slackChannelName" ]]; then
         slackNotification "$slackBotToken" "$slackChannelName" \
             ":red_circle: Break-glass sign-in review" \

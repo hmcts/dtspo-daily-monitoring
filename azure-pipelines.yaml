@@ -416,56 +416,12 @@ jobs:
           artifact: 'breakglass-signin-report'
       - task: Bash@3
         displayName: 'Commit break-glass sign-in report'
-        condition: always()
+        continueOnError: true
+        condition: and(always(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
         inputs:
           targetType: inline
           script: |
             set -euo pipefail
-
-            if [[ "$(Build.Reason)" == "PullRequest" ]]; then
-              source_ref="${SYSTEM_PULLREQUEST_SOURCEBRANCH:-}"
-
-              if [[ -z "$source_ref" ]]; then
-                echo "System.PullRequest.SourceBranch was empty; querying the pull request source ref."
-                if [[ -z "${SYSTEM_ACCESSTOKEN:-}" ]]; then
-                  echo "System.AccessToken is unavailable. Enable 'Allow scripts to access the OAuth token' for this pipeline job."
-                  exit 1
-                fi
-                if [[ -z "${SYSTEM_PULLREQUEST_PULLREQUESTID:-}" || -z "${BUILD_REPOSITORY_ID:-}" ]]; then
-                  echo "Missing PR metadata: pullRequestId='${SYSTEM_PULLREQUEST_PULLREQUESTID:-}' repositoryId='${BUILD_REPOSITORY_ID:-}'."
-                  exit 1
-                fi
-                project_path=$(printf '%s' "${SYSTEM_TEAMPROJECT:-}" | jq -sRr @uri)
-                echo "Querying PR ${SYSTEM_PULLREQUEST_PULLREQUESTID} in repository ${BUILD_REPOSITORY_ID}."
-                pr_json=$(curl --fail --silent --show-error \
-                  -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" \
-                  "${SYSTEM_COLLECTIONURI}${project_path}/_apis/git/repositories/${BUILD_REPOSITORY_ID}/pullRequests/${SYSTEM_PULLREQUEST_PULLREQUESTID}?api-version=7.1")
-                source_ref=$(printf '%s' "$pr_json" | jq -r '.sourceRefName // empty')
-              fi
-
-              if [[ -z "$source_ref" || "$source_ref" == refs/pull/* ]]; then
-                echo "Unable to determine the pull request source branch."
-                exit 1
-              fi
-
-              if [[ "$source_ref" == refs/heads/* ]]; then
-                source_branch="${source_ref#refs/heads/}"
-              else
-                source_branch="$source_ref"
-                source_ref="refs/heads/$source_branch"
-              fi
-
-              if [[ -z "$source_branch" || "$source_branch" == "$source_ref" ]]; then
-                echo "Unable to determine the pull request source branch."
-                exit 1
-              fi
-
-              git fetch origin "$source_ref"
-              git checkout -B "$source_branch" "origin/$source_branch"
-            else
-              source_branch="$(Build.SourceBranch)"
-              source_branch="${source_branch#refs/heads/}"
-            fi
 
             git config user.email "${BUILD_REQUESTEDFOREMAIL:-azure-devops@local}"
             git config user.name "Azure Pipelines"
@@ -477,14 +433,7 @@ jobs:
             fi
 
             git commit -m "Update break-glass sign-in report [skip ci]"
-            git push origin "HEAD:refs/heads/$source_branch"
-        env:
-          SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-          SYSTEM_PULLREQUEST_SOURCEBRANCH: $(System.PullRequest.SourceBranch)
-          SYSTEM_PULLREQUEST_PULLREQUESTID: $(System.PullRequest.PullRequestId)
-          SYSTEM_COLLECTIONURI: $(System.CollectionUri)
-          SYSTEM_TEAMPROJECT: $(System.TeamProject)
-          BUILD_REPOSITORY_ID: $(Build.Repository.ID)
+            git push origin "HEAD:refs/heads/master"
       - task: Bash@3
         displayName: 'Check Toffee/Plum Status'
         continueOnError: true
