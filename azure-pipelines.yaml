@@ -407,76 +407,14 @@ jobs:
           scriptType: bash
           scriptPath: scripts/break-glass-signin-check.sh
           azureSubscription: 'GA-Prod-Tenant'
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
+          arguments: '--slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)'
+
       - task: PublishPipelineArtifact@1
         displayName: 'Publish break-glass sign-in report'
         condition: always()
         inputs:
-          targetPath: '$(System.DefaultWorkingDirectory)/scripts'
+          targetPath: '$(System.DefaultWorkingDirectory)/scripts/breakglass-signin-review.md'
           artifact: 'breakglass-signin-report'
-      - task: Bash@3
-        displayName: 'Commit break-glass sign-in report'
-        continueOnError: true
-        condition: always()
-        # condition: and(always(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
-        inputs:
-          targetType: inline
-          script: |
-            set -euo pipefail
-
-            git config user.email "${BUILD_REQUESTEDFOREMAIL:-azure-devops@local}"
-            git config user.name "Azure Pipelines"
-            git add scripts/breakglass-signin-review.md
-
-            if git diff --cached --quiet; then
-              echo "No changes to the break-glass sign-in report."
-              exit 0
-            fi
-
-            git commit -m "Update break-glass sign-in report [skip ci]"
-            echo "=== Pipeline identity ==="
-            echo "Requested by: $(Build.RequestedFor)"
-            echo "Requested by email: $(Build.RequestedForEmail)"
-
-            echo "=== Git identity ==="
-            git config user.name || true
-            git config user.email || true
-
-            echo "=== Remote ==="
-            git remote -v
-
-            echo "=== Credential helper ==="
-            git config --show-origin --get-regexp 'credential' || true
-            git push origin "HEAD:refs/heads/master"
-      - task: Bash@3
-        displayName: 'Debug repository authentication'
-        condition: always()
-        inputs:
-          targetType: inline
-          script: |
-            set -euo pipefail
-
-            echo "=== Pipeline ==="
-            echo "Requested by: $(Build.RequestedFor)"
-            echo "Source branch: $(Build.SourceBranch)"
-            echo "Repository provider: $(Build.Repository.Provider)"
-            echo "Repository: $(Build.Repository.Name)"
-
-            echo
-            echo "=== Remote ==="
-            git remote -v
-
-            echo
-            echo "=== Git config ==="
-            git config --show-origin --get-regexp 'credential|http\..*extraheader' || true
-
-            echo
-            echo "=== Azure OAuth ==="
-            if [[ -n "${SYSTEM_ACCESSTOKEN:-}" ]]; then
-              echo "SYSTEM_ACCESSTOKEN is available"
-            else
-              echo "SYSTEM_ACCESSTOKEN is NOT available"
-            fi
       # - task: Bash@3
       #   displayName: 'Check Toffee/Plum Status'
       #   continueOnError: true
