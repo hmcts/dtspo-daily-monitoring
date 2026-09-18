@@ -33,8 +33,8 @@ while :; do
     esac
 done
 
-if [[ "$forceRun" != true && "$(date -u +'%m-%d')" != '03-17' && "$(date -u +'%m-%d')" != '09-17' ]]; then
-    echo "Skipping break-glass sign-in review; scheduled for 17 March and 17 September."
+if [[ "$forceRun" != true && "$(date -u +'%m-%d')" != '03-18' && "$(date -u +'%m-%d')" != '09-18' ]]; then
+    echo "Skipping break-glass sign-in review; scheduled for 18 March and 18 September."
     exit 0
 fi
 
