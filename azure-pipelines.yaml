@@ -433,6 +433,19 @@ jobs:
             fi
 
             git commit -m "Update break-glass sign-in report [skip ci]"
+            echo "=== Pipeline identity ==="
+            echo "Requested by: $(Build.RequestedFor)"
+            echo "Requested by email: $(Build.RequestedForEmail)"
+
+            echo "=== Git identity ==="
+            git config user.name || true
+            git config user.email || true
+
+            echo "=== Remote ==="
+            git remote -v
+
+            echo "=== Credential helper ==="
+            git config --show-origin --get-regexp 'credential' || true
             git push origin "HEAD:refs/heads/master"
       - task: Bash@3
         displayName: 'Check Toffee/Plum Status'
