@@ -6,7 +6,7 @@ slackBotToken=
 slackChannelName=
 forceRun=false
 # Update this list when GA break-glass accounts are added, removed, or changed.
-ACCOUNTS='felix.eyetanga@HMCTS.NET,Thomas.ThorntonGA@HMCTS.NET'
+ACCOUNTS='felix.eyetanga@HMCTS.NET,Thomas.ThorntonGA@HMCTS.NET,salim.abdulkareem@hmcts.net'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPORT_DIR="$SCRIPT_DIR"
 REPORT_MD="$REPORT_DIR/breakglass-signin-review.md"
