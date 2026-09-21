@@ -54,10 +54,12 @@ done
 # --force can still be used to run the review manually.
 #
 # This check allows the script to run on the 1st of each month.
-if [[ "$forceRun" != true && "$(date -u +'%d')" != '01' ]]; then
-    echo "Skipping break-glass sign-in review; scheduled to run on the 1st of each month."
+if [[ "$forceRun" != true && "$(date -u +'%d')" != '21' ]]; then
+    echo "Skipping break-glass sign-in review; scheduled to run on the 21st of each month."
     exit 0
 fi
+
+
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common-functions.sh"
 
@@ -167,4 +169,4 @@ if [[ "$has_stale_account" == true ]]; then
 
     exit 1
 fi
-```
+
