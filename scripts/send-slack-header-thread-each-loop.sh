@@ -44,9 +44,9 @@ do
         -h | --help)              usage                    ; shift   ;;
         -t | --slackBotToken)     slackBotToken=$2         ; shift 2 ;;
         -c | --slackChannelName)  slackChannelName=$2      ; shift 2 ;;
-        -s | --inputFileName)     inputFileName=$2         ; shift 2 ;;
+        -i | --inputFileName)     inputFileName=$2         ; shift 2 ;;
         -m | --messageHeader)     messageHeader=$2         ; shift 2 ;;
-        -s | --subheading)        subheading=$2            ; shift 2 ;;
+        -s | --subheading)        subHeading=$2            ; shift 2 ;;
         # -- means the end of the arguments; drop this, and break out of the while loop
         --) shift; break ;;
         *) >&2 echo Unsupported option: $1
