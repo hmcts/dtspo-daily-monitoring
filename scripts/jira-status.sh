@@ -9,7 +9,7 @@ source scripts/common-functions.sh
 slackBotToken=
 slackChannelName=
 jiraUsername=
-jiraPassword=
+jiraToken=
 
 usage(){
 >&2 cat << EOF
@@ -20,13 +20,13 @@ Usage: $0
     [ -t | --slackBotToken ]
     [ -c | --slackChannelName ]
     [ -u | --jiraUsername ]
-    [ -p | --jiraPassword ]
+    [ -j | --jiraToken ]
     [ -h | --help ]
 EOF
 exit 1
 }
 
-args=$(getopt -a -o t:c:p:g: --long slackBotToken:,slackChannelName:,jiraUsername:,jiraPassword:,help -- "$@")
+args=$(getopt -a -o t:c:u:j: --long slackBotToken:,slackChannelName:,jiraUsername:,jiraToken:,help -- "$@")
 if [[ $? -gt 0 ]]; then
     usage
 fi
@@ -39,7 +39,7 @@ do
         -t | --slackBotToken)     slackBotToken=$2      ; shift 2 ;;
         -c | --slackChannelName)  slackChannelName=$2   ; shift 2 ;;
         -u | --jiraUsername)      jiraUsername=$2       ; shift 2 ;;
-        -p | --jiraPassword)      jiraPassword=$2       ; shift 2 ;;
+        -j | --jiraToken)         jiraToken=$2          ; shift 2 ;;
         # -- means the end of the arguments; drop this, and break out of the while loop
         --) shift; break ;;
         *) >&2 echo Unsupported option: $1
@@ -47,9 +47,9 @@ do
     esac
 done
 
-if [ -z "$slackBotToken" ] || [ -z "$slackChannelName" ] || [ -z "$jiraUsername" ] || [ -z "$jiraPassword" ]; then
+if [ -z "$slackBotToken" ] || [ -z "$slackChannelName" ] || [ -z "$jiraUsername" ] || [ -z "$jiraToken" ]; then
         echo "------------------------"
-        echo 'Please supply all of Slack token, Slack channel name, Jira username and Jira password' >&2
+        echo 'Please supply all of Slack token, Slack channel name, Jira username and Jira API token' >&2
         echo "------------------------"
         exit 1
 fi
@@ -71,13 +71,29 @@ get_issue_query_json(){
   jq -n --arg jql "$jql" --argjson startAt "$startAt" --argjson maxResults "$maxResults" --argjson fields "$fields" --argjson expand "$expand" -f scripts/jira-issues-query-template.jq -c
 }
 
+# Jira Cloud search/jql is token-paginated and returns no total, so collect every page and synthesise one.
+jira_search(){
+  local body result page issues='[]' pageToken=''
+  while :; do
+    body=$(jq -c --arg token "${pageToken}" 'del(.startAt, .expand) | if $token != "" then .nextPageToken = $token else . end' <<< "$1")
+    page=$(curl -sS -u "${jiraUsername}:${jiraToken}" -X POST -H "Content-Type: application/json" "https://hmcts.atlassian.net/rest/api/2/search/jql" --data "${body}")
+    if ! jq -e 'has("issues")' <<< "${page}" > /dev/null; then
+      echo "Jira search failed: ${page}" >&2
+      exit 1
+    fi
+    issues=$(jq -c --argjson more "$(jq -c .issues <<< "${page}")" '. + $more' <<< "${issues}")
+    pageToken=$(jq -r '.nextPageToken // empty' <<< "${page}")
+    [ -z "${pageToken}" ] && break
+  done
+  result=$(jq -c '{total: length, issues: .}' <<< "${issues}")
+  echo "${result}"
+}
+
 OVERALL_OPEN_ISSUES_QUERY=$(get_issue_query_json 'project = DTSPO AND IssueType in ("Support", "Task") and status not in (Done, Withdrawn, Rejected) AND (Labels IS EMPTY OR Labels NOT IN (DTSPO-YELLOW, DTSPO-RED, DTSPO-BLUE, DTSPO-WHITE, DTSPO-Orange, TechDebt, BAUTeam-Improvement))')
-OVERALL_OPEN_ISSUES_RESULT=$(curl -u $jiraUsername:$jiraPassword -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
-  --data "${OVERALL_OPEN_ISSUES_QUERY}")
+OVERALL_OPEN_ISSUES_RESULT=$(jira_search "${OVERALL_OPEN_ISSUES_QUERY}")
 
 OPEN_ISSUES_QUERY=$(get_issue_query_json 'project = DTSPO AND IssueType in ("Support") AND status NOT IN (Done, Withdrawn, Rejected) AND (Labels IS EMPTY OR Labels NOT IN (DTSPO-YELLOW, DTSPO-RED, DTSPO-BLUE, DTSPO-WHITE, DTSPO-Orange, TechDebt, BAUTeam-Improvement))')
-OPEN_ISSUES_RESULT=$(curl -u $jiraUsername:$jiraPassword -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
-  --data "${OPEN_ISSUES_QUERY}")
+OPEN_ISSUES_RESULT=$(jira_search "${OPEN_ISSUES_QUERY}")
 
 OPEN_ISSUES_COUNT=$(jq -r .total <<< "${OPEN_ISSUES_RESULT}")
 UNASSIGNED_ISSUES_COUNT=$(jq -r '[.issues[] | select(.fields.assignee==null)] | length'<<< "${OPEN_ISSUES_RESULT}")
@@ -85,27 +101,23 @@ UNASSIGNED_ISSUES_COUNT=$(jq -r '[.issues[] | select(.fields.assignee==null)] | 
 ASSIGNED_ISSUES_RESULT=$(jq -r '[.issues[] | select(.fields.assignee!=null)]| [group_by (.fields.assignee.displayName)[] | {user: .[0].fields.assignee.displayName, count: length}] | sort_by(.count) | reverse[]| [ ">_"+.user+"_", .count|tostring ] | join(": ")' <<< "${OVERALL_OPEN_ISSUES_RESULT}")
 
 CLOSED_ISSUES_QUERY=$(get_issue_query_json 'project = DTSPO AND IssueType IN ("Support", "Task") AND (Labels IS EMPTY OR Labels NOT IN (DTSPO-YELLOW, DTSPO-RED, DTSPO-BLUE, DTSPO-WHITE, DTSPO-Orange, TechDebt, BAUTeam-Improvement)) AND status changed to (Done, Withdrawn, Rejected) ON -'${PREVIOUS_DAYS}'d')
-CLOSED_ISSUES_RESULT=$(curl -u $jiraUsername:$jiraPassword -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
-  --data "${CLOSED_ISSUES_QUERY}")
+CLOSED_ISSUES_RESULT=$(jira_search "${CLOSED_ISSUES_QUERY}")
 
 CLOSED_ISSUES_COUNT=$(jq -r .total <<< "${CLOSED_ISSUES_RESULT}")
 CLOSED_ISSUES_USER=$(jq -r '[.issues[] | select(.fields.assignee!=null)]| [group_by (.fields.assignee.displayName)[] | {user: .[0].fields.assignee.displayName, count: length}] | sort_by(.count) | reverse[]| [ ">_"+.user+"_", .count|tostring ] | join(": ")' <<< "${CLOSED_ISSUES_RESULT}")
 
 OPEN_PATCHING_ISSUES_QUERY=$(get_issue_query_json 'project = DTSPO AND IssueType IN ("Task") AND status NOT IN (Done, Withdrawn, Rejected) AND (Labels IN (Patching) AND Labels NOT IN (TechDebt, BAUTeam-Improvement))')
-OPEN_PATCHING_ISSUES_RESULT=$(curl   -u $jiraUsername:$jiraPassword -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
-  --data "${OPEN_PATCHING_ISSUES_QUERY}")
+OPEN_PATCHING_ISSUES_RESULT=$(jira_search "${OPEN_PATCHING_ISSUES_QUERY}")
 
 OPEN_PATCHING_ISSUES_COUNT=$(jq -r .total <<< "${OPEN_PATCHING_ISSUES_RESULT}")
 
 OPEN_OAT_ISSUES_QUERY=$(get_issue_query_json 'project = DTSPO AND IssueType IN ("Support", "Task") AND status NOT IN (Done, Withdrawn, Rejected) AND (Labels IN (OAT) AND Labels NOT IN (DTSPO-YELLOW, DTSPO-RED, DTSPO-BLUE, DTSPO-WHITE, DTSPO-Orange, TechDebt, BAUTeam-Improvement))')
-OPEN_OAT_ISSUES_RESULT=$(curl   -u $jiraUsername:$jiraPassword -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
-  --data "${OPEN_OAT_ISSUES_QUERY}")
+OPEN_OAT_ISSUES_RESULT=$(jira_search "${OPEN_OAT_ISSUES_QUERY}")
 
 OPEN_OAT_ISSUES_COUNT=$(jq -r .total <<< "${OPEN_OAT_ISSUES_RESULT}")
 
 AUTO_WITHDRAWN_ISSUES_QUERY=$(get_issue_query_json 'project = DTSPO AND IssueType IN ("Support") AND Labels IN (auto-withdrawn) AND status changed to (Withdrawn) ON -'${PREVIOUS_DAYS}'d')
-AUTO_WITHDRAWN_ISSUES_RESULT=$(curl   -u $jiraUsername:$jiraPassword -X POST -H "Content-Type: application/json" "https://tools.hmcts.net/jira/rest/api/2/search" \
-  --data "${AUTO_WITHDRAWN_ISSUES_QUERY}")
+AUTO_WITHDRAWN_ISSUES_RESULT=$(jira_search "${AUTO_WITHDRAWN_ISSUES_QUERY}")
 
 AUTO_WITHDRAWN_ISSUES_COUNT=$(jq -r .total <<< "${AUTO_WITHDRAWN_ISSUES_RESULT}")
 
@@ -160,7 +172,7 @@ patchingIssues=$(printf "%s *%s* <https://bit.ly/4bU9gzj|Open Patching issues>\n
 oatIssues=$(printf "%s *%s* <https://bit.ly/4bUIEyf|Open OAT issues>\n" "$OPEN_OAT_ISSUES_STATUS" "$OPEN_OAT_ISSUES_COUNT")
 
 if [ "$AUTO_WITHDRAWN_ISSUES_COUNT" != "0" ]; then
-  withdrawnIssues=$(printf ":hourglass_flowing_sand: *%s issues automatically withdrawn yesterday:* <https://tools.hmcts.net/jira/issues/?jql=project%%20%%3D%%20DTSPO%%20AND%%20IssueType%%20in%%20(%%22Support%%22)%%20AND%%20Labels%%20in%%20(auto-withdrawn)%%20AND%%20status%%20changed%%20to%%20(Withdrawn)%%20ON%%20-${PREVIOUS_DAYS}d|_*View withdrawn issues*_>" "${AUTO_WITHDRAWN_ISSUES_COUNT}")
+  withdrawnIssues=$(printf ":hourglass_flowing_sand: *%s issues automatically withdrawn yesterday:* <https://hmcts.atlassian.net/issues/?jql=project%%20%%3D%%20DTSPO%%20AND%%20IssueType%%20in%%20(%%22Support%%22)%%20AND%%20Labels%%20in%%20(auto-withdrawn)%%20AND%%20status%%20changed%%20to%%20(Withdrawn)%%20ON%%20-${PREVIOUS_DAYS}d|_*View withdrawn issues*_>" "${AUTO_WITHDRAWN_ISSUES_COUNT}")
 else
   withdrawnIssues=":hourglass_flowing_sand: *No issues were automatically withdrawn yesterday*"
 fi
