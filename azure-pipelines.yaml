@@ -323,7 +323,7 @@ jobs:
         inputs:
           azureSubscription:  "DTS-CFTPTL-INTSVC"
           keyVaultName:   "cftptl-intsvc"
-          secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-password,jira-username,dtspo-daily-checks-github-fine-grained-token,dtspo-daily-checks-github-classic-token,jenkins-api-user,jenkins-api-token,launchdarkly-access-token,b2c-prod-serviceprincipal-id,b2c-prod-serviceprincipal-password,b2c-prod-tenant-id,sendgrid-hmcts-bau-nonprod-apikey'
+          secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-api-token,jira-username,dtspo-daily-checks-github-fine-grained-token,dtspo-daily-checks-github-classic-token,jenkins-api-user,jenkins-api-token,launchdarkly-access-token,b2c-prod-serviceprincipal-id,b2c-prod-serviceprincipal-password,b2c-prod-tenant-id,sendgrid-hmcts-bau-nonprod-apikey'
       - task: Bash@3
         displayName: 'Set Channel Name'
         inputs:
@@ -383,7 +383,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: scripts/jira-status.sh
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --jiraUsername $(jira-username) --jiraPassword $(jira-password)
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --jiraUsername $(jira-username) --jiraToken $(jira-api-token)
       - task: AzureCLI@2
         displayName: 'Get Provisioning State'
         continueOnError: true
