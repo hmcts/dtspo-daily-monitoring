@@ -71,12 +71,16 @@ get_issue_query_json(){
   jq -n --arg jql "$jql" --argjson startAt "$startAt" --argjson maxResults "$maxResults" --argjson fields "$fields" --argjson expand "$expand" -f scripts/jira-issues-query-template.jq -c
 }
 
+# The bot's scoped API token only works via the api.atlassian.com gateway, not hmcts.atlassian.net directly.
+jiraCloudId=$(curl -sSf https://hmcts.atlassian.net/_edge/tenant_info | jq -r .cloudId)
+jiraApiUrl="https://api.atlassian.com/ex/jira/${jiraCloudId}/rest/api/2"
+
 # Jira Cloud search/jql is token-paginated and returns no total, so collect every page and synthesise one.
 jira_search(){
   local body result page issues='[]' pageToken=''
   while :; do
     body=$(jq -c --arg token "${pageToken}" 'del(.startAt, .expand) | if $token != "" then .nextPageToken = $token else . end' <<< "$1")
-    page=$(curl -sS -u "${jiraUsername}:${jiraToken}" -X POST -H "Content-Type: application/json" "https://hmcts.atlassian.net/rest/api/2/search/jql" --data "${body}")
+    page=$(curl -sS -u "${jiraUsername}:${jiraToken}" -X POST -H "Content-Type: application/json" "${jiraApiUrl}/search/jql" --data "${body}")
     if ! jq -e 'has("issues")' <<< "${page}" > /dev/null; then
       echo "Jira search failed: ${page}" >&2
       exit 1
