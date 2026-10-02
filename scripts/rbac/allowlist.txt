@@ -1,0 +1,40 @@
+# Privileged RBAC self-service allowlist (a.k.a. whitelist)
+# -----------------------------------------------------------------------------
+# Principals listed here are EXPECTED to grant themselves privileged roles, so
+# their ADDED / self-ELEVATED assignments are reported as informational only and
+# do NOT raise a :red_circle: / :yellow_circle: Slack alert on their own.
+# (They still appear as context in a thread when other, non-allowlisted changes
+# trigger a notification. Role REMOVALS are always reported, never suppressed.)
+#
+# Format:
+#   - One principal per line.
+#   - Lines beginning with '#' and blank lines are ignored.
+#   - Match is on EITHER of:
+#       * PrincipalId  -> the Entra object (principal) ID GUID  [recommended]
+#       * Identifier   -> the user's UPN (e.g. jane.doe@example.com)
+#   - Matching is case-insensitive.
+#
+# SECURITY NOTE:
+#   Display names are intentionally NOT matched: they are mutable and not unique,
+#   so allowing them would let a renamed SP/group silently suppress alerts.
+#   For service principals and managed identities (whose Identifier is "N/A"),
+#   you MUST use the object ID (PrincipalId).
+#
+# To find an object ID:
+#   User:              az ad user show --id jane.doe@example.com --query id -o tsv
+#   Service principal: az ad sp show   --id <appId-or-objectId> --query id -o tsv
+#   Group:             az ad group show --group "<name>"        --query id -o tsv
+#
+# Examples (remove the leading '#' to activate):
+# jane.doe@example.com
+# 3dbec600-7d83-465e-6942-0978f95d0696  # break-glass admin (object ID)
+roger.yu@hmcts.net
+felix.eyetanga@HMCTS.NET
+Thomas.ThorntonGA@HMCTS.NET
+
+#known but we don't know the use for them
+b2cadmin@hmcts.net
+dtsazure@HMCTS.NET
+# ??
+platform-ops-db-manager@HMCTS.NET
+rpe-azure-devops@hmcts.net

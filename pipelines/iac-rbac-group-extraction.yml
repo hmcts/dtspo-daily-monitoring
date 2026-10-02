@@ -1,0 +1,252 @@
+# todo TO BE REVIEWED BY A HUMAN
+# IaC RBAC group extraction (daily)
+#
+# Runs scripts/rbac/extract-iac-groups.sh against fresh checkouts of the three
+# governance "sources of truth" (azure-access, azure-access-packages,
+# azure-enterprise) and publishes the collated, de-duplicated set of
+# IaC-managed Entra group display names as a pipeline artifact.
+#
+# Why this exists: the privileged RBAC change monitor treats "not declared in
+# IaC" as a red flag. That baseline is only as good as the IaC group list it is
+# fed. Running the extraction on a schedule and publishing it as an artifact
+# means:
+#   * the list is always current, so a group newly created via Terraform is
+#     picked up the next day instead of drifting out of the baseline, and
+#   * each run diffs against the previous run's artifact and reports ADDED /
+#     REMOVED group names to Slack, so a new TF-provisioned group is visible and
+#     auditable rather than appearing silently.
+#
+# The artifact (iac-managed-groups.txt) is consumed by the change monitor via
+# its --iacGroupsFile argument.
+
+---
+name: IaC RBAC group extraction (daily)
+trigger: none
+pr: none
+
+schedules:
+  - cron: '0 6 * * *'
+    displayName: Runs 6 AM daily (ahead of the RBAC change-detection run)
+    branches:
+      include:
+        - master
+    always: true
+
+resources:
+  repositories:
+    # The three governance sources of truth, checked out read-only. extract-iac-groups.sh
+    # unions the IaC-declared group display names across all three.
+    - repository: azureAccess
+      type: github
+      name: hmcts/azure-access
+      ref: refs/heads/master
+      endpoint: 'hmcts'
+    - repository: azureAccessPackages
+      type: github
+      name: hmcts/azure-access-packages
+      ref: refs/heads/master
+      endpoint: 'hmcts'
+    - repository: azureEnterprise
+      type: github
+      name: hmcts/azure-enterprise
+      ref: refs/heads/main
+      endpoint: 'hmcts'
+
+variables:
+  - name: artifactName
+    value: iac-managed-groups
+  - name: outputFileName
+    value: iac-managed-groups.txt
+  # Key Vault holding the Slack bot token (same KV the other monitors use).
+  - name: keyVaultServiceConnection
+    value: "DTS-CFTPTL-INTSVC"
+  - name: keyVaultName
+    value: "cftptl-intsvc"
+
+jobs:
+  - job: ExtractIacGroups
+    displayName: 'Extract IaC-managed RBAC group names'
+    timeoutInMinutes: 30
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      # Multi-repo checkout. `self` is pinned to `s` so $(Build.SourcesDirectory)
+      # stays …/s and the extract script (run with workingDirectory s) resolves.
+      # The three source repos use their DEFAULT multi-repo locations (subfolders
+      # of `s` named after each repo: …/s/azure-access etc.) and are read from
+      # there via the *_DIR env overrides. They are deliberately NOT pinned to
+      # custom paths: on the persistent self-hosted pool the agent's source
+      # tracking always treats a repo's default location as where it "currently"
+      # is, so a custom `path:` makes every build try (and fail) to move-and-reuse
+      # it, logging '##[warning]Unable move and reuse existing repository'. Using
+      # the default locations means no move is attempted and the warning never
+      # fires. (clean: all does NOT fix this -- the tracking metadata lives outside
+      # $(Agent.BuildDirectory).)
+      - checkout: self
+        path: s
+      - checkout: azureAccess
+        clean: true
+      - checkout: azureAccessPackages
+        clean: true
+      - checkout: azureEnterprise
+        clean: true
+
+      - task: AzureKeyVault@2
+        displayName: 'Get Slack bot token from Key Vault'
+        inputs:
+          azureSubscription: $(keyVaultServiceConnection)
+          keyVaultName: $(keyVaultName)
+          secretsFilter: 'dtspo-daily-checks-slack-bot-token'
+
+      - task: Bash@3
+        displayName: 'Run extraction and stage artifact'
+        env:
+          AZURE_ACCESS_DIR: $(Build.SourcesDirectory)/azure-access
+          AZURE_ACCESS_PACKAGES_DIR: $(Build.SourcesDirectory)/azure-access-packages
+          AZURE_ENTERPRISE_DIR: $(Build.SourcesDirectory)/azure-enterprise
+        inputs:
+          targetType: inline
+          workingDirectory: $(Build.SourcesDirectory)
+          script: |
+            set -euo pipefail
+            OUT="$(Build.ArtifactStagingDirectory)/$(outputFileName)"
+            scripts/rbac/extract-iac-groups.sh > "$OUT"
+            COUNT=$(grep -cvE '^[[:space:]]*$' "$OUT" || true)
+            echo "Collated ${COUNT} IaC-managed group name(s) -> $OUT"
+            if [[ "$COUNT" -eq 0 ]]; then
+              echo "ERROR: extraction produced an empty list; refusing to publish a baseline-poisoning empty artifact." >&2
+              exit 1
+            fi
+
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish IaC group list artifact'
+        inputs:
+          targetPath: $(Build.ArtifactStagingDirectory)/$(outputFileName)
+          artifact: $(artifactName)
+          publishLocation: pipeline
+
+      # Find the previous successful run so we can diff its published group list
+      # against today's and report what changed (e.g. a new group created via TF).
+      - task: Bash@3
+        name: previous
+        displayName: 'Find previous successful run'
+        env:
+          SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+        inputs:
+          targetType: inline
+          script: |
+            set -euo pipefail
+            URL="$(System.CollectionUri)$(System.TeamProjectId)/_apis/build/builds?definitions=$(System.DefinitionId)&resultFilter=succeeded&statusFilter=completed&queryOrder=finishTimeDescending&\$top=1&api-version=7.1"
+            RESP=$(curl -sS -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" "$URL")
+            BUILD_ID=$(echo "$RESP" | jq -r '.value[0].id // empty')
+            if [[ -z "$BUILD_ID" ]]; then
+              echo "No previous successful run found; this is the first baseline (no diff)."
+              echo "##vso[task.setvariable variable=found;isOutput=true]false"
+            else
+              echo "Previous successful build id: $BUILD_ID"
+              echo "##vso[task.setvariable variable=found;isOutput=true]true"
+              echo "##vso[task.setvariable variable=buildId;isOutput=true]$BUILD_ID"
+            fi
+
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download previous IaC group list'
+        condition: and(succeeded(), eq(variables['previous.found'], 'true'))
+        inputs:
+          buildType: specific
+          project: $(System.TeamProjectId)
+          definition: $(System.DefinitionId)
+          buildVersionToDownload: specific
+          pipelineId: $(previous.buildId)
+          artifactName: $(artifactName)
+          targetPath: $(Pipeline.Workspace)/previous
+
+      # Diff previous vs current group lists. ADDED names (e.g. a group newly
+      # created via Terraform) are amber-flagged; REMOVED names are amber too so
+      # an accidental IaC deletion that would re-expose a group to red-flagging is
+      # visible. No change => no Slack notification (sender only posts on a marker).
+      - task: Bash@3
+        displayName: 'Diff IaC group list vs previous run'
+        condition: and(succeeded(), eq(variables['previous.found'], 'true'))
+        inputs:
+          targetType: inline
+          workingDirectory: $(Build.SourcesDirectory)
+          script: |
+            set -euo pipefail
+            CUR="$(Build.ArtifactStagingDirectory)/$(outputFileName)"
+            PREV="$(Pipeline.Workspace)/previous/$(outputFileName)"
+            REPORT="$(Build.SourcesDirectory)/iac-groups-change-status.txt"
+            : > "$REPORT"
+            if [[ ! -f "$PREV" ]]; then
+              echo "Previous artifact missing on disk; skipping diff." >&2
+              exit 0
+            fi
+            # comm needs sorted input; the extract script already sorts -u, but
+            # re-sort defensively in case the previous artifact predates that.
+            ADDED=$(comm -13 <(sort -u "$PREV") <(sort -u "$CUR") || true)
+            REMOVED=$(comm -23 <(sort -u "$PREV") <(sort -u "$CUR") || true)
+            {
+              if [[ -n "$ADDED" ]]; then
+                while IFS= read -r g; do
+                  [[ -n "$g" ]] && echo ":yellow_circle: *IAC GROUP ADDED* \"$g\" is now declared in IaC (new TF/access-package group)."
+                done <<< "$ADDED"
+              fi
+              if [[ -n "$REMOVED" ]]; then
+                while IFS= read -r g; do
+                  [[ -n "$g" ]] && echo ":yellow_circle: *IAC GROUP REMOVED* \"$g\" is no longer declared in IaC; assignments via it will now be red-flagged as standing privilege."
+                done <<< "$REMOVED"
+              fi
+            } >> "$REPORT"
+            if [[ -s "$REPORT" ]]; then
+              echo "IaC group list changed since the previous run:"
+              cat "$REPORT"
+            else
+              echo "No change in the IaC-managed group list since the previous run."
+            fi
+
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish IaC group change report'
+        condition: and(always(), eq(variables['previous.found'], 'true'))
+        inputs:
+          targetPath: $(Build.SourcesDirectory)/iac-groups-change-status.txt
+          artifact: iac-groups-change-report
+          publishLocation: pipeline
+
+      - task: Bash@3
+        displayName: 'Notify Slack of IaC group changes'
+        condition: and(succeeded(), eq(variables['previous.found'], 'true'))
+        inputs:
+          targetType: filePath
+          workingDirectory: $(Build.SourcesDirectory)
+          filePath: scripts/send-slack-header-thread-each-loop.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName D08UQ8A63MF
+            --inputFileName $(Build.SourcesDirectory)/iac-groups-change-status.txt
+            --messageHeader ":azure: IaC RBAC Group Extraction (daily)"
+
+      # Heartbeat: break the silence on failure. Every notify step is gated on
+      # succeeded()/previous.found and the sender only posts on a marker, so a
+      # broken extraction would otherwise send NOTHING and silently poison the
+      # downstream RBAC baseline. Post a loud red alert when anything failed.
+      # NOTE: if the Key Vault step failed the Slack token is unavailable, so this
+      # cannot post; rely on pipeline run-failure notifications for that case.
+      - task: Bash@3
+        displayName: 'Alert on extraction failure (heartbeat)'
+        condition: failed()
+        inputs:
+          targetType: inline
+          workingDirectory: $(Build.SourcesDirectory)
+          script: |
+            set -eo pipefail
+            STATUS_FILE="$(Build.SourcesDirectory)/iac-groups-control-failure.txt"
+            {
+              echo ":red_circle: *IaC RBAC group extraction FAILED to complete.*"
+              echo "Pipeline: $(System.DefinitionName) — run $(Build.BuildNumber)"
+              echo "The IaC-managed group list may be stale or missing, which would cause the RBAC change monitor to red-flag legitimate IaC-managed assignments (or miss new TF groups)."
+              echo "Investigate: $(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"
+            } > "$STATUS_FILE"
+            scripts/send-slack-header-thread-each-loop.sh \
+              --slackBotToken $(dtspo-daily-checks-slack-bot-token) \
+              --slackChannelName D0AG03QQK9R \
+              --inputFileName "$STATUS_FILE" \
+              --messageHeader ":azure: IaC RBAC Group Extraction (daily)"
