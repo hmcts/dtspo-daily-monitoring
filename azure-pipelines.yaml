@@ -335,12 +335,13 @@ jobs:
           echo "main_channel set to: $(main_channel)"
         displayName: 'Show main channel name'
       # The following checks use the common-functions.sh slack notifications and threads functions and will only send if negative status is found
-      - task: Bash@3
+      - task: AzureCLI@2
         displayName: 'Orphaned Resource Status Check'
         continueOnError: true
         inputs:
-          targetType: filePath
-          filePath: scripts/orphan-resource-check.sh
+          scriptType: bash
+          scriptPath: scripts/orphan-resource-check.sh
+          azureSubscription: ${{ variables.service_connection }}
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: Bash@3
         displayName: 'Checking Jenkins status'
