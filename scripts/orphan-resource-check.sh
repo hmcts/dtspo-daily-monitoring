@@ -95,9 +95,14 @@ if [[ "$existingCount" -gt 0 ]]; then
     slackNotification "$slackBotToken" "$slackChannelName" \
         ":red_circle: Historical cleanup failures — still exists" \
         "$summary These are historical failures, not new deletion attempts or proof that the resources are orphaned."
-    while IFS= read -r resourceId; do
-        slackThreadResponse "$slackBotToken" "$slackChannelName" "$resourceId" "$TS"
-    done < <(jq -r '.resources[] | select(.status == "exists") | .id' "$workDir/report.json")
+    resourceList=$(jq -r '
+        [.resources[]
+            | select(.status == "exists")
+            | ":red_circle: " + .id]
+        | join("\n")
+    ' "$workDir/report.json")
+
+    slackThreadResponse "$slackBotToken" "$slackChannelName" "$resourceList" "$TS"
 fi
 
 if [[ "$unverifiedCount" -gt 0 ]]; then
@@ -105,7 +110,8 @@ if [[ "$unverifiedCount" -gt 0 ]]; then
         ":red_circle: Historical cleanup verification errors" \
         "$summary Unverified resources must not be treated as deleted."
     while IFS= read -r record; do
-        message=$(jq -r '.id + "\n" + .detail' <<< "$record")
+        # Slack shows only the first error line; the full Azure text remains in the pipeline log
+        message=$(jq -r '.id + "\n" + (([.detail | split("\n")[] | select(startswith("ERROR:"))] + [.detail | split("\n")[0]])[0] | .[0:300])' <<< "$record")
         slackThreadResponse "$slackBotToken" "$slackChannelName" "$message" "$TS"
     done < <(jq -c '.resources[] | select(.status == "unverified")' "$workDir/report.json")
 fi

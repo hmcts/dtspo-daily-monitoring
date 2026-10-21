@@ -36,11 +36,39 @@ jq -e '
 : > "$workDir/results.jsonl"
 unverifiedCount=0
 
+lookup_resource() {
+    local apiVersion=${1:-}
+    local args=(resource show --ids "$resourceId" --output json --only-show-errors)
+    if [[ -n "$apiVersion" ]]; then
+        args+=(--api-version "$apiVersion")
+    fi
+    az "${args[@]}" > "$workDir/resource.json" 2> "$workDir/error.txt"
+}
+
+# Azure CLI defaults to the newest API version, which may not be registered for the resource's
+# region. Pick the newest stable version Azure reports as supported.
+supported_api_version() {
+    sed -n "s/.*The supported api-versions are '\([^']*\)'.*/\1/p" "$workDir/error.txt" \
+        | head -n 1 | tr ',' '\n' | tr -d ' ' | grep -Ev -- '-preview$' | sort | tail -n 1 || true
+}
+
 while IFS= read -r resourceId; do
     echo "Checking: $resourceId" >&2
     detail=
-    if az resource show --ids "$resourceId" --output json --only-show-errors \
-        > "$workDir/resource.json" 2> "$workDir/error.txt"; then
+    lookupSucceeded=0
+    if lookup_resource; then
+        lookupSucceeded=1
+    elif grep -Eq '^ERROR: \(NoRegisteredProviderFound\)' "$workDir/error.txt"; then
+        fallbackVersion=$(supported_api_version)
+        if [[ -n "$fallbackVersion" ]]; then
+            echo "Retrying with API version $fallbackVersion" >&2
+            if lookup_resource "$fallbackVersion"; then
+                lookupSucceeded=1
+            fi
+        fi
+    fi
+
+    if [[ "$lookupSucceeded" -eq 1 ]]; then
         if jq -e --arg id "$resourceId" '
             type == "object" and (.id | type) == "string" and
             ((.id | ascii_downcase) == ($id | ascii_downcase))

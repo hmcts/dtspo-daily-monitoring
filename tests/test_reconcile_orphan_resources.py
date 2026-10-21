@@ -18,13 +18,37 @@ class ReconcileOrphanResourcesTests(unittest.TestCase):
             az.write_text(
                 """#!/usr/bin/env bash
 set -eu
-[[ $# -eq 7 && "$1" == resource && "$2" == show && "$3" == --ids &&
+[[ $# -eq 7 || $# -eq 9 ]] || exit 99
+[[ "$1" == resource && "$2" == show && "$3" == --ids &&
    "$5" == --output && "$6" == json && "$7" == --only-show-errors ]] || exit 99
-printf '%s\\n' "$4" >> "$AZ_CALLS"
+version=
+if [[ $# -eq 9 ]]; then
+    [[ "$8" == --api-version ]] || exit 99
+    version=$9
+fi
+if [[ -n "$version" ]]; then printf '%s@%s\\n' "$4" "$version" >> "$AZ_CALLS"; else printf '%s\\n' "$4" >> "$AZ_CALLS"; fi
+no_provider() {
+    echo "ERROR: (NoRegisteredProviderFound) No registered provider. The supported api-versions are '$1'. The supported locations are 'westus'." >&2
+    exit 1
+}
 case "${4##*/}" in
     present) printf '{"id":"%s"}\\n' "$4" ;;
     absent) echo 'ERROR: (ResourceNotFound) Resource not found.' >&2; exit 3 ;;
     missing-rg) echo 'ERROR: (ResourceGroupNotFound) Resource group not found.' >&2; exit 3 ;;
+    regional)
+        [[ -n "$version" ]] || no_provider '2014-12-01-preview, 2025-05-01, 2026-03-01, 2026-05-01-preview'
+        [[ "$version" == 2026-03-01 ]] || exit 99
+        printf '{"id":"%s"}\\n' "$4" ;;
+    regional-absent)
+        [[ -n "$version" ]] || no_provider '2025-05-01, 2026-03-01'
+        echo 'ERROR: (ResourceNotFound) Resource not found.' >&2; exit 3 ;;
+    regional-denied)
+        [[ -n "$version" ]] || no_provider '2025-05-01, 2026-03-01'
+        echo 'ERROR: (AuthorizationFailed) Access denied.' >&2; exit 1 ;;
+    regional-previews) no_provider '2025-05-01-preview, 2026-03-01-preview' ;;
+    regional-still-broken)
+        [[ -n "$version" ]] || no_provider '2025-05-01'
+        no_provider '2025-05-01' ;;
     forbidden) echo 'ERROR: (AuthorizationFailed) Access denied.' >&2; exit 1 ;;
     subscription) echo 'ERROR: (SubscriptionNotFound) Subscription unavailable.' >&2; exit 1 ;;
     login) echo "ERROR: Please run az login." >&2; exit 1 ;;
@@ -82,6 +106,39 @@ esac
         self.assertEqual(len(calls), len(names))
         self.assertTrue(all(item["detail"] for item in report["resources"]))
         self.assertIn("could not be verified", result.stderr)
+
+    def test_regional_api_version_error_retries_with_newest_stable_version(self):
+        result, calls = self.run_check(["regional"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["summary"], {"exists": 1, "notFound": 0, "unverified": 0})
+        self.assertEqual(
+            [call.rsplit("/", 1)[1] for call in calls], ["regional", "regional@2026-03-01"]
+        )
+
+    def test_retry_preserves_not_found_and_unverified_outcomes(self):
+        result, calls = self.run_check(
+            ["regional-absent", "regional-denied", "regional-previews", "regional-still-broken"]
+        )
+        self.assertEqual(result.returncode, 1)
+        statuses = {
+            item["id"].rsplit("/", 1)[1]: item["status"] for item in json.loads(result.stdout)["resources"]
+        }
+        self.assertEqual(
+            statuses,
+            {
+                "regional-absent": "not_found",
+                "regional-denied": "unverified",
+                "regional-previews": "unverified",
+                "regional-still-broken": "unverified",
+            },
+        )
+        short_calls = [call.rsplit("/", 1)[1] for call in calls]
+        self.assertIn("regional-absent@2026-03-01", short_calls)
+        self.assertIn("regional-denied@2026-03-01", short_calls)
+        self.assertIn("regional-still-broken@2025-05-01", short_calls)
+        self.assertEqual(short_calls.count("regional-previews"), 1)
+        self.assertEqual(len(short_calls), 7)
 
     def test_empty_list(self):
         result, calls = self.run_check([])

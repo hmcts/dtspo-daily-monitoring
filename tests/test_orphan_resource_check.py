@@ -56,12 +56,25 @@ else:
             az.write_text(
                 """#!/usr/bin/env bash
 set -eu
-[[ $# -eq 7 && "$1" == resource && "$2" == show && "$3" == --ids &&
+[[ $# -eq 7 || $# -eq 9 ]] || exit 99
+[[ "$1" == resource && "$2" == show && "$3" == --ids &&
    "$5" == --output && "$6" == json && "$7" == --only-show-errors ]] || exit 99
+version=
+[[ $# -eq 7 ]] || { [[ "$8" == --api-version ]] || exit 99; version=$9; }
 printf '%s\\n' "$4" >> "$AZ_CALLS"
 case "${4##*/}" in
     present) printf '{"id":"%s"}\\n' "$4" ;;
     absent) echo 'ERROR: (ResourceNotFound) Resource not found.' >&2; exit 3 ;;
+    regional)
+        if [[ -z "$version" ]]; then
+            echo "ERROR: (NoRegisteredProviderFound) No provider. The supported api-versions are '2025-05-01, 2026-03-01'." >&2
+            exit 1
+        fi
+        printf '{"id":"%s"}\\n' "$4" ;;
+    noisy)
+        echo 'SyntaxWarning: noisy library warning' >&2
+        printf 'ERROR: (Failure) %s\\nMessage: second line\\n' "$(printf 'x%.0s' {1..500})" >&2
+        exit 1 ;;
     *) printf 'ERROR: (AuthorizationFailed) Access "denied".\\nCheck permissions.\\n' >&2; exit 1 ;;
 esac
 """
@@ -97,14 +110,14 @@ esac
             return result, posts, calls
 
     def test_only_existing_resources_appear_in_historical_failure_thread(self):
-        result, posts, calls = self.run_check(["present", "absent"])
+        result, posts, calls = self.run_check(["present", "absent", "present"])
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(calls), 3)
         self.assertEqual(len(posts), 2)
         self.assertIn("Historical cleanup failures — still exists", posts[0]["blocks"][0]["text"]["text"])
-        self.assertIn("1 still exist; 1 confirmed not found; 0 could not be verified", posts[0]["blocks"][1]["text"]["text"])
+        self.assertIn("2 still exist; 1 confirmed not found; 0 could not be verified", posts[0]["blocks"][1]["text"]["text"])
         self.assertIn("(UTC)", posts[0]["blocks"][1]["text"]["text"])
-        self.assertEqual(posts[1]["text"], PREFIX + "present")
+        self.assertEqual(posts[1]["text"], "\n".join([":red_circle: " + PREFIX + "present"] * 2))
         self.assertEqual(posts[1]["thread_ts"], "123.456")
         self.assertNotIn(PREFIX + "absent", json.dumps(posts))
 
@@ -115,10 +128,28 @@ esac
         self.assertEqual(len(posts), 4)
         self.assertIn("Historical cleanup verification errors", posts[2]["blocks"][0]["text"]["text"])
         self.assertIn("must not be treated as deleted", posts[2]["blocks"][1]["text"]["text"])
-        self.assertEqual(posts[1]["text"], PREFIX + "present")
+        self.assertEqual(posts[1]["text"], ":red_circle: " + PREFIX + "present")
         self.assertIn(PREFIX + "forbidden", posts[3]["text"])
-        self.assertIn('Access "denied".\nCheck permissions.', posts[3]["text"])
+        self.assertIn('ERROR: (AuthorizationFailed) Access "denied".', posts[3]["text"])
+        self.assertNotIn("Check permissions", posts[3]["text"])
         self.assertNotIn(PREFIX + "absent", json.dumps(posts))
+
+    def test_region_specific_api_version_error_is_retried_not_reported(self):
+        result, posts, calls = self.run_check(["regional"])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len(posts), 2)
+        self.assertIn("1 still exist; 0 confirmed not found; 0 could not be verified", posts[0]["blocks"][1]["text"]["text"])
+        self.assertEqual(posts[1]["text"], ":red_circle: " + PREFIX + "regional")
+        self.assertEqual(len(calls), 2)
+
+    def test_slack_error_detail_is_first_error_line_and_bounded(self):
+        result, posts, _ = self.run_check(["noisy"])
+        self.assertEqual(result.returncode, 1)
+        reply = posts[1]["text"]
+        self.assertIn("ERROR: (Failure) xxx", reply)
+        self.assertNotIn("SyntaxWarning", reply)
+        self.assertNotIn("second line", reply)
+        self.assertLessEqual(len(reply.split("\n", 1)[1]), 300)
 
     def test_no_alert_when_all_missing_or_empty(self):
         for names in (["absent"], []):
