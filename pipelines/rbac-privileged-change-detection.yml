@@ -1,0 +1,345 @@
+# Privileged RBAC change detection
+# Audits privileged Azure RBAC assignments, publishes a date-stamped CSV snapshot
+# as a pipeline artifact, then diffs against the snapshot from ~2 days ago and
+# notifies Slack only when something changed (new permanent / added Owner /
+# User Access Administrator => red, other add/remove/elevation => amber).
+#
+# NOTE: the service connection identity must have RBAC *read* (e.g. Reader)
+# across every in-scope subscription / management group to be audited.
+# * this only serves to monitor permission creep, it is not thorough enough to provide
+#   defense in the case of malicious elevation, as there are a few loopholes. Elevation 
+#   notification email should continue to be monitored as usual
+
+---
+name: Privileged RBAC change detection (2-day)
+trigger: none
+pr: none
+
+# Manual trigger only while under test. Re-enable the schedule below to run automatically.
+# schedules:
+#   - cron: '0 7 * * *'
+#     displayName: Runs 7 AM daily
+#     branches:
+#       include:
+#         - master
+#     always: true
+
+resources:
+  repositories:
+    # IaC source of truth for PIM-eligible Entra ID groups. Checked out read-only
+    # so the change monitor can flag any alerting group that ISN'T declared as code.
+    - repository: cnpAzureEntraPim
+      type: github
+      name: hmcts/cnp-azure-entra-pim
+      ref: refs/heads/master
+      endpoint: 'hmcts'
+
+variables:
+  - name: slackChannelName
+    value:  "dtspo-daily-checks"
+  - name: windowDays
+    value: 2
+  - name: azureServiceConnection
+  # this doesn't have the read permission for PIM access, which we're not trying to monitor
+  #should get read for access packages and pim todo
+    value: "dts-management-prod-intsvc"
+  # Key Vault holding the Slack bot token (same KV the main daily pipeline uses).
+  - name: keyVaultServiceConnection
+    value: "DTS-CFTPTL-INTSVC"
+  - name: keyVaultName
+    value: "cftptl-intsvc"
+
+jobs:
+  - job: RBAC_PrivilegedChangeAudit
+    displayName: 'Privileged RBAC change detection'
+    timeoutInMinutes: 60
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      # Multi-repo checkout. `self` is pinned to `s` so $(Build.SourcesDirectory)
+      # stays …/s and every self-relative path resolves. The IaC repo uses its
+      # DEFAULT multi-repo location (a subfolder of `s` named after the repo:
+      # …/s/cnp-azure-entra-pim) and is read from there. It is deliberately NOT
+      # pinned to a custom path: on the persistent self-hosted pool the agent's
+      # source tracking always treats the repo's default location as where it
+      # "currently" is, so a custom `path:` makes every build try (and fail) to
+      # move-and-reuse it, logging '##[warning]Unable move and reuse existing
+      # repository'. Checking it out at its default location means no move is ever
+      # attempted and the warning never fires. (clean: all does NOT fix this -- the
+      # tracking metadata lives outside $(Agent.BuildDirectory).)
+      - checkout: self
+        path: s
+      - checkout: cnpAzureEntraPim
+        clean: true
+
+      - task: AzureKeyVault@2
+        displayName: 'Get Slack bot token from Key Vault'
+        inputs:
+          azureSubscription: $(keyVaultServiceConnection)
+          keyVaultName: $(keyVaultName)
+          secretsFilter: 'dtspo-daily-checks-slack-bot-token'
+
+      # TEMP: smoke-test the Slack target. Writes a test message (with a marker so
+      # the sender actually posts), echoes it to the build console for inspection,
+      # then sends it. Remove once the channel/token are confirmed working.
+      # this works   
+      # - task: Bash@3
+      #   displayName: 'TEMP: Slack send smoke test'
+      #   inputs:
+      #     targetType: inline
+      #     workingDirectory: $(Build.SourcesDirectory)
+      #     script: |
+      #         set -eo pipefail
+      #         TEST_FILE="$(Build.SourcesDirectory)/testfile.txt"
+      #         echo ":yellow_circle: *RBAC pipeline Slack smoke test* — run $(Build.BuildNumber)" > "$TEST_FILE"
+      #         echo "----- testfile.txt contents -----"
+      #         cat "$TEST_FILE"
+      #         echo "---------------------------------"
+      #         scripts/send-slack-header-thread-each-loop.sh \
+      #           --slackBotToken $(dtspo-daily-checks-slack-bot-token) \
+      #           --slackChannelName C0BD4U9R01F \
+      #           --inputFileName "$TEST_FILE" \
+      #           --messageHeader "Roger RBAC Slack Smoke Test"
+
+                #todo changeback
+                #todo to do don't leave this in
+      - task: AzureCLI@2
+        displayName: 'Audit privileged RBAC assignments'
+        inputs:
+          azureSubscription: $(azureServiceConnection)
+          scriptType: bash
+          scriptPath: scripts/rbac/audit-privileged-rbac-p.sh
+          arguments: >
+            --subscription DTS-ARCHIVING-PROD
+            --outputDir $(Build.ArtifactStagingDirectory)
+
+
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish RBAC snapshot artifact'
+        inputs:
+          targetPath: $(Build.ArtifactStagingDirectory)
+          artifact: rbac-snapshot
+          publishLocation: pipeline
+
+        # choses historic (2 days old) csv artefact as baseline to compare current changes against
+      - task: Bash@3
+        name: baseline
+        displayName: 'Find baseline snapshot (~$(windowDays) days ago)'
+        env:
+          SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+        inputs:
+          targetType: inline
+          script: |
+            set -euo pipefail
+            # Baseline = the most recent SUCCESSFUL+COMPLETED run that ACTUALLY
+            # published an rbac-snapshot artifact. Verifying artifact presence (not
+            # just build success) is essential: a prior run that succeeded WITHOUT
+            # producing a snapshot -- e.g. an early Slack-test build, or any run
+            # whose audit published nothing -- would otherwise be selected and then
+            # fail the download below, cascading the whole job to 'failed'. A failed
+            # job is excluded by resultFilter=succeeded, so THIS run's snapshot would
+            # never become an eligible baseline: an unbreakable first-run loop. By
+            # scanning a window of recent builds and skipping any without the
+            # artifact, the bootstrap run cleanly finds "no baseline", skips
+            # detection, SUCCEEDS, and seeds the baseline for the next run.
+            BASE_URL="$(System.CollectionUri)$(System.TeamProjectId)/_apis/build"
+            URL="${BASE_URL}/builds?definitions=$(System.DefinitionId)&resultFilter=succeeded&statusFilter=completed&queryOrder=finishTimeDescending&\$top=20&api-version=7.1"
+            RESP=$(curl -sS -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" "$URL" || echo '{}')
+            BUILD_IDS=$(echo "$RESP" | jq -r '.value[]?.id // empty')
+            FOUND_ID=""
+            HAS_LEDGER="null"
+            for bid in $BUILD_IDS; do
+              ART_URL="${BASE_URL}/builds/${bid}/artifacts?api-version=7.1"
+              NAMES=$(curl -sS -H "Authorization: Bearer $SYSTEM_ACCESSTOKEN" "$ART_URL" \
+                    | jq -c '[.value[]?.name]' 2>/dev/null || echo '[]')
+              HAS_SNAP=$(echo "$NAMES" | jq -r 'index("rbac-snapshot")')
+              if [[ "$HAS_SNAP" != "null" && -n "$HAS_SNAP" ]]; then
+                FOUND_ID="$bid"
+                # The ledger is published alongside the snapshot, but a pre-ledger
+                # baseline (or any build that didn't publish one) won't have it.
+                # Record its presence so the download is only attempted when the
+                HAS_LEDGER=$(echo "$NAMES" | jq -r 'index("rbac-standing-ledger")')
+                break
+              fi
+              echo "  build $bid succeeded but has no rbac-snapshot artifact; skipping."
+            done
+            if [[ -z "$FOUND_ID" ]]; then
+              echo "No prior successful build with an rbac-snapshot artifact; skipping change detection."
+              echo "This run's snapshot will seed the baseline for the next run (no notification sent)."
+              echo "##vso[task.setvariable variable=found;isOutput=true]false"
+              echo "##vso[task.setvariable variable=hasLedger;isOutput=true]false"
+            else
+              echo "Baseline build id: $FOUND_ID"
+              echo "##vso[task.setvariable variable=found;isOutput=true]true"
+              echo "##vso[task.setvariable variable=buildId;isOutput=true]$FOUND_ID"
+              if [[ "$HAS_LEDGER" != "null" && -n "$HAS_LEDGER" ]]; then
+                echo "Baseline build has a standing-privilege ledger artifact."
+                echo "##vso[task.setvariable variable=hasLedger;isOutput=true]true"
+              else
+                echo "Baseline build has no ledger artifact; age tracking starts fresh this run."
+                echo "##vso[task.setvariable variable=hasLedger;isOutput=true]false"
+              fi
+            fi
+
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download baseline RBAC snapshot'
+        condition: and(succeeded(), eq(variables['baseline.found'], 'true'))
+        inputs:
+          buildType: specific
+          project: $(System.TeamProjectId)
+          definition: $(System.DefinitionId)
+          buildVersionToDownload: specific
+          pipelineId: $(baseline.buildId)
+          artifactName: rbac-snapshot
+          targetPath: $(Pipeline.Workspace)/baseline
+
+      # First-seen ledger from the most recent successful run, used to report how
+      # long each standing privilege has been held. Only attempted when the chosen
+      # baseline build ACTUALLY published a ledger (baseline.hasLedger): a pre-ledger
+      # baseline would otherwise raise '##[error] Artifact ... was not found'. The
+      # first ever ledger-enabled run thus skips this cleanly and seeds a fresh one.
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download standing-privilege ledger (previous run)'
+        condition: and(succeeded(), eq(variables['baseline.hasLedger'], 'true'))
+        continueOnError: true
+        inputs:
+          buildType: specific
+          project: $(System.TeamProjectId)
+          definition: $(System.DefinitionId)
+          buildVersionToDownload: specific
+          pipelineId: $(baseline.buildId)
+          artifactName: rbac-standing-ledger
+          targetPath: $(Pipeline.Workspace)/ledger
+
+      # Seed the working ledger path from the downloaded artifact if present. The
+      # monitor reads and rewrites this same file in place. Runs on EVERY run --
+      # including the bootstrap run with no baseline -- so a ledger file always
+      # exists for the publish step below to emit. This is what lets the very first
+      # run produce a rbac-standing-ledger artifact and break the chicken-and-egg
+      # loop (no ledger could ever appear because no prior run had published one).
+      - task: Bash@3
+        displayName: 'Seed standing-privilege ledger'
+        condition: succeeded()
+        inputs:
+          targetType: inline
+          script: |
+            set -euo pipefail
+            SRC="$(Pipeline.Workspace)/ledger/rbac-standing-ledger.json"
+            DST="$(Build.SourcesDirectory)/rbac-standing-ledger.json"
+            if [[ -f "$SRC" ]]; then
+              cp "$SRC" "$DST"
+              echo "Seeded ledger from previous run ($(wc -c < "$DST") bytes)."
+            else
+              echo "No previous ledger found; starting fresh."
+              echo '{}' > "$DST"
+            fi
+      # Extract the display names of IaC-managed PIM groups from the checked-out
+      # cnp-azure-entra-pim repo. The monitor flags any alerting group NOT in this
+      # list with an asterisk. Fails open: if the tfvars is missing we write an
+      # empty list (no flagging) rather than break change detection.
+      - task: Bash@3
+        displayName: 'Extract IaC-managed group names'
+        condition: and(succeeded(), eq(variables['baseline.found'], 'true'))
+        inputs:
+          targetType: inline
+          script: |
+            set -euo pipefail
+            TFVARS="$(Build.SourcesDirectory)/cnp-azure-entra-pim/users/pim-eligible/groups.tfvars"
+            OUT="$(Build.SourcesDirectory)/iac-managed-groups.txt"
+            if [[ ! -f "$TFVARS" ]]; then
+              echo "WARNING: IaC tfvars not found at $TFVARS; group enrichment disabled this run." >&2
+              : > "$OUT"
+              exit 0
+            fi
+            grep -oE 'display_name[[:space:]]*=[[:space:]]*"[^"]+"' "$TFVARS" \
+              | sed -E 's/.*"([^"]+)".*/\1/' \
+              | sort -u > "$OUT"
+            echo "Extracted $(wc -l < "$OUT") IaC-managed group name(s)."
+
+#todo
+      - task: Bash@3
+        displayName: 'Detect privileged RBAC changes'
+        condition: and(succeeded(), eq(variables['baseline.found'], 'true'))
+        inputs:
+          targetType: filePath
+          workingDirectory: $(Build.SourcesDirectory)
+          filePath: scripts/rbac/rbac-change-monitor.sh
+          arguments: >
+            --currentDir $(Build.ArtifactStagingDirectory)
+            --baselineDir $(Pipeline.Workspace)/baseline
+            --outputFile $(Build.SourcesDirectory)/rbac-change-status.txt
+            --windowDays $(windowDays)
+            --groupAllowlistFile $(Build.SourcesDirectory)/scripts/rbac/group-allowlist.txt
+            --iacGroupsFile $(Build.SourcesDirectory)/iac-managed-groups.txt
+            --standingPrivilegeCheck
+            --ledgerFile $(Build.SourcesDirectory)/rbac-standing-ledger.json
+
+      # Publish the updated ledger so the next run can compute held-for ages. Runs
+      # on EVERY run (even the bootstrap run with no baseline, which publishes the
+      # seeded {} ledger), so the next run's chosen baseline always has a ledger to
+      # download -- this is the half of the fix that stops the first-run loop.
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish standing-privilege ledger'
+        condition: always()
+        # Best-effort state artifact: never fail the control if it is missing
+        # (a missing ledger just means next run starts fresh age tracking).
+        continueOnError: true
+        inputs:
+          targetPath: $(Build.SourcesDirectory)/rbac-standing-ledger.json
+          artifact: rbac-standing-ledger
+          publishLocation: pipeline
+
+      # Publish the diff report as a downloadable artifact BEFORE notifying Slack, so
+      # the exact Slack-bound message can be inspected in the run for troubleshooting
+      # (e.g. when a notification looks wrong or no alert fired). Runs even if the
+      # detect step failed so a partial/empty report is still captured for diagnosis.
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish RBAC change report artifact'
+        condition: and(always(), eq(variables['baseline.found'], 'true'))
+        # Best-effort diagnostic artifact: never fail the control if it is missing.
+        continueOnError: true
+        inputs:
+          targetPath: $(Build.SourcesDirectory)/rbac-change-status.txt
+          artifact: rbac-change-report
+          publishLocation: pipeline
+
+      - task: Bash@3
+        displayName: 'Send RBAC change notification'
+        condition: and(succeeded(), eq(variables['baseline.found'], 'true'))
+        inputs:
+          targetType: filePath
+          workingDirectory: $(Build.SourcesDirectory)
+          filePath: scripts/send-slack-header-thread-each-loop.sh
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName C0BD4U9R01F 
+            --inputFileName $(Build.SourcesDirectory)/rbac-change-status.txt
+            --messageHeader ":azure: RBAC Privileged Change Detection (2-day)"
+
+      # C1 heartbeat: break the silence on failure. Every step above is gated on
+      # succeeded()/baseline.found and the sender only posts when a change marker
+      # exists, so a broken audit would otherwise send NOTHING and look identical
+      # to a clean "no changes" run. This step runs only when something failed and
+      # posts a loud red alert so a silently broken security control cannot hide.
+      # NOTE: if the Key Vault step itself failed the Slack token is unavailable,
+      # so this cannot post; rely on pipeline run-failure notifications for that case.
+      - task: Bash@3
+        displayName: 'Alert on control failure (heartbeat)'
+        condition: failed()
+        inputs:
+          targetType: inline
+          workingDirectory: $(Build.SourcesDirectory)
+          script: |
+            set -eo pipefail
+            STATUS_FILE="$(Build.SourcesDirectory)/rbac-control-failure.txt"
+            {
+              echo ":red_circle: *RBAC privileged-change detection FAILED to complete.*"
+              echo "Pipeline: $(System.DefinitionName) — run $(Build.BuildNumber)"
+              echo "One or more steps errored, so privileged RBAC changes may be UNDETECTED for this window."
+              echo "Investigate: $(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"
+            } > "$STATUS_FILE"
+            scripts/send-slack-header-thread-each-loop.sh \
+              --slackBotToken $(dtspo-daily-checks-slack-bot-token) \
+              --slackChannelName C0BD4U9R01F \
+              --inputFileName "$STATUS_FILE" \
+              --messageHeader ":azure: RBAC Privileged Change Detection (2-day)"
