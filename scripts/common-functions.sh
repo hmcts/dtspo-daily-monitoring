@@ -52,7 +52,8 @@ slackThreadResponse() {
     local message=$3
     local parent_ts=$4
 
-    payload="{\"channel\": \"${channel_name}\", \"username\": \"Plato\", \"text\": \"${message}\", \"thread_ts\": \"${parent_ts}\", \"icon_emoji\": \":plato:\"}"
+    payload=$(jq -n --arg channel "$channel_name" --arg text "$(printf '%b' "$message")" --arg ts "$parent_ts" \
+        '{channel: $channel, username: "Plato", text: $text, thread_ts: $ts, icon_emoji: ":plato:"}')
 
     RESPONSE=$(curl -s -H "Content-Type: application/json; charset=utf-8" \
     --data "${payload}" \
