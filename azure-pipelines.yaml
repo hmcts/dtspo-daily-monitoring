@@ -418,8 +418,8 @@ jobs:
       - task: Bash@3
         displayName: 'Commit break-glass sign-in report'
         continueOnError: true
-
-        condition: always()
+        # Only master may commit the report; on other branches the rebase conflicts and the push targets master
+        condition: and(always(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
         inputs:
           targetType: inline
           script: |
