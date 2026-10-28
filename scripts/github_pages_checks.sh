@@ -62,16 +62,44 @@ CURRENTDATE=$($date_command +"%Y-%m-%d") # 2w = 2 weeks
 EXPIRETHRESHOLD=$($date_command -u +"%Y-%m-%d" -d "+2 weeks") # 2w = 2 weeks
 
 declare -a URLS=("https://hmcts.github.io/api/pages.json" "https://hmcts.github.io/ops-runbooks/api/pages.json")
-declare -a PAGES
+PAGES=""
+declare -a FAILEDURLS=()
 
 # scrapeURLs will loop over each URL found in the URLS array and replace the short form URLs in the records
-# with a complete URL that it will then save into an array called PAGES
+# with a complete URL that it will then save into PAGES.
+# URLs that cannot be fetched or parsed are recorded in FAILEDURLS so they can be reported to Slack.
 function scrapeUrls() {
-    for URL in ${URLS[@]}; do
+    local CURL_ERR
+    CURL_ERR=$(mktemp)
+    for URL in "${URLS[@]}"; do
         local STRIPSUFFIX="/api/pages.json"
         local BASE_URL="${URL%$STRIPSUFFIX}"
-        PAGES+=$(curl -s $URL | jq '.[] | select((.url | test("(^|/)search/(index\\.html)?$")) | not) | .url |= (if startswith("..") then sub("\\.\\."; "'$BASE_URL'") elif startswith("/") then "'$BASE_URL'" + . else . end)')
+        local RESPONSE PARSED
+
+        if ! RESPONSE=$(curl -sS --fail --retry 2 --max-time 30 "$URL" 2>"$CURL_ERR"); then
+            FAILEDURLS+=("> <$URL|$URL>: $(tail -n 1 "$CURL_ERR")")
+            continue
+        fi
+
+        if ! PARSED=$(jq '.[] | select((.url | test("(^|/)search/(index\\.html)?$")) | not) | .url |= (if startswith("..") then sub("\\.\\."; "'$BASE_URL'") elif startswith("/") then "'$BASE_URL'" + . else . end)' <<<"$RESPONSE" 2>/dev/null); then
+            FAILEDURLS+=("> <$URL|$URL>: response was not valid JSON")
+            continue
+        fi
+
+        PAGES+=$PARSED
     done
+    rm -f "$CURL_ERR"
+}
+
+# findFailedUrls reports any pages.json URLs that could not be fetched, so a network block or outage
+# shows up in Slack instead of the check silently not posting.
+function findFailedUrls() {
+
+    if [ ${#FAILEDURLS[@]} -gt 0 ]; then
+        local URLS=$(printf "%s\n\n" "${FAILEDURLS[@]}")
+
+        slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Unable to fetch page data, review dates could not be checked for: \\n$URLS" $TS
+    fi
 }
 
 function reviewURLs() {
@@ -118,7 +146,7 @@ scrapeUrls
 reviewURLs
 
 STATUS=":green_circle:"
-if [[ -n "$NULLFOUNDURLs"  || -n "$EXPIREDFOUNDURLs" ]]; then
+if [[ ${#FAILEDURLS[@]} -gt 0 || -n "$NULLFOUNDURLs"  || -n "$EXPIREDFOUNDURLs" ]]; then
     STATUS=":red_circle:"
 elif [[ -n "$EXPIRINGFOUNDURLs" ]]; then
     STATUS=":yellow_circle:"
@@ -129,7 +157,14 @@ if [[ "$STATUS" == ":red_circle:" || "$STATUS" == ":yellow_circle:" ]]; then
     slackNotification $slackBotToken $slackChannelName "$STATUS Documentation Review" ":github: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> Status :document_it:"
 
     # Run checks on scraped pages to find the review dates and outcomes for each.
+    findFailedUrls
     findNullUrls
     findExpiredUrls
     findExpiringUrls
+fi
+
+# Keep the pipeline task flagged when page data could not be fetched
+if [[ ${#FAILEDURLS[@]} -gt 0 ]]; then
+    echo "Failed to fetch page data from ${#FAILEDURLS[@]} URL(s)" >&2
+    exit 1
 fi
