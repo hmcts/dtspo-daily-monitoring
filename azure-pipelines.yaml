@@ -329,8 +329,13 @@ jobs:
         inputs:
           targetType: inline
           script: |
-            echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
+            channel_name=$(bash scripts/resolve-slack-recipient.sh "dtspo-daily-checks")
+            echo "##vso[task.setvariable variable=main_channel]${channel_name}"
             echo "##vso[task.setvariable variable=testMode]false"
+        env:
+          BUILD_REASON: $(Build.Reason)
+          SYSTEM_PULLREQUEST_PULLREQUESTID: $(System.PullRequest.PullRequestId)
+          GITHUB_TOKEN: $(dtspo-daily-checks-github-fine-grained-token)
       - script: |
           echo "main_channel set to: $(main_channel)"
         displayName: 'Show main channel name'
@@ -519,7 +524,7 @@ jobs:
         inputs:
           azureSubscription: 'DTS-CFTPTL-INTSVC'
           keyVaultName: 'cftptl-intsvc'
-          secretsFilter: 'dtspo-daily-checks-slack-bot-token'
+          secretsFilter: 'dtspo-daily-checks-slack-bot-token,dtspo-daily-checks-github-fine-grained-token'
       - task: Bash@3
         displayName: 'Set Channel Name'
         inputs:
@@ -927,8 +932,13 @@ jobs:
               fi
             done
 
+            channel_name=$(bash scripts/resolve-slack-recipient.sh "dtspo-daily-checks")
             scripts/send-slack-header-thread-each-loop.sh \
               --slackBotToken "$(dtspo-daily-checks-slack-bot-token)" \
-              --slackChannelName "dtspo-daily-checks" \
+              --slackChannelName "$channel_name" \
               --inputFileName "$combinedResults" \
               --messageHeader ":github: Scheduled Checks"
+        env:
+          BUILD_REASON: $(Build.Reason)
+          SYSTEM_PULLREQUEST_PULLREQUESTID: $(System.PullRequest.PullRequestId)
+          GITHUB_TOKEN: $(dtspo-daily-checks-github-fine-grained-token)
