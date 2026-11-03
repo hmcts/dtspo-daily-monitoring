@@ -355,22 +355,6 @@ jobs:
             --jenkinsUsername $(jenkins-api-user)
             --jenkinsApiToken $(jenkins-api-token)
             --jenkinsURL ${{ variables.jenkins_url }}
-      - task: AzureCLI@2
-        displayName: 'Service Principal Check - Dev Tenant'
-        continueOnError: true
-        inputs:
-          scriptType: bash
-          scriptPath: scripts/service-principals.sh
-          azureSubscription: ${{ variables.dev_service_connection }}
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
-      - task: AzureCLI@2
-        displayName: 'Service Principal Check'
-        continueOnError: true
-        inputs:
-          scriptType: bash
-          scriptPath: scripts/service-principals.sh
-          azureSubscription: ${{ variables.service_connection }}
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
       - task: Bash@3
         displayName: "Checking GitHub Pages review status"
         continueOnError: true
@@ -446,39 +430,12 @@ jobs:
           filePath: scripts/check-toffee-plum.sh
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: Bash@3
-        displayName: 'Github Licenses check'
-        continueOnError: true
-        inputs:
-          targetType: filePath
-          filePath: scripts/github-licenses.sh
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(dtspo-daily-checks-github-classic-token)
-      - task: Bash@3
-        displayName: "Launchdarkly Licenses check"
-        continueOnError: true
-        inputs:
-          targetType: filePath
-          filePath: scripts/ld-license.sh
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --token $(launchdarkly-access-token)
-      - task: Bash@3
         displayName: "Auto Shutdown status check"
         continueOnError: true
         inputs:
           targetType: filePath
           filePath: scripts/autoShutdownChecks.sh
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
-      - task: AzureCLI@2
-        displayName: 'Service Principal Check - B2C Sandbox Tenant'
-        continueOnError: true
-        inputs:
-          scriptType: bash
-          scriptPath: scripts/service-principals-b2c-tenants.sh
-          azureSubscription: ${{ variables.service_connection }}
-          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel) --checkDays ${{ variables.SPSecretNumDays }}
-          # Send secrets to the service-principals-b2c-tenants script
-        env:
-          b2c_prod_serviceprincipal_id: $(b2c-prod-serviceprincipal-id)
-          b2c_prod_serviceprincipal_password: $(b2c-prod-serviceprincipal-password)
-          b2c_prod_tenant_id: $(b2c-prod-tenant-id)
       - task: Bash@3
         displayName: 'Elastic search field count check'
         continueOnError: true
@@ -497,47 +454,6 @@ jobs:
             --emailTo "cft-level2-monitoring-aaaap23kppmnpt57cp3cbwpkym@moj.org.slack.com"
             --emailFrom bau@mail-bau-nonprod.platform.hmcts.net
             --testMode $(testMode)
-      # Checks from this point on use each loop, every iteration saves to a file and a follow up step is used to send the output if a negative status is found
-      - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
-        - task: AzureCLI@2
-          displayName: 'Checking PostgreSQL Flexible Storage Status: ${{ postgres_sub.subscription }}'
-          continueOnError: true
-          inputs:
-            scriptType: bash
-            scriptPath: scripts/postgres-flexible-storage.sh
-            azureSubscription: ${{ postgres_sub.subscription }}
-            arguments: --subscription ${{ postgres_sub.subscription }}
-      - task: Bash@3
-        displayName: "Send Postgres Status"
-        continueOnError: true
-        inputs:
-          targetType: filePath
-          filePath: scripts/send-slack-header-thread-each-loop.sh
-          arguments: >
-            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
-            --slackChannelName $(main_channel)
-            --inputFileName postgres-status.txt
-            --messageHeader ":database: PostgreSQL Flexible Server Storage Usage"
-      - ${{ each backup_vault in parameters.recovery_services_vaults }}:
-        - task: AzureCLI@2
-          displayName: 'Check Backup Status'
-          continueOnError: true
-          inputs:
-            scriptType: bash
-            scriptPath: scripts/backup-monitor.sh
-            azureSubscription: ${{ backup_vault.subscription }}
-            arguments: --resourceGroup ${{backup_vault.resourceGroup}} --backupVault ${{backup_vault.vaultName}}
-      - task: Bash@3
-        displayName: "Send Recovery Services Vaults Status"
-        continueOnError: true
-        inputs:
-          targetType: filePath
-          filePath: scripts/send-slack-header-thread-each-loop.sh
-          arguments: >
-            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
-            --slackChannelName $(main_channel)
-            --inputFileName azurebackup-status.txt
-            --messageHeader ":azuremonitoring: Azure Backup Checks"
       - task: AzureCLI@2
         displayName: 'Check DR Backup Vault Job Status (weekly, Mondays only)'
         continueOnError: true
@@ -550,99 +466,6 @@ jobs:
             --backupVault cnp-backup-vault
             --slackBotToken $(dtspo-daily-checks-slack-bot-token)
             --slackChannelName $(main_channel)
-      - ${{ each frontdoor in parameters.certificates }}:
-        - task: AzureCLI@2
-          displayName: 'Checking ${{ frontdoor.front_door_name }} Certificate status'
-          continueOnError: true
-          inputs:
-            scriptType: bash
-            scriptPath: scripts/cert-check.sh
-            azureSubscription: ${{ frontdoor.subscription }}
-            arguments: >
-              --subscription ${{ frontdoor.subscription }}
-              --resourceGroup ${{ frontdoor.resource_group }}
-              --frontdoorName ${{ frontdoor.front_door_name }}
-              --minCertExpirationDays ${{ frontdoor.min_cert_exp_days }}
-      - task: Bash@3
-        displayName: "Send SSL Cert Status"
-        continueOnError: true
-        inputs:
-          targetType: filePath
-          filePath: scripts/send-slack-header-thread-each-loop.sh
-          arguments: >
-            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
-            --slackChannelName $(main_channel)
-            --inputFileName cert-status.txt
-            --messageHeader ":ssl-cert: SSL Certificates Checks"
-      - ${{ each keyvault in parameters.keyvault_certificates }}:
-        - task: AzureCLI@2
-          displayName: 'Checking ${{ keyvault.keyvault_name }} KeyVault Certificate status'
-          continueOnError: true
-          inputs:
-            scriptType: bash
-            scriptPath: scripts/keyvault-cert-check.sh
-            azureSubscription: ${{ keyvault.subscription }}
-            arguments: >
-              --subscription ${{ keyvault.subscription }}
-              --keyVaultName ${{ keyvault.keyvault_name }}
-              --minCertExpirationDays ${{ keyvault.min_cert_exp_days }}
-      - task: Bash@3
-        displayName: "Send KeyVault Cert Status"
-        continueOnError: true
-        inputs:
-          targetType: filePath
-          filePath: scripts/send-slack-header-thread-each-loop.sh
-          arguments: >
-            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
-            --slackChannelName $(main_channel)
-            --inputFileName keyvault-cert-status.txt
-            --messageHeader ":key: KeyVault Certificates Checks"
-      - ${{ each gh_workflow in parameters.gh_workflows }}:
-        - task: Bash@3
-          displayName: 'Check Github workflow Runs'
-          continueOnError: true
-          inputs:
-            targetType: filePath
-            filePath: scripts/github-scheduled-workflow-monitor.sh
-            arguments: --githubToken $(dtspo-daily-checks-github-fine-grained-token) --githubRepo ${{gh_workflow.repo}} --branch ${{gh_workflow.branch}} --run ${{gh_workflow.run}}
-      - task: Bash@3
-        displayName: "Send Github Workflow Status"
-        continueOnError: true
-        inputs:
-          targetType: filePath
-          filePath: scripts/send-slack-header-thread-each-loop.sh
-          arguments: >
-            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
-            --slackChannelName $(main_channel)
-            --inputFileName workflow-status.txt
-            --messageHeader ":github: GitHub Scheduled Workflow Status"
-      - ${{ each ado_pipeline in parameters.ado_pipelines }}:
-        - task: Bash@3
-          displayName: 'Checking azure pipeline status ${{ado_pipeline.pipelineName}}'
-          continueOnError: true
-          inputs:
-            targetType: filePath
-            filePath: scripts/ado-pipeline-monitor.sh
-            arguments: >
-              --adoToken $(azure-devops-token)
-              --adoProject ${{ado_pipeline.project}}
-              --adoPipelineName "${{ado_pipeline.pipelineName}}"
-              --adoPipelineDefinitionId ${{ado_pipeline.definitionId}}
-              --adoTimeForAmber ${{ado_pipeline.timeForAmber}}
-              --adoTimeForRed ${{ado_pipeline.timeForRed}}
-              --adoPipelineBranch "${{ado_pipeline.branchName}}"
-              --weekdayOnly ${{ado_pipeline.weekdayOnly}}
-      - task: Bash@3
-        displayName: "Send ADO Pipeline Status"
-        continueOnError: true
-        inputs:
-          targetType: filePath
-          filePath: scripts/send-slack-header-thread-each-loop.sh
-          arguments: >
-            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
-            --slackChannelName $(main_channel)
-            --inputFileName ado-pipeline-status.txt
-            --messageHeader ":azure: Azure DevOps Scheduled Pipelines Checks"
       - ${{ each cluster in parameters.aks_clusters }}:
         - task: AzureCLI@2
           displayName: 'AKS Cluster Status:  ${{cluster.clusterName}}'
@@ -676,3 +499,436 @@ jobs:
             --buildId $(Build.BuildId)
             --buildUrl "$(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"
             --jobStatus $(Agent.JobStatus)
+  - job: CertificateChecks
+    displayName: 'Check certificates'
+    dependsOn: []
+    timeoutInMinutes: 60
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - checkout: self
+      - task: Bash@3
+        displayName: 'Initialize certificate results'
+        inputs:
+          targetType: inline
+          script: |
+            : > cert-status.txt
+            : > keyvault-cert-status.txt
+      - task: AzureKeyVault@2
+        displayName: 'Get Slack token'
+        inputs:
+          azureSubscription: 'DTS-CFTPTL-INTSVC'
+          keyVaultName: 'cftptl-intsvc'
+          secretsFilter: 'dtspo-daily-checks-slack-bot-token'
+      - task: Bash@3
+        displayName: 'Set Channel Name'
+        inputs:
+          targetType: inline
+          script: echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
+      - ${{ each frontdoor in parameters.certificates }}:
+        - task: AzureCLI@2
+          displayName: 'Checking ${{ frontdoor.front_door_name }} Certificate status'
+          continueOnError: true
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/cert-check.sh
+            azureSubscription: ${{ frontdoor.subscription }}
+            arguments: >
+              --subscription ${{ frontdoor.subscription }}
+              --resourceGroup ${{ frontdoor.resource_group }}
+              --frontdoorName ${{ frontdoor.front_door_name }}
+              --minCertExpirationDays ${{ frontdoor.min_cert_exp_days }}
+      - ${{ each keyvault in parameters.keyvault_certificates }}:
+        - task: AzureCLI@2
+          displayName: 'Checking ${{ keyvault.keyvault_name }} KeyVault Certificate status'
+          continueOnError: true
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/keyvault-cert-check.sh
+            azureSubscription: ${{ keyvault.subscription }}
+            arguments: >
+              --subscription ${{ keyvault.subscription }}
+              --keyVaultName ${{ keyvault.keyvault_name }}
+              --minCertExpirationDays ${{ keyvault.min_cert_exp_days }}
+      - task: Bash@3
+        displayName: 'Stage certificate results'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: |
+            mkdir -p "$(Build.ArtifactStagingDirectory)/certificate-check-results"
+            cat cert-status.txt keyvault-cert-status.txt > "$(Build.ArtifactStagingDirectory)/certificate-check-results/results.txt"
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish certificate results'
+        condition: always()
+        inputs:
+          targetPath: '$(Build.ArtifactStagingDirectory)/certificate-check-results/results.txt'
+          artifact: 'certificate-check-results'
+  - job: GithubWorkflowChecks
+    displayName: 'Check GitHub workflows'
+    dependsOn: []
+    timeoutInMinutes: 60
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - checkout: self
+      - task: Bash@3
+        displayName: 'Initialize GitHub workflow results'
+        inputs:
+          targetType: inline
+          script: ': > workflow-status.txt'
+      - task: AzureKeyVault@2
+        displayName: 'Get Slack and GitHub tokens'
+        inputs:
+          azureSubscription: 'DTS-CFTPTL-INTSVC'
+          keyVaultName: 'cftptl-intsvc'
+          secretsFilter: 'dtspo-daily-checks-slack-bot-token,dtspo-daily-checks-github-fine-grained-token'
+      - task: Bash@3
+        displayName: 'Set Channel Name'
+        inputs:
+          targetType: inline
+          script: echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
+      - ${{ each gh_workflow in parameters.gh_workflows }}:
+        - task: Bash@3
+          displayName: 'Check GitHub workflow Runs: ${{ gh_workflow.repo }} / ${{ gh_workflow.run }}'
+          condition: always()
+          inputs:
+            targetType: filePath
+            filePath: scripts/github-scheduled-workflow-monitor.sh
+            arguments: --githubToken $(dtspo-daily-checks-github-fine-grained-token) --githubRepo ${{ gh_workflow.repo }} --branch ${{ gh_workflow.branch }} --run ${{ gh_workflow.run }}
+      - task: Bash@3
+        displayName: 'Stage GitHub workflow results'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: |
+            mkdir -p "$(Build.ArtifactStagingDirectory)/github-workflow-results"
+            cp workflow-status.txt "$(Build.ArtifactStagingDirectory)/github-workflow-results/results.txt"
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish GitHub workflow results'
+        condition: always()
+        inputs:
+          targetPath: '$(Build.ArtifactStagingDirectory)/github-workflow-results/results.txt'
+          artifact: 'github-workflow-results'
+  - job: AdoPipelineChecks
+    displayName: 'Check Azure DevOps pipelines'
+    dependsOn: []
+    timeoutInMinutes: 60
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - checkout: self
+      - task: Bash@3
+        displayName: 'Initialize Azure DevOps pipeline results'
+        inputs:
+          targetType: inline
+          script: ': > ado-pipeline-status.txt'
+      - task: AzureKeyVault@2
+        displayName: 'Get Slack and Azure DevOps tokens'
+        inputs:
+          azureSubscription: 'DTS-CFTPTL-INTSVC'
+          keyVaultName: 'cftptl-intsvc'
+          secretsFilter: 'dtspo-daily-checks-slack-bot-token,azure-devops-token'
+      - task: Bash@3
+        displayName: 'Set Channel Name'
+        inputs:
+          targetType: inline
+          script: echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
+      - ${{ each ado_pipeline in parameters.ado_pipelines }}:
+        - task: Bash@3
+          displayName: 'Checking Azure pipeline: ${{ ado_pipeline.pipelineName }}'
+          continueOnError: true
+          inputs:
+            targetType: filePath
+            filePath: scripts/ado-pipeline-monitor.sh
+            arguments: >
+              --adoToken $(azure-devops-token)
+              --adoProject ${{ ado_pipeline.project }}
+              --adoPipelineName "${{ ado_pipeline.pipelineName }}"
+              --adoPipelineDefinitionId ${{ ado_pipeline.definitionId }}
+              --adoTimeForAmber ${{ ado_pipeline.timeForAmber }}
+              --adoTimeForRed ${{ ado_pipeline.timeForRed }}
+              --adoPipelineBranch "${{ ado_pipeline.branchName }}"
+              --weekdayOnly ${{ ado_pipeline.weekdayOnly }}
+      - task: Bash@3
+        displayName: 'Stage Azure DevOps pipeline results'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: |
+            mkdir -p "$(Build.ArtifactStagingDirectory)/ado-pipeline-results"
+            cp ado-pipeline-status.txt "$(Build.ArtifactStagingDirectory)/ado-pipeline-results/results.txt"
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish Azure DevOps pipeline results'
+        condition: always()
+        inputs:
+          targetPath: '$(Build.ArtifactStagingDirectory)/ado-pipeline-results/results.txt'
+          artifact: 'ado-pipeline-results'
+  - job: LicenseChecks
+    displayName: 'Check licenses'
+    dependsOn: []
+    timeoutInMinutes: 30
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - checkout: self
+      - task: Bash@3
+        displayName: 'Initialize license results'
+        inputs:
+          targetType: inline
+          script: ': > license-status.txt'
+      - task: AzureKeyVault@2
+        displayName: 'Get license API tokens'
+        inputs:
+          azureSubscription: 'DTS-CFTPTL-INTSVC'
+          keyVaultName: 'cftptl-intsvc'
+          secretsFilter: 'dtspo-daily-checks-github-classic-token,launchdarkly-access-token'
+      - task: Bash@3
+        displayName: 'Check GitHub licenses'
+        continueOnError: true
+        inputs:
+          targetType: filePath
+          filePath: scripts/github-licenses.sh
+          arguments: >
+            --token $(dtspo-daily-checks-github-classic-token)
+            --outputFile license-status.txt
+      - task: Bash@3
+        displayName: 'Check LaunchDarkly licenses'
+        continueOnError: true
+        inputs:
+          targetType: filePath
+          filePath: scripts/ld-license.sh
+          arguments: >
+            --token $(launchdarkly-access-token)
+            --outputFile license-status.txt
+      - task: Bash@3
+        displayName: 'Stage license results'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: |
+            mkdir -p "$(Build.ArtifactStagingDirectory)/license-results"
+            cp license-status.txt "$(Build.ArtifactStagingDirectory)/license-results/results.txt"
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish license results'
+        condition: always()
+        inputs:
+          targetPath: '$(Build.ArtifactStagingDirectory)/license-results/results.txt'
+          artifact: 'license-results'
+  - job: ServicePrincipalChecks
+    displayName: 'Check service principals'
+    dependsOn: []
+    timeoutInMinutes: 45
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - checkout: self
+      - task: Bash@3
+        displayName: 'Initialize service-principal results'
+        inputs:
+          targetType: inline
+          script: ': > service-principal-status.txt'
+      - task: AzureKeyVault@2
+        displayName: 'Get service-principal check secrets'
+        inputs:
+          azureSubscription: 'DTS-CFTPTL-INTSVC'
+          keyVaultName: 'cftptl-intsvc'
+          secretsFilter: 'dtspo-daily-checks-slack-bot-token,b2c-prod-serviceprincipal-id,b2c-prod-serviceprincipal-password,b2c-prod-tenant-id'
+      - task: Bash@3
+        displayName: 'Set Channel Name'
+        inputs:
+          targetType: inline
+          script: echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
+      - task: AzureCLI@2
+        displayName: 'Service Principal Check - Dev Tenant'
+        continueOnError: true
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/service-principals.sh
+          azureSubscription: ${{ variables.dev_service_connection }}
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --checkDays ${{ variables.SPSecretNumDays }}
+            --outputFile service-principal-status.txt
+      - task: AzureCLI@2
+        displayName: 'Service Principal Check'
+        continueOnError: true
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/service-principals.sh
+          azureSubscription: ${{ variables.service_connection }}
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --checkDays ${{ variables.SPSecretNumDays }}
+            --outputFile service-principal-status.txt
+      - task: AzureCLI@2
+        displayName: 'Service Principal Check - B2C Sandbox Tenant'
+        continueOnError: true
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/service-principals-b2c-tenants.sh
+          azureSubscription: ${{ variables.service_connection }}
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --checkDays ${{ variables.SPSecretNumDays }}
+            --outputFile service-principal-status.txt
+        env:
+          b2c_prod_serviceprincipal_id: $(b2c-prod-serviceprincipal-id)
+          b2c_prod_serviceprincipal_password: $(b2c-prod-serviceprincipal-password)
+          b2c_prod_tenant_id: $(b2c-prod-tenant-id)
+      - task: Bash@3
+        displayName: 'Stage service-principal results'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: |
+            mkdir -p "$(Build.ArtifactStagingDirectory)/service-principal-results"
+            cp service-principal-status.txt "$(Build.ArtifactStagingDirectory)/service-principal-results/results.txt"
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish service-principal results'
+        condition: always()
+        inputs:
+          targetPath: '$(Build.ArtifactStagingDirectory)/service-principal-results/results.txt'
+          artifact: 'service-principal-results'
+  - job: PostgresBackupChecks
+    displayName: 'Check PostgreSQL and backups'
+    dependsOn: []
+    timeoutInMinutes: 60
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - checkout: self
+      - task: Bash@3
+        displayName: 'Initialize PostgreSQL and backup results'
+        inputs:
+          targetType: inline
+          script: |
+            : > postgres-status.txt
+            : > azurebackup-status.txt
+      - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
+        - task: AzureCLI@2
+          displayName: 'Checking PostgreSQL Flexible Storage Status: ${{ postgres_sub.subscription }}'
+          continueOnError: true
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/postgres-flexible-storage.sh
+            azureSubscription: ${{ postgres_sub.subscription }}
+            arguments: --subscription ${{ postgres_sub.subscription }}
+      - ${{ each backup_vault in parameters.recovery_services_vaults }}:
+        - task: AzureCLI@2
+          displayName: 'Check Backup Status: ${{ backup_vault.vaultName }}'
+          continueOnError: true
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/backup-monitor.sh
+            azureSubscription: ${{ backup_vault.subscription }}
+            arguments: --resourceGroup ${{ backup_vault.resourceGroup }} --backupVault ${{ backup_vault.vaultName }}
+      - task: Bash@3
+        displayName: 'Stage PostgreSQL and backup results'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: |
+            mkdir -p "$(Build.ArtifactStagingDirectory)/postgres-backup-results"
+            cat postgres-status.txt azurebackup-status.txt > "$(Build.ArtifactStagingDirectory)/postgres-backup-results/results.txt"
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish PostgreSQL and backup results'
+        condition: always()
+        inputs:
+          targetPath: '$(Build.ArtifactStagingDirectory)/postgres-backup-results/results.txt'
+          artifact: 'postgres-backup-results'
+  - job: CombinedCheckReport
+    displayName: 'Report combined check results'
+    dependsOn:
+      - CertificateChecks
+      - GithubWorkflowChecks
+      - AdoPipelineChecks
+      - LicenseChecks
+      - ServicePrincipalChecks
+      - PostgresBackupChecks
+    condition: always()
+    timeoutInMinutes: 10
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - checkout: self
+      - task: AzureKeyVault@2
+        displayName: 'Get Slack token'
+        inputs:
+          azureSubscription: 'DTS-CFTPTL-INTSVC'
+          keyVaultName: 'cftptl-intsvc'
+          secretsFilter: 'dtspo-daily-checks-slack-bot-token'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download certificate results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'certificate-check-results'
+          path: '$(Pipeline.Workspace)/certificate-check-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download GitHub workflow results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'github-workflow-results'
+          path: '$(Pipeline.Workspace)/github-workflow-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download Azure DevOps pipeline results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'ado-pipeline-results'
+          path: '$(Pipeline.Workspace)/ado-pipeline-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download license results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'license-results'
+          path: '$(Pipeline.Workspace)/license-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download service-principal results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'service-principal-results'
+          path: '$(Pipeline.Workspace)/service-principal-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download PostgreSQL and backup results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'postgres-backup-results'
+          path: '$(Pipeline.Workspace)/postgres-backup-results'
+      - task: Bash@3
+        displayName: 'Send combined check results'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: |
+            set -euo pipefail
+            combinedResults="$(System.DefaultWorkingDirectory)/combined-check-results.txt"
+            : > "$combinedResults"
+
+            for resultFile in \
+              "$(Pipeline.Workspace)/certificate-check-results/results.txt" \
+              "$(Pipeline.Workspace)/github-workflow-results/results.txt" \
+              "$(Pipeline.Workspace)/ado-pipeline-results/results.txt" \
+              "$(Pipeline.Workspace)/license-results/results.txt" \
+              "$(Pipeline.Workspace)/service-principal-results/results.txt" \
+              "$(Pipeline.Workspace)/postgres-backup-results/results.txt"; do
+              if [[ -f "$resultFile" ]]; then
+                cat "$resultFile" >> "$combinedResults"
+              else
+                printf ':red_circle: Results could not be collected from %s.\n' "$(basename "$(dirname "$resultFile")")" >> "$combinedResults"
+              fi
+            done
+
+            scripts/send-slack-header-thread-each-loop.sh \
+              --slackBotToken "$(dtspo-daily-checks-slack-bot-token)" \
+              --slackChannelName "dtspo-daily-checks" \
+              --inputFileName "$combinedResults" \
+              --messageHeader ":github: Scheduled Checks"

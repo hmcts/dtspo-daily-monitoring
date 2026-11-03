@@ -82,12 +82,11 @@ failedWorkflows=()
 pendingWorkflows=()
 staleWorkflows=()
 
-# Determine if run was a supplied value, if not then process all workflows in the repo
-# Output will be JSON formatted Id: Name: key/values.
+# Determine if run was a supplied value, if not then process all workflows in the repo.
 if [[ -z "${run}" ]]; then
     workflows_response=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${githubToken}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/${owner}/${githubRepo}/actions/workflows | jq -r '.workflows[] | {id: .id, name: .name}')
 else
-    workflows_response=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${githubToken}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${githubRepo}/actions/workflows" | jq -r --arg workflow "$run" '[.workflows[]]| map(select(.name==$workflow)) | {id: .[].id, name: .[].name}')
+    workflows_response=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${githubToken}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${githubRepo}/actions/workflows" | jq -c --arg workflow "$run" '.workflows[] | select(.name == $workflow) | {id: .id, name: .name}')
 fi
 
 # check if a response was made
@@ -96,8 +95,6 @@ if [ -z "$workflows_response" ]; then
     missingWorkflows+=("$(printf "No workflow found in repo: %s / %s \\n" "${githubRepo}" "${run}")")
 else
 
-    echo "WORKFLOW RESPONSE: ${workflows_response}"
-
     workflows=$(jq -c '.' <<< "$workflows_response")
 
     for workflow in $workflows; do
@@ -105,8 +102,6 @@ else
         name=$(echo "${workflow}" | jq -r '.name')
         workflow_status=$(fetch_workflow_runs "${id}")
 
-        echo "Workflow status for ${name}:"
-        echo "${workflow_status}"
         latestRun=$(jq -c '.workflow_runs[0] // {}' <<< "$workflow_status")
         latestSuccessfulRun=$(jq -c '[.workflow_runs[] | select(.conclusion == "success")][0] // {}' <<< "$workflow_status")
         workflowStatus=$(jq -r '.status // empty' <<< "$latestRun")
@@ -115,10 +110,8 @@ else
         workflowStartTime=$(jq -r '.run_started_at // empty' <<< "$latestRun")
         lastSuccessTime=$(jq -r '.run_started_at // empty' <<< "$latestSuccessfulRun")
 
-        echo "Workflow Status: ${workflowStatus}"
-        echo "Conclusion: ${conclusion}"
-        echo "URL: ${workflowURL}"
-        echo "Workflow started at: ${workflowStartTime}"
+        printf 'Workflow Status: %s\n\nConclusion: %s\n\nURL: %s\n\nWorkflow started at: %s\n\nWorkflow %s %s\n\n' \
+            "${workflowStatus}" "${conclusion}" "${workflowURL}" "${workflowStartTime}" "${name}" "${conclusion}"
 
         nowEpoch=$("${date_command}" -u +%s)
         lastSuccessEpoch=""
@@ -133,15 +126,12 @@ else
             printf ":red_circle: *$repo:* <https://github.com/${owner}/${githubRepo}/actions/workflows/|_*${name}*_> Did not return a workflow status \n" >> slack-message.txt
         else
             if [ "${conclusion}" == "success" ]; then
-                echo "Workflow $name $conclusion"
                 if [[ -n "${lastSuccessEpoch}" ]] && (( nowEpoch - lastSuccessEpoch <= 86400 && lastSuccessEpoch <= nowEpoch )); then
                     successfulWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s*\\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
                 fi
             elif [[ "${workflowStatus}" == "waiting" ]] || [[ "${workflowStatus}" == "pending" ]] || [[ "${workflowStatus}" == "in_progress" ]] || [[ "${workflowStatus}" == "queued" ]]; then
-                echo "Workflow $name $conclusion"
                 pendingWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s*\\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
             else
-                echo "Workflow $name $conclusion"
                 failedWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s*\\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
             fi
         fi
@@ -170,3 +160,7 @@ if [ "${#successfulWorkflows[@]}" -gt 0 ]; then
 fi
 
 echo $slackThread >> workflow-status.txt
+
+if [[ "${#staleWorkflows[@]}" -gt 0 || "${#missingWorkflows[@]}" -gt 0 ]]; then
+    exit 1
+fi
