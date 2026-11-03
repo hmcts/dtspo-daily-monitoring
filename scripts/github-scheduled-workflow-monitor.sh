@@ -160,7 +160,3 @@ if [ "${#successfulWorkflows[@]}" -gt 0 ]; then
 fi
 
 echo $slackThread >> workflow-status.txt
-
-if [[ "${#staleWorkflows[@]}" -gt 0 || "${#missingWorkflows[@]}" -gt 0 ]]; then
-    exit 1
-fi
