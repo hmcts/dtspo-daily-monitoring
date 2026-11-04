@@ -12,7 +12,7 @@ REPOSITORY = Path(__file__).resolve().parents[1]
 
 
 class MonitoringReportTests(unittest.TestCase):
-    def run_sender(self, reports, ready=True, slack_fails=False, partial_write=False):
+    def run_sender(self, reports, ready=True, slack_fails=False, partial_write=False, rejected_text=""):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             scripts = root / "scripts"
@@ -39,7 +39,9 @@ calls = Path(os.environ["SLACK_CALLS"])
 count = len(calls.read_text().splitlines()) if calls.exists() else 0
 with calls.open("a") as output:
     output.write(json.dumps(payload) + "\\n")
-print(json.dumps({"ok": os.environ["SLACK_FAILS"] != "1", "ts": f"100.{count}", "error": "mock_failure"}))
+empty_reply = "text" in payload and not payload["text"].strip()
+rejected_reply = bool(os.environ["REJECTED_TEXT"]) and payload.get("text") == os.environ["REJECTED_TEXT"]
+print(json.dumps({"ok": os.environ["SLACK_FAILS"] != "1" and not empty_reply and not rejected_reply, "ts": f"100.{count}", "error": "no_text" if empty_reply else "mock_failure"}))
 '''
             )
             curl.chmod(0o755)
@@ -55,6 +57,7 @@ print(json.dumps({"ok": os.environ["SLACK_FAILS"] != "1", "ts": f"100.{count}", 
                     "PATH": f"{root}:{os.environ['PATH']}",
                     "SLACK_CALLS": str(calls),
                     "SLACK_FAILS": str(int(slack_fails)),
+                    "REJECTED_TEXT": rejected_text,
                 },
                 capture_output=True,
                 text=True,
@@ -126,6 +129,31 @@ print(json.dumps({"ok": os.environ["SLACK_FAILS"] != "1", "ts": f"100.{count}", 
         self.assertEqual(result.returncode, 1)
         self.assertEqual(len(posts), 1)
         self.assertIn("Slack post failed", result.stderr)
+
+    def test_empty_jira_replies_are_skipped_and_later_reports_are_sent(self):
+        result, posts = self.run_sender([
+            {"header": "Jira Ticket Status", "message": "0 issues closed yesterday", "replies": [
+                "0 issues closed yesterday:", "", "Current assigned tickets", " \n\t", r"\n",
+            ]},
+            {"header": "PostgreSQL checks", "message": "Storage details", "replies": ["Storage reply"]},
+        ])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([post["text"] for post in posts if "text" in post], [
+            "0 issues closed yesterday:", "Current assigned tickets", "Storage reply",
+        ])
+        self.assertEqual(posts[-2]["blocks"][0]["text"]["text"], "PostgreSQL checks")
+
+    def test_reply_failure_does_not_stop_later_replies_or_reports(self):
+        result, posts = self.run_sender([
+            {"header": "Jira Status", "message": "Details", "replies": ["Rejected reply", "Next Jira reply"]},
+            {"header": "PostgreSQL checks", "message": "Storage details", "replies": ["Storage reply"]},
+        ], rejected_text="Rejected reply")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(len(posts), 5)
+        self.assertEqual(posts[2]["text"], "Next Jira reply")
+        self.assertEqual(posts[2]["thread_ts"], "100.0")
+        self.assertEqual(posts[-1]["text"], "Storage reply")
+        self.assertIn("Jira Status", result.stderr)
 
     def test_truncated_report_identifies_the_file_before_posting(self):
         result, posts = self.run_sender([

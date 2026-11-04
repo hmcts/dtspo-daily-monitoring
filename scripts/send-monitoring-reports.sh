@@ -37,12 +37,26 @@ sortedReports=$(jq -sc '
             gsub("[*_]"; "") | gsub("^\\s+|\\s+$"; "") | ascii_downcase), .header])[]
     else error("Invalid monitoring report") end
 ' "${reportFiles[@]}")
+deliveryFailed=0
 while IFS= read -r report; do
     header=$(jq -r '.header' <<< "$report")
     message=$(jq -r '.message' <<< "$report")
-    slackNotification "$slackBotToken" "$slackRecipient" "$header" "$message"
+    if ! slackNotification "$slackBotToken" "$slackRecipient" "$header" "$message"; then
+        printf 'Failed to send report header: %s. Continuing with other reports.\n' "$header" >&2
+        deliveryFailed=1
+        continue
+    fi
     while IFS= read -r reply; do
         message=$(jq -r '.' <<< "$reply")
-        slackThreadResponse "$slackBotToken" "$slackRecipient" "$message" "$TS"
+        renderedMessage=$(printf '%b' "$message")
+        if [[ -z "${renderedMessage//[[:space:]]/}" ]]; then
+            continue
+        fi
+        if ! slackThreadResponse "$slackBotToken" "$slackRecipient" "$message" "$TS"; then
+            printf 'Failed to send a reply for report: %s. Continuing with remaining replies and reports.\n' "$header" >&2
+            deliveryFailed=1
+        fi
     done < <(jq -c '.replies[]' <<< "$report")
 done <<< "$sortedReports"
+
+exit "$deliveryFailed"
