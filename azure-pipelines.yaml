@@ -340,6 +340,7 @@ jobs:
         env:
           BUILD_REASON: $(Build.Reason)
           BUILD_SOURCEBRANCH: $(Build.SourceBranch)
+          SYSTEM_PULLREQUEST_PULLREQUESTNUMBER: $(System.PullRequest.PullRequestNumber)
           SYSTEM_PULLREQUEST_PULLREQUESTID: $(System.PullRequest.PullRequestId)
           GITHUB_TOKEN: $(dtspo-daily-checks-github-fine-grained-token)
   - job: DailyMonitoring
