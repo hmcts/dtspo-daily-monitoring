@@ -19,7 +19,6 @@ fi
 echo "Getting pull request details for PR ID ${SYSTEM_PULLREQUEST_PULLREQUESTID}"
 pullRequest=$(curl -fsSL \
     -H "Accept: application/vnd.github+json" \
-    -H "Authorization: Bearer ${GITHUB_TOKEN}" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
     "https://api.github.com/repos/hmcts/dtspo-daily-monitoring/pulls/${SYSTEM_PULLREQUEST_PULLREQUESTID}")
 githubUser=$(jq -er '.user.login' <<< "$pullRequest")
