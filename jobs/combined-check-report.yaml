@@ -1,6 +1,32 @@
+parameters:
+  - name: reports
+    type: object
+    default:
+      - title: 'Certificate checks'
+        files:
+          - certificate-check-results/results.txt
+      - title: 'GitHub actions'
+        files:
+          - github-workflow-results/results.txt
+      - title: 'Azure DevOps pipelines'
+        files:
+          - ado-pipeline-results/results.txt
+      - title: 'PostgreSQL Flexible Server Storage Usage'
+        files:
+          - postgres-backup-results/postgres-status.txt
+      - title: 'Licence Checks'
+        files:
+          - license-results/results.txt
+      - title: 'Service Principal Checks'
+        files:
+          - service-principal-results/results.txt
+      - title: 'PostgreSQL Backup Checks'
+        files:
+          - postgres-backup-results/azurebackup-status.txt
+
 jobs:
   - job: CombinedCheckReport
-    displayName: 'Report combined check results'
+    displayName: 'Report check results by category'
     dependsOn:
       - ResolveSlackRecipient
       - DailyMonitoring
@@ -67,33 +93,36 @@ jobs:
         inputs:
           artifact: 'postgres-backup-results'
           path: '$(Pipeline.Workspace)/postgres-backup-results'
-      - task: Bash@3
-        displayName: 'Send combined check results'
-        condition: always()
-        inputs:
-          targetType: inline
-          script: |
-            set -euo pipefail
-            combinedResults="$(System.DefaultWorkingDirectory)/combined-check-results.txt"
-            : > "$combinedResults"
+      - ${{ each report in parameters.reports }}:
+        - task: Bash@3
+          displayName: 'Send ${{ report.title }} results'
+          condition: always()
+          inputs:
+            targetType: inline
+            script: |
+              set -euo pipefail
+              reportResults="$(Agent.TempDirectory)/category-check-results.txt"
+              : > "$reportResults"
+              read -r -a resultFiles <<< "$REPORT_FILES"
 
-            for resultFile in \
-              "$(Pipeline.Workspace)/certificate-check-results/results.txt" \
-              "$(Pipeline.Workspace)/github-workflow-results/results.txt" \
-              "$(Pipeline.Workspace)/ado-pipeline-results/results.txt" \
-              "$(Pipeline.Workspace)/license-results/results.txt" \
-              "$(Pipeline.Workspace)/service-principal-results/results.txt" \
-              "$(Pipeline.Workspace)/postgres-backup-results/postgres-status.txt" \
-              "$(Pipeline.Workspace)/postgres-backup-results/azurebackup-status.txt"; do
-              if [[ -f "$resultFile" ]]; then
-                cat "$resultFile" >> "$combinedResults"
-              else
-                printf ':red_circle: Results could not be collected from %s.\n' "$(basename "$(dirname "$resultFile")")" >> "$combinedResults"
-              fi
-            done
+              for relativePath in "${resultFiles[@]}"; do
+                resultFile="$RESULTS_DIRECTORY/$relativePath"
+                if [[ -f "$resultFile" ]]; then
+                  cat "$resultFile" >> "$reportResults"
+                  printf '\n' >> "$reportResults"
+                else
+                  printf ':red_circle: Results could not be collected from %s.\n' "$relativePath" >> "$reportResults"
+                fi
+              done
 
-            scripts/send-slack-header-thread-each-loop.sh \
-              --slackBotToken "$(dtspo-daily-checks-slack-bot-token)" \
-              --slackChannelName "$(main_channel)" \
-              --inputFileName "$combinedResults" \
-              --messageHeader ":github: Scheduled Checks"
+              bash scripts/send-slack-header-thread-each-loop.sh \
+                --slackBotToken "$SLACK_BOT_TOKEN" \
+                --slackChannelName "$SLACK_RECIPIENT" \
+                --inputFileName "$reportResults" \
+                --messageHeader "$REPORT_TITLE"
+          env:
+            REPORT_TITLE: ${{ report.title }}
+            REPORT_FILES: ${{ join(' ', report.files) }}
+            RESULTS_DIRECTORY: $(Pipeline.Workspace)
+            SLACK_BOT_TOKEN: $(dtspo-daily-checks-slack-bot-token)
+            SLACK_RECIPIENT: $(main_channel)
