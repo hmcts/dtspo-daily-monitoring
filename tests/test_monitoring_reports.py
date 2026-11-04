@@ -12,7 +12,7 @@ REPOSITORY = Path(__file__).resolve().parents[1]
 
 
 class MonitoringReportTests(unittest.TestCase):
-    def run_sender(self, reports, ready=True, slack_fails=False, partial_write=False, rejected_text=""):
+    def run_sender(self, reports, ready=True, slack_fails=False, partial_write=False, rejected_text="", echo_escapes=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             scripts = root / "scripts"
@@ -41,7 +41,7 @@ with calls.open("a") as output:
     output.write(json.dumps(payload) + "\\n")
 empty_reply = "text" in payload and not payload["text"].strip()
 rejected_reply = bool(os.environ["REJECTED_TEXT"]) and payload.get("text") == os.environ["REJECTED_TEXT"]
-print(json.dumps({"ok": os.environ["SLACK_FAILS"] != "1" and not empty_reply and not rejected_reply, "ts": f"100.{count}", "error": "no_text" if empty_reply else "mock_failure"}))
+print(json.dumps({"ok": os.environ["SLACK_FAILS"] != "1" and not empty_reply and not rejected_reply, "ts": f"100.{count}", "message": payload, "error": "no_text" if empty_reply else "mock_failure"}))
 '''
             )
             curl.chmod(0o755)
@@ -49,6 +49,8 @@ print(json.dumps({"ok": os.environ["SLACK_FAILS"] != "1" and not empty_reply and
             uname.write_text("#!/bin/sh\nprintf 'Linux\\n'\n")
             uname.chmod(0o755)
             calls = root / "calls.jsonl"
+            bash_environment = root / "bash-environment"
+            bash_environment.write_text("shopt -s xpg_echo\n" if echo_escapes else "")
             result = subprocess.run(
                 ["bash", "scripts/send-monitoring-reports.sh", str(report_directory), "test-token", "U123"],
                 cwd=root,
@@ -58,6 +60,7 @@ print(json.dumps({"ok": os.environ["SLACK_FAILS"] != "1" and not empty_reply and
                     "SLACK_CALLS": str(calls),
                     "SLACK_FAILS": str(int(slack_fails)),
                     "REJECTED_TEXT": rejected_text,
+                    "BASH_ENV": str(bash_environment),
                 },
                 capture_output=True,
                 text=True,
@@ -85,6 +88,38 @@ print(json.dumps({"ok": os.environ["SLACK_FAILS"] != "1" and not empty_reply and
         result, posts = self.run_sender([])
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(posts, [])
+
+    def test_jira_details_send_when_slack_echoes_multiline_json(self):
+        result, posts = self.run_sender([
+            {"header": "Jira Status", "message": "BAU tickets\nStatus summary", "replies": [
+                ":red_circle: *95* Open BAU issues\n:yellow_circle: *12* Unassigned issues",
+            ]},
+            {"header": "Jira Ticket Status", "message": "4 issues closed yesterday", "replies": [
+                "Closed issues:\n>_First User_: 3\n>_Second User_: 1",
+                "Currently assigned:\n>_First User_: 12",
+            ]},
+        ])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len(posts), 5)
+        self.assertIn("95", posts[1]["text"])
+        self.assertEqual(posts[1]["thread_ts"], "100.0")
+        self.assertIn(">_First User_: 3", posts[3]["text"])
+        self.assertIn(">_First User_: 12", posts[4]["text"])
+        self.assertEqual(posts[3]["thread_ts"], "100.2")
+        self.assertEqual(posts[4]["thread_ts"], "100.2")
+        self.assertIn("Jira Status (1 saved replies)", result.stderr)
+        self.assertIn("Jira Ticket Status (2 saved replies)", result.stderr)
+
+    def test_slack_response_json_is_not_reinterpreted_by_echo(self):
+        result, posts = self.run_sender([
+            {"header": ":red_circle: Jira Status", "message": "BAU tickets\nStatus summary", "replies": [
+                "95 open issues\n12 unassigned issues",
+            ]},
+        ], echo_escapes=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len(posts), 2)
+        self.assertEqual(posts[1]["text"], "95 open issues\n12 unassigned issues")
+        self.assertEqual(posts[1]["thread_ts"], "100.0")
 
     def test_sends_reports_alphabetically_ignoring_status_icons_and_case(self):
         result, posts = self.run_sender([

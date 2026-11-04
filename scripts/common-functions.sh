@@ -69,13 +69,13 @@ slackNotification() {
     -X POST https://slack.com/api/chat.postMessage)
 
     # Surface API failures without printing successful responses to pipeline logs.
-    if [[ "$(echo "$RESPONSE" | jq -r '.ok')" != "true" ]]; then
-        echo "Slack post failed: $RESPONSE" >&2
+    if [[ "$(jq -r '.ok' <<< "$RESPONSE")" != "true" ]]; then
+        printf 'Slack post failed: %s\n' "$RESPONSE" >&2
         return 1
     fi
 
     # Extract the timestamp of the posted message
-    TS=$(echo $RESPONSE | jq -r '.ts')
+    TS=$(jq -er '.ts | select(type == "string" and length > 0)' <<< "$RESPONSE")
 }
 
 # Post a threaded reply to a Slack message
@@ -94,8 +94,8 @@ slackThreadResponse() {
     -X POST https://slack.com/api/chat.postMessage)
 
     # Surface API failures without printing successful responses to pipeline logs.
-    if [[ "$(echo "$RESPONSE" | jq -r '.ok')" != "true" ]]; then
-        echo "Slack thread post failed: $RESPONSE" >&2
+    if [[ "$(jq -r '.ok' <<< "$RESPONSE")" != "true" ]]; then
+        printf 'Slack thread post failed: %s\n' "$RESPONSE" >&2
         return 1
     fi
 }
@@ -126,8 +126,8 @@ slackMessageUpdate() {
     -X POST https://slack.com/api/chat.update)
 
     # Surface API failures without printing successful responses to pipeline logs.
-    if [[ "$(echo "$RESPONSE" | jq -r '.ok')" != "true" ]]; then
-        echo "Slack update failed: $RESPONSE" >&2
+    if [[ "$(jq -r '.ok' <<< "$RESPONSE")" != "true" ]]; then
+        printf 'Slack update failed: %s\n' "$RESPONSE" >&2
         return 1
     fi
 }
