@@ -1,3 +1,11 @@
+parameters:
+  - name: service_connection
+    type: string
+  - name: dev_service_connection
+    type: string
+  - name: SPSecretNumDays
+    type: number
+
 jobs:
   - job: ServicePrincipalChecks
     displayName: 'Check service principals'
@@ -26,11 +34,11 @@ jobs:
         inputs:
           scriptType: bash
           scriptPath: scripts/service-principals.sh
-          azureSubscription: ${{ variables.dev_service_connection }}
+          azureSubscription: ${{ parameters.dev_service_connection }}
           arguments: >
             --slackBotToken $(dtspo-daily-checks-slack-bot-token)
             --slackChannelName $(main_channel)
-            --checkDays ${{ variables.SPSecretNumDays }}
+            --checkDays ${{ parameters.SPSecretNumDays }}
             --outputFile service-principal-status.txt
       - task: AzureCLI@2
         displayName: 'Service Principal Check'
@@ -38,11 +46,11 @@ jobs:
         inputs:
           scriptType: bash
           scriptPath: scripts/service-principals.sh
-          azureSubscription: ${{ variables.service_connection }}
+          azureSubscription: ${{ parameters.service_connection }}
           arguments: >
             --slackBotToken $(dtspo-daily-checks-slack-bot-token)
             --slackChannelName $(main_channel)
-            --checkDays ${{ variables.SPSecretNumDays }}
+            --checkDays ${{ parameters.SPSecretNumDays }}
             --outputFile service-principal-status.txt
       - task: AzureCLI@2
         displayName: 'Service Principal Check - B2C Sandbox Tenant'
@@ -50,11 +58,11 @@ jobs:
         inputs:
           scriptType: bash
           scriptPath: scripts/service-principals-b2c-tenants.sh
-          azureSubscription: ${{ variables.service_connection }}
+          azureSubscription: ${{ parameters.service_connection }}
           arguments: >
             --slackBotToken $(dtspo-daily-checks-slack-bot-token)
             --slackChannelName $(main_channel)
-            --checkDays ${{ variables.SPSecretNumDays }}
+            --checkDays ${{ parameters.SPSecretNumDays }}
             --outputFile service-principal-status.txt
         env:
           b2c_prod_serviceprincipal_id: $(b2c-prod-serviceprincipal-id)

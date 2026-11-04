@@ -1,6 +1,12 @@
 parameters:
   - name: aks_clusters
     type: object
+  - name: service_connection
+    type: string
+  - name: ado_service_connection
+    type: string
+  - name: jenkins_url
+    type: string
 
 jobs:
   - job: DailyMonitoring
@@ -35,7 +41,7 @@ jobs:
         inputs:
           scriptType: bash
           scriptPath: scripts/orphan-resource-check.sh
-          azureSubscription: ${{ variables.service_connection }}
+          azureSubscription: ${{ parameters.service_connection }}
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: Bash@3
         displayName: 'Checking Jenkins status'
@@ -48,7 +54,7 @@ jobs:
             --slackChannelName $(main_channel)
             --jenkinsUsername $(jenkins-api-user)
             --jenkinsApiToken $(jenkins-api-token)
-            --jenkinsURL ${{ variables.jenkins_url }}
+            --jenkinsURL ${{ parameters.jenkins_url }}
       - task: Bash@3
         displayName: "Checking GitHub Pages review status"
         continueOnError: true
@@ -69,7 +75,7 @@ jobs:
         inputs:
           scriptType: bash
           scriptPath: scripts/cluster-state-monitor.sh
-          azureSubscription: ${{ variables.ado_service_connection }}
+          azureSubscription: ${{ parameters.ado_service_connection }}
           arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName $(main_channel)
       - task: AzureCLI@2
         displayName: 'Check break-glass sign-ins'

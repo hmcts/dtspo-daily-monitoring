@@ -315,6 +315,9 @@ jobs:
   - template: jobs/daily-monitoring.yaml
     parameters:
       aks_clusters: ${{ parameters.aks_clusters }}
+      service_connection: ${{ variables.service_connection }}
+      ado_service_connection: ${{ variables.ado_service_connection }}
+      jenkins_url: ${{ variables.jenkins_url }}
   - template: jobs/certificate-checks.yaml
     parameters:
       certificates: ${{ parameters.certificates }}
@@ -327,6 +330,10 @@ jobs:
       ado_pipelines: ${{ parameters.ado_pipelines }}
   - template: jobs/license-checks.yaml
   - template: jobs/service-principal-checks.yaml
+    parameters:
+      service_connection: ${{ variables.service_connection }}
+      dev_service_connection: ${{ variables.dev_service_connection }}
+      SPSecretNumDays: ${{ variables.SPSecretNumDays }}
   - template: jobs/postgres-backup-checks.yaml
     parameters:
       postgres_subscriptions: ${{ parameters.postgres_subscriptions }}
