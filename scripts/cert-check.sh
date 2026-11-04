@@ -121,4 +121,4 @@ else
 fi
 
 # Save output to file
-echo $slackThread >> cert-status.txt
+printf '%s\n' "$slackThread" >> cert-status.txt
