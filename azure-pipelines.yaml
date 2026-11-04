@@ -311,7 +311,41 @@ variables:
   - group: daily-checks-ghapp
 
 jobs:
+  - job: ResolveSlackRecipient
+    displayName: 'Resolve Slack notification recipient'
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - checkout: self
+      - task: AzureKeyVault@2
+        displayName: 'Get GitHub token'
+        condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
+        inputs:
+          azureSubscription: 'DTS-CFTPTL-INTSVC'
+          keyVaultName: 'cftptl-intsvc'
+          secretsFilter: 'dtspo-daily-checks-github-fine-grained-token'
+      - task: Bash@3
+        name: recipient
+        displayName: 'Set shared Slack recipient'
+        inputs:
+          targetType: inline
+          script: |
+            set -euo pipefail
+            channel_name=$(bash scripts/resolve-slack-recipient.sh "dtspo-daily-checks")
+            if [[ -z "$channel_name" ]]; then
+              echo "Slack recipient lookup returned an empty destination." >&2
+              exit 1
+            fi
+            echo "##vso[task.setvariable variable=main_channel;isOutput=true]${channel_name}"
+        env:
+          BUILD_REASON: $(Build.Reason)
+          BUILD_SOURCEBRANCH: $(Build.SourceBranch)
+          SYSTEM_PULLREQUEST_PULLREQUESTID: $(System.PullRequest.PullRequestId)
+          GITHUB_TOKEN: $(dtspo-daily-checks-github-fine-grained-token)
   - job: DailyMonitoring
+    dependsOn: ResolveSlackRecipient
+    variables:
+      main_channel: $[ dependencies.ResolveSlackRecipient.outputs['recipient.main_channel'] ]
     timeoutInMinutes: 60
     pool:
       name: 'hmcts-cftptl-agent-pool'
@@ -325,17 +359,11 @@ jobs:
           keyVaultName:   "cftptl-intsvc"
           secretsFilter: 'dtspo-daily-checks-slack-webhook-url,dtspo-daily-checks-slack-bot-token,azure-devops-token,jira-api-token,jira-username,dtspo-daily-checks-github-fine-grained-token,dtspo-daily-checks-github-classic-token,jenkins-api-user,jenkins-api-token,launchdarkly-access-token,b2c-prod-serviceprincipal-id,b2c-prod-serviceprincipal-password,b2c-prod-tenant-id,sendgrid-hmcts-bau-nonprod-apikey'
       - task: Bash@3
-        displayName: 'Set Channel Name'
+        displayName: 'Set test mode'
         inputs:
           targetType: inline
           script: |
-            channel_name=$(bash scripts/resolve-slack-recipient.sh "dtspo-daily-checks")
-            echo "##vso[task.setvariable variable=main_channel]${channel_name}"
             echo "##vso[task.setvariable variable=testMode]false"
-        env:
-          BUILD_REASON: $(Build.Reason)
-          SYSTEM_PULLREQUEST_PULLREQUESTID: $(System.PullRequest.PullRequestId)
-          GITHUB_TOKEN: $(dtspo-daily-checks-github-fine-grained-token)
       - script: |
           echo "main_channel set to: $(main_channel)"
         displayName: 'Show main channel name'
@@ -506,7 +534,7 @@ jobs:
             --jobStatus $(Agent.JobStatus)
   - job: CertificateChecks
     displayName: 'Check certificates'
-    dependsOn: []
+    dependsOn: ResolveSlackRecipient
     timeoutInMinutes: 60
     pool:
       name: 'hmcts-cftptl-agent-pool'
@@ -525,11 +553,6 @@ jobs:
           azureSubscription: 'DTS-CFTPTL-INTSVC'
           keyVaultName: 'cftptl-intsvc'
           secretsFilter: 'dtspo-daily-checks-slack-bot-token,dtspo-daily-checks-github-fine-grained-token'
-      - task: Bash@3
-        displayName: 'Set Channel Name'
-        inputs:
-          targetType: inline
-          script: echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
       - ${{ each frontdoor in parameters.certificates }}:
         - task: AzureCLI@2
           displayName: 'Checking ${{ frontdoor.front_door_name }} Certificate status'
@@ -571,7 +594,7 @@ jobs:
           artifact: 'certificate-check-results'
   - job: GithubWorkflowChecks
     displayName: 'Check GitHub workflows'
-    dependsOn: []
+    dependsOn: ResolveSlackRecipient
     timeoutInMinutes: 60
     pool:
       name: 'hmcts-cftptl-agent-pool'
@@ -588,11 +611,6 @@ jobs:
           azureSubscription: 'DTS-CFTPTL-INTSVC'
           keyVaultName: 'cftptl-intsvc'
           secretsFilter: 'dtspo-daily-checks-slack-bot-token,dtspo-daily-checks-github-fine-grained-token'
-      - task: Bash@3
-        displayName: 'Set Channel Name'
-        inputs:
-          targetType: inline
-          script: echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
       - ${{ each gh_workflow in parameters.gh_workflows }}:
         - task: Bash@3
           displayName: 'Check GitHub workflow Runs: ${{ gh_workflow.repo }} / ${{ gh_workflow.run }}'
@@ -617,7 +635,7 @@ jobs:
           artifact: 'github-workflow-results'
   - job: AdoPipelineChecks
     displayName: 'Check Azure DevOps pipelines'
-    dependsOn: []
+    dependsOn: ResolveSlackRecipient
     timeoutInMinutes: 60
     pool:
       name: 'hmcts-cftptl-agent-pool'
@@ -634,11 +652,6 @@ jobs:
           azureSubscription: 'DTS-CFTPTL-INTSVC'
           keyVaultName: 'cftptl-intsvc'
           secretsFilter: 'dtspo-daily-checks-slack-bot-token,azure-devops-token'
-      - task: Bash@3
-        displayName: 'Set Channel Name'
-        inputs:
-          targetType: inline
-          script: echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
       - ${{ each ado_pipeline in parameters.ado_pipelines }}:
         - task: Bash@3
           displayName: 'Checking Azure pipeline: ${{ ado_pipeline.pipelineName }}'
@@ -671,7 +684,7 @@ jobs:
           artifact: 'ado-pipeline-results'
   - job: LicenseChecks
     displayName: 'Check licenses'
-    dependsOn: []
+    dependsOn: ResolveSlackRecipient
     timeoutInMinutes: 30
     pool:
       name: 'hmcts-cftptl-agent-pool'
@@ -722,7 +735,9 @@ jobs:
           artifact: 'license-results'
   - job: ServicePrincipalChecks
     displayName: 'Check service principals'
-    dependsOn: []
+    dependsOn: ResolveSlackRecipient
+    variables:
+      main_channel: $[ dependencies.ResolveSlackRecipient.outputs['recipient.main_channel'] ]
     timeoutInMinutes: 45
     pool:
       name: 'hmcts-cftptl-agent-pool'
@@ -739,11 +754,6 @@ jobs:
           azureSubscription: 'DTS-CFTPTL-INTSVC'
           keyVaultName: 'cftptl-intsvc'
           secretsFilter: 'dtspo-daily-checks-slack-bot-token,b2c-prod-serviceprincipal-id,b2c-prod-serviceprincipal-password,b2c-prod-tenant-id'
-      - task: Bash@3
-        displayName: 'Set Channel Name'
-        inputs:
-          targetType: inline
-          script: echo "##vso[task.setvariable variable=main_channel]dtspo-daily-checks"
       - task: AzureCLI@2
         displayName: 'Service Principal Check - Dev Tenant'
         continueOnError: true
@@ -800,7 +810,7 @@ jobs:
           artifact: 'service-principal-results'
   - job: PostgresBackupChecks
     displayName: 'Check PostgreSQL and backups'
-    dependsOn: []
+    dependsOn: ResolveSlackRecipient
     timeoutInMinutes: 60
     pool:
       name: 'hmcts-cftptl-agent-pool'
@@ -848,13 +858,16 @@ jobs:
   - job: CombinedCheckReport
     displayName: 'Report combined check results'
     dependsOn:
+      - ResolveSlackRecipient
       - CertificateChecks
       - GithubWorkflowChecks
       - AdoPipelineChecks
       - LicenseChecks
       - ServicePrincipalChecks
       - PostgresBackupChecks
-    condition: always()
+    condition: and(always(), eq(dependencies.ResolveSlackRecipient.result, 'Succeeded'))
+    variables:
+      main_channel: $[ dependencies.ResolveSlackRecipient.outputs['recipient.main_channel'] ]
     timeoutInMinutes: 10
     pool:
       name: 'hmcts-cftptl-agent-pool'
@@ -932,13 +945,8 @@ jobs:
               fi
             done
 
-            channel_name=$(bash scripts/resolve-slack-recipient.sh "dtspo-daily-checks")
             scripts/send-slack-header-thread-each-loop.sh \
               --slackBotToken "$(dtspo-daily-checks-slack-bot-token)" \
-              --slackChannelName "$channel_name" \
+              --slackChannelName "$(main_channel)" \
               --inputFileName "$combinedResults" \
               --messageHeader ":github: Scheduled Checks"
-        env:
-          BUILD_REASON: $(Build.Reason)
-          SYSTEM_PULLREQUEST_PULLREQUESTID: $(System.PullRequest.PullRequestId)
-          GITHUB_TOKEN: $(dtspo-daily-checks-github-fine-grained-token)
