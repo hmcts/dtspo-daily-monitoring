@@ -12,7 +12,7 @@ REPOSITORY = Path(__file__).resolve().parents[1]
 
 
 class MonitoringReportTests(unittest.TestCase):
-    def run_sender(self, reports, ready=True, slack_fails=False):
+    def run_sender(self, reports, ready=True, slack_fails=False, partial_write=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             scripts = root / "scripts"
@@ -23,8 +23,11 @@ class MonitoringReportTests(unittest.TestCase):
             report_directory.mkdir()
             if ready:
                 (report_directory / ".ready").touch()
+            if partial_write:
+                (report_directory / ".reply-interrupted").write_text('{"header": "unfinished\n')
             for index, report in enumerate(reports):
-                (report_directory / f"report-{index:04d}").write_text(json.dumps(report))
+                content = report if isinstance(report, str) else json.dumps(report)
+                (report_directory / f"report-{index:04d}").write_text(content)
             curl = root / "curl"
             curl.write_text(
                 f"#!{sys.executable}\n"
@@ -123,6 +126,24 @@ print(json.dumps({"ok": os.environ["SLACK_FAILS"] != "1", "ts": f"100.{count}", 
         self.assertEqual(result.returncode, 1)
         self.assertEqual(len(posts), 1)
         self.assertIn("Slack post failed", result.stderr)
+
+    def test_truncated_report_identifies_the_file_before_posting(self):
+        result, posts = self.run_sender([
+            {"header": "Valid", "message": "Details", "replies": []},
+            '{"header": "unfinished\n',
+        ])
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(posts, [])
+        self.assertIn("Invalid monitoring report:", result.stderr)
+        self.assertIn("report-0001", result.stderr)
+
+    def test_interrupted_temporary_write_is_not_sent(self):
+        result, posts = self.run_sender([
+            {"header": "Valid", "message": "Details", "replies": []},
+        ], partial_write=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len(posts), 1)
+        self.assertEqual(posts[0]["blocks"][0]["text"]["text"], "Valid")
 
     def test_records_separate_headers_and_ordered_replies_without_posting(self):
         with tempfile.TemporaryDirectory() as directory:

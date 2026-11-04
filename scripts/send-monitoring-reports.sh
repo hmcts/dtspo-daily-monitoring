@@ -20,6 +20,15 @@ reportFiles=("$reportDirectory"/report-*)
 if [[ ${#reportFiles[@]} -eq 0 ]]; then
     exit 0
 fi
+for reportFile in "${reportFiles[@]}"; do
+    if ! jq -e -s 'length == 1 and all(.[];
+        type == "object" and (.header | type == "string") and
+        (.message | type == "string") and (.replies | type == "array") and
+        all(.replies[]; type == "string"))' "$reportFile" >/dev/null; then
+        printf 'Invalid monitoring report: %s. The file is incomplete or has an invalid report structure.\n' "$reportFile" >&2
+        exit 1
+    fi
+done
 sortedReports=$(jq -sc '
     if all(.[]; type == "object" and (.header | type == "string") and
         (.message | type == "string") and (.replies | type == "array") and
