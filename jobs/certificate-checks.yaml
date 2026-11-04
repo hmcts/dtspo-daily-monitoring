@@ -1,0 +1,67 @@
+parameters:
+  - name: certificates
+    type: object
+  - name: keyvault_certificates
+    type: object
+
+jobs:
+  - job: CertificateChecks
+    displayName: 'Check certificates'
+    dependsOn: ResolveSlackRecipient
+    timeoutInMinutes: 60
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - checkout: self
+      - task: Bash@3
+        displayName: 'Initialize certificate results'
+        inputs:
+          targetType: inline
+          script: |
+            : > cert-status.txt
+            : > keyvault-cert-status.txt
+      - task: AzureKeyVault@2
+        displayName: 'Get Slack token'
+        inputs:
+          azureSubscription: 'DTS-CFTPTL-INTSVC'
+          keyVaultName: 'cftptl-intsvc'
+          secretsFilter: 'dtspo-daily-checks-slack-bot-token,dtspo-daily-checks-github-fine-grained-token'
+      - ${{ each frontdoor in parameters.certificates }}:
+        - task: AzureCLI@2
+          displayName: 'Checking ${{ frontdoor.front_door_name }} Certificate status'
+          continueOnError: true
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/cert-check.sh
+            azureSubscription: ${{ frontdoor.subscription }}
+            arguments: >
+              --subscription ${{ frontdoor.subscription }}
+              --resourceGroup ${{ frontdoor.resource_group }}
+              --frontdoorName ${{ frontdoor.front_door_name }}
+              --minCertExpirationDays ${{ frontdoor.min_cert_exp_days }}
+      - ${{ each keyvault in parameters.keyvault_certificates }}:
+        - task: AzureCLI@2
+          displayName: 'Checking ${{ keyvault.keyvault_name }} KeyVault Certificate status'
+          continueOnError: true
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/keyvault-cert-check.sh
+            azureSubscription: ${{ keyvault.subscription }}
+            arguments: >
+              --subscription ${{ keyvault.subscription }}
+              --keyVaultName ${{ keyvault.keyvault_name }}
+              --minCertExpirationDays ${{ keyvault.min_cert_exp_days }}
+      - task: Bash@3
+        displayName: 'Stage certificate results'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: |
+            mkdir -p "$(Build.ArtifactStagingDirectory)/certificate-check-results"
+            cat cert-status.txt keyvault-cert-status.txt > "$(Build.ArtifactStagingDirectory)/certificate-check-results/results.txt"
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish certificate results'
+        condition: always()
+        inputs:
+          targetPath: '$(Build.ArtifactStagingDirectory)/certificate-check-results/results.txt'
+          artifact: 'certificate-check-results'

@@ -1,0 +1,99 @@
+jobs:
+  - job: CombinedCheckReport
+    displayName: 'Report combined check results'
+    dependsOn:
+      - ResolveSlackRecipient
+      - DailyMonitoring
+      - CertificateChecks
+      - GithubWorkflowChecks
+      - AdoPipelineChecks
+      - LicenseChecks
+      - ServicePrincipalChecks
+      - PostgresBackupChecks
+      - RoleAssignmentChecks
+    condition: and(always(), eq(dependencies.ResolveSlackRecipient.result, 'Succeeded'))
+    variables:
+      main_channel: $[ dependencies.ResolveSlackRecipient.outputs['recipient.main_channel'] ]
+    timeoutInMinutes: 10
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - checkout: self
+      - task: AzureKeyVault@2
+        displayName: 'Get Slack token'
+        inputs:
+          azureSubscription: 'DTS-CFTPTL-INTSVC'
+          keyVaultName: 'cftptl-intsvc'
+          secretsFilter: 'dtspo-daily-checks-slack-bot-token'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download certificate results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'certificate-check-results'
+          path: '$(Pipeline.Workspace)/certificate-check-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download GitHub workflow results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'github-workflow-results'
+          path: '$(Pipeline.Workspace)/github-workflow-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download Azure DevOps pipeline results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'ado-pipeline-results'
+          path: '$(Pipeline.Workspace)/ado-pipeline-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download license results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'license-results'
+          path: '$(Pipeline.Workspace)/license-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download service-principal results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'service-principal-results'
+          path: '$(Pipeline.Workspace)/service-principal-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download PostgreSQL and backup results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'postgres-backup-results'
+          path: '$(Pipeline.Workspace)/postgres-backup-results'
+      - task: Bash@3
+        displayName: 'Send combined check results'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: |
+            set -euo pipefail
+            combinedResults="$(System.DefaultWorkingDirectory)/combined-check-results.txt"
+            : > "$combinedResults"
+
+            for resultFile in \
+              "$(Pipeline.Workspace)/certificate-check-results/results.txt" \
+              "$(Pipeline.Workspace)/github-workflow-results/results.txt" \
+              "$(Pipeline.Workspace)/ado-pipeline-results/results.txt" \
+              "$(Pipeline.Workspace)/license-results/results.txt" \
+              "$(Pipeline.Workspace)/service-principal-results/results.txt" \
+              "$(Pipeline.Workspace)/postgres-backup-results/postgres-status.txt" \
+              "$(Pipeline.Workspace)/postgres-backup-results/azurebackup-status.txt"; do
+              if [[ -f "$resultFile" ]]; then
+                cat "$resultFile" >> "$combinedResults"
+              else
+                printf ':red_circle: Results could not be collected from %s.\n' "$(basename "$(dirname "$resultFile")")" >> "$combinedResults"
+              fi
+            done
+
+            scripts/send-slack-header-thread-each-loop.sh \
+              --slackBotToken "$(dtspo-daily-checks-slack-bot-token)" \
+              --slackChannelName "$(main_channel)" \
+              --inputFileName "$combinedResults" \
+              --messageHeader ":github: Scheduled Checks"

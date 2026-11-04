@@ -1,0 +1,33 @@
+jobs:
+  - job: ResolveSlackRecipient
+    displayName: 'Resolve Slack notification recipient'
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - checkout: self
+      - task: AzureKeyVault@2
+        displayName: 'Get GitHub token'
+        condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
+        inputs:
+          azureSubscription: 'DTS-CFTPTL-INTSVC'
+          keyVaultName: 'cftptl-intsvc'
+          secretsFilter: 'dtspo-daily-checks-github-fine-grained-token'
+      - task: Bash@3
+        name: recipient
+        displayName: 'Set shared Slack recipient'
+        inputs:
+          targetType: inline
+          script: |
+            set -euo pipefail
+            channel_name=$(bash scripts/resolve-slack-recipient.sh "dtspo-daily-checks")
+            if [[ -z "$channel_name" ]]; then
+              echo "Slack recipient lookup returned an empty destination." >&2
+              exit 1
+            fi
+            echo "##vso[task.setvariable variable=main_channel;isOutput=true]${channel_name}"
+        env:
+          BUILD_REASON: $(Build.Reason)
+          BUILD_SOURCEBRANCH: $(Build.SourceBranch)
+          SYSTEM_PULLREQUEST_PULLREQUESTNUMBER: $(System.PullRequest.PullRequestNumber)
+          SYSTEM_PULLREQUEST_PULLREQUESTID: $(System.PullRequest.PullRequestId)
+          GITHUB_TOKEN: $(dtspo-daily-checks-github-fine-grained-token)
