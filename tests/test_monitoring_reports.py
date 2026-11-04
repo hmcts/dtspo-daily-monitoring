@@ -80,6 +80,28 @@ print(json.dumps({"ok": os.environ["SLACK_FAILS"] != "1", "ts": f"100.{count}", 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(posts, [])
 
+    def test_sends_reports_alphabetically_ignoring_status_icons_and_case(self):
+        result, posts = self.run_sender([
+            {"header": ":red_circle: :jenkins: Jenkins Status", "message": "Details", "replies": ["Jenkins reply"]},
+            {"header": ":yellow_circle: Certificate checks", "message": "Details", "replies": []},
+            {"header": ":red_circle: GitHub actions", "message": "Details", "replies": []},
+            {"header": ":yellow_circle: :clock1: Auto Shutdown Status", "message": "Details", "replies": ["Auto reply"]},
+            {"header": ":red_circle: azure DevOps pipelines", "message": "Details", "replies": []},
+        ])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        headers = [post["blocks"][0]["text"]["text"] for post in posts if "blocks" in post]
+        self.assertEqual(headers, [
+            ":yellow_circle: :clock1: Auto Shutdown Status",
+            ":red_circle: azure DevOps pipelines",
+            ":yellow_circle: Certificate checks",
+            ":red_circle: GitHub actions",
+            ":red_circle: :jenkins: Jenkins Status",
+        ])
+        self.assertEqual(posts[1]["text"], "Auto reply")
+        self.assertEqual(posts[1]["thread_ts"], "100.0")
+        self.assertEqual(posts[-1]["text"], "Jenkins reply")
+        self.assertEqual(posts[-1]["thread_ts"], "100.5")
+
     def test_sender_interprets_message_escapes_once(self):
         result, posts = self.run_sender([
             {"header": "Test", "message": r"Literal \\n", "replies": [r"Literal \\n"]},

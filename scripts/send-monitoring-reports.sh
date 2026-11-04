@@ -16,15 +16,24 @@ if [[ ! -f "$reportDirectory/.ready" ]]; then
 fi
 
 shopt -s nullglob
-for reportFile in "$reportDirectory"/report-*; do
-    jq -e 'type == "object" and (.header | type == "string") and
+reportFiles=("$reportDirectory"/report-*)
+if [[ ${#reportFiles[@]} -eq 0 ]]; then
+    exit 0
+fi
+sortedReports=$(jq -sc '
+    if all(.[]; type == "object" and (.header | type == "string") and
         (.message | type == "string") and (.replies | type == "array") and
-        all(.replies[]; type == "string")' "$reportFile" >/dev/null
-    header=$(jq -r '.header' "$reportFile")
-    message=$(jq -r '.message' "$reportFile")
+        all(.replies[]; type == "string")) then
+        sort_by([(.header | gsub(":[A-Za-z0-9_+-]+:"; "") |
+            gsub("[*_]"; "") | gsub("^\\s+|\\s+$"; "") | ascii_downcase), .header])[]
+    else error("Invalid monitoring report") end
+' "${reportFiles[@]}")
+while IFS= read -r report; do
+    header=$(jq -r '.header' <<< "$report")
+    message=$(jq -r '.message' <<< "$report")
     slackNotification "$slackBotToken" "$slackRecipient" "$header" "$message"
     while IFS= read -r reply; do
         message=$(jq -r '.' <<< "$reply")
         slackThreadResponse "$slackBotToken" "$slackRecipient" "$message" "$TS"
-    done < <(jq -c '.replies[]' "$reportFile")
-done
+    done < <(jq -c '.replies[]' <<< "$report")
+done <<< "$sortedReports"

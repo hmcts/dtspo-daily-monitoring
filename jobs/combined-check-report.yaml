@@ -110,22 +110,43 @@ jobs:
         inputs:
           artifact: 'role-assignment-results'
           path: '$(Pipeline.Workspace)/role-assignment-results'
+      - task: Bash@3
+        displayName: 'Initialise final reports'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: |
+            set -euo pipefail
+            mkdir -p monitoring-reports
+            find monitoring-reports -maxdepth 1 -type f -name 'report-*' -delete
+            : > monitoring-reports/.ready
       - ${{ each source in split('daily-monitoring-results,role-assignment-results', ',') }}:
         - task: Bash@3
-          displayName: 'Send saved reports: ${{ source }}'
+          displayName: 'Collect saved reports: ${{ source }}'
           condition: always()
           inputs:
             targetType: inline
             script: |
               set -euo pipefail
-              bash scripts/send-monitoring-reports.sh "$REPORT_DIRECTORY" "$SLACK_BOT_TOKEN" "$SLACK_RECIPIENT"
+              source scripts/common-functions.sh
+              if [[ ! -f "$REPORT_DIRECTORY/.ready" ]]; then
+                recordNotification "$SLACK_BOT_TOKEN" "$SLACK_RECIPIENT" \
+                  ":red_circle: Monitoring reports unavailable" \
+                  "Reports could not be collected from $REPORT_SOURCE. Review the pipeline logs."
+                exit 1
+              fi
+              shopt -s nullglob
+              for reportFile in "$REPORT_DIRECTORY"/report-*; do
+                cp "$reportFile" "monitoring-reports/report-$REPORT_SOURCE-$(basename "$reportFile")"
+              done
           env:
             REPORT_DIRECTORY: $(Pipeline.Workspace)/${{ source }}
+            REPORT_SOURCE: ${{ source }}
             SLACK_BOT_TOKEN: $(dtspo-daily-checks-slack-bot-token)
             SLACK_RECIPIENT: $(main_channel)
       - ${{ each report in parameters.reports }}:
         - task: Bash@3
-          displayName: 'Send ${{ report.title }} results'
+          displayName: 'Prepare ${{ report.title }} results'
           condition: always()
           inputs:
             targetType: inline
@@ -145,14 +166,31 @@ jobs:
                 fi
               done
 
-              bash scripts/send-slack-header-thread-each-loop.sh \
-                --slackBotToken "$SLACK_BOT_TOKEN" \
-                --slackChannelName "$SLACK_RECIPIENT" \
-                --inputFileName "$reportResults" \
-                --messageHeader "$REPORT_TITLE"
+              source scripts/common-functions.sh
+              message=$(cat "$reportResults")
+              if [[ "$message" == *":red_circle:"* ]]; then
+                status=":red_circle:"
+              elif [[ "$message" == *":yellow_circle:"* ]]; then
+                status=":yellow_circle:"
+              else
+                exit 0
+              fi
+              recordNotification "$SLACK_BOT_TOKEN" "$SLACK_RECIPIENT" "$status $REPORT_TITLE" " "
+              recordThreadResponse "$SLACK_BOT_TOKEN" "$SLACK_RECIPIENT" "$message" "$TS"
           env:
             REPORT_TITLE: ${{ report.title }}
             REPORT_FILES: ${{ join(' ', report.files) }}
             RESULTS_DIRECTORY: $(Pipeline.Workspace)
             SLACK_BOT_TOKEN: $(dtspo-daily-checks-slack-bot-token)
             SLACK_RECIPIENT: $(main_channel)
+      - task: Bash@3
+        displayName: 'Send all reports alphabetically'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: |
+            set -euo pipefail
+            bash scripts/send-monitoring-reports.sh monitoring-reports "$SLACK_BOT_TOKEN" "$SLACK_RECIPIENT"
+        env:
+          SLACK_BOT_TOKEN: $(dtspo-daily-checks-slack-bot-token)
+          SLACK_RECIPIENT: $(main_channel)

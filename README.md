@@ -35,6 +35,7 @@ rather than falling back to the channel.
 
 Check jobs run in parallel and save their results as pipeline artifacts. The
 final reporting job sends all Slack reports after every check job finishes,
+in alphabetical order by check heading (ignoring Slack icons and case),
 preserving each heading and its thread replies. Checks that previously sent
 directly now use `recordNotification` and `recordThreadResponse` from
 `scripts/common-functions.sh` to write files under `monitoring-reports/`.
