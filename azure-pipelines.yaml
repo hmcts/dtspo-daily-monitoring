@@ -849,17 +849,18 @@ jobs:
           targetType: inline
           script: |
             mkdir -p "$(Build.ArtifactStagingDirectory)/postgres-backup-results"
-            cat postgres-status.txt azurebackup-status.txt > "$(Build.ArtifactStagingDirectory)/postgres-backup-results/results.txt"
+            cp postgres-status.txt azurebackup-status.txt "$(Build.ArtifactStagingDirectory)/postgres-backup-results/"
       - task: PublishPipelineArtifact@1
         displayName: 'Publish PostgreSQL and backup results'
         condition: always()
         inputs:
-          targetPath: '$(Build.ArtifactStagingDirectory)/postgres-backup-results/results.txt'
+          targetPath: '$(Build.ArtifactStagingDirectory)/postgres-backup-results'
           artifact: 'postgres-backup-results'
   - job: CombinedCheckReport
     displayName: 'Report combined check results'
     dependsOn:
       - ResolveSlackRecipient
+      - DailyMonitoring
       - CertificateChecks
       - GithubWorkflowChecks
       - AdoPipelineChecks
@@ -938,7 +939,8 @@ jobs:
               "$(Pipeline.Workspace)/ado-pipeline-results/results.txt" \
               "$(Pipeline.Workspace)/license-results/results.txt" \
               "$(Pipeline.Workspace)/service-principal-results/results.txt" \
-              "$(Pipeline.Workspace)/postgres-backup-results/results.txt"; do
+              "$(Pipeline.Workspace)/postgres-backup-results/postgres-status.txt" \
+              "$(Pipeline.Workspace)/postgres-backup-results/azurebackup-status.txt"; do
               if [[ -f "$resultFile" ]]; then
                 cat "$resultFile" >> "$combinedResults"
               else
