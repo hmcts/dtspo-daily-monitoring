@@ -154,11 +154,11 @@ if [[ "$has_stale_account" == true ]]; then
     echo "##vso[task.logissue type=warning]One or more break-glass accounts require sign-in follow-up. See scripts/breakglass-signin-review.md."
 
     if [[ -n "$slackBotToken" && -n "$slackChannelName" ]]; then
-        slackNotification "$slackBotToken" "$slackChannelName" \
+        recordNotification "$slackBotToken" "$slackChannelName" \
             ":red_circle: Break-glass sign-in review" \
             "For Platform Access posture, break-glass GA accounts must sign in to the CNP tenant at least once every 30 days.\n\nAction required: please chase the affected users to sign in to the CNP tenant. If new break-glass GA accounts have been added, ensure they are included in the script."
 
-        slackThreadResponse \
+        recordThreadResponse \
             "$slackBotToken" \
             "$slackChannelName" \
             "Affected accounts and latest sign-in details:$chase_details" \

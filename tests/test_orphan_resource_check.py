@@ -104,7 +104,20 @@ esac
                 text=True,
                 timeout=30,
             )
-            posts = [json.loads(line) for line in slack_calls.read_text().splitlines()] if slack_calls.exists() else []
+            self.assertFalse(slack_calls.exists(), "Checks must not post to Slack before final reporting")
+            posts = []
+            report_files = sorted(
+                (root / "monitoring-reports").glob("report-*"),
+                key=lambda path: path.stat().st_mtime_ns,
+            )
+            for report_file in report_files:
+                report = json.loads(report_file.read_text())
+                posts.append({
+                    "header": report["header"],
+                    "message": report["message"],
+                    "report_file": report_file.name,
+                })
+                posts.extend({"text": reply, "report_file": report_file.name} for reply in report["replies"])
             calls = az_calls.read_text().splitlines() if az_calls.exists() else []
             self.assertEqual(fixtures.read_text(), body)
             return result, posts, calls
@@ -114,11 +127,11 @@ esac
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(len(calls), 3)
         self.assertEqual(len(posts), 2)
-        self.assertIn("Historical cleanup failures — still exists", posts[0]["blocks"][0]["text"]["text"])
-        self.assertIn("2 still exist; 1 confirmed not found; 0 could not be verified", posts[0]["blocks"][1]["text"]["text"])
-        self.assertIn("(UTC)", posts[0]["blocks"][1]["text"]["text"])
+        self.assertIn("Historical cleanup failures — still exists", posts[0]["header"])
+        self.assertIn("2 still exist; 1 confirmed not found; 0 could not be verified", posts[0]["message"])
+        self.assertIn("(UTC)", posts[0]["message"])
         self.assertEqual(posts[1]["text"], "\n".join([":red_circle: " + PREFIX + "present"] * 2))
-        self.assertEqual(posts[1]["thread_ts"], "123.456")
+        self.assertEqual(posts[1]["report_file"], posts[0]["report_file"])
         self.assertNotIn(PREFIX + "absent", json.dumps(posts))
 
     def test_verification_errors_are_separate_and_fail_the_check(self):
@@ -126,8 +139,8 @@ esac
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertEqual(len(calls), 3)
         self.assertEqual(len(posts), 4)
-        self.assertIn("Historical cleanup verification errors", posts[2]["blocks"][0]["text"]["text"])
-        self.assertIn("must not be treated as deleted", posts[2]["blocks"][1]["text"]["text"])
+        self.assertIn("Historical cleanup verification errors", posts[2]["header"])
+        self.assertIn("must not be treated as deleted", posts[2]["message"])
         self.assertEqual(posts[1]["text"], ":red_circle: " + PREFIX + "present")
         self.assertIn(PREFIX + "forbidden", posts[3]["text"])
         self.assertIn('ERROR: (AuthorizationFailed) Access "denied".', posts[3]["text"])
@@ -138,7 +151,7 @@ esac
         result, posts, calls = self.run_check(["regional"])
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(len(posts), 2)
-        self.assertIn("1 still exist; 0 confirmed not found; 0 could not be verified", posts[0]["blocks"][1]["text"]["text"])
+        self.assertIn("1 still exist; 0 confirmed not found; 0 could not be verified", posts[0]["message"])
         self.assertEqual(posts[1]["text"], ":red_circle: " + PREFIX + "regional")
         self.assertEqual(len(calls), 2)
 
@@ -162,8 +175,8 @@ esac
         result, posts, _ = self.run_check(["forbidden"])
         self.assertEqual(result.returncode, 1)
         self.assertEqual(len(posts), 2)
-        self.assertIn("verification errors", posts[0]["blocks"][0]["text"]["text"])
-        self.assertIn("0 still exist; 0 confirmed not found; 1 could not be verified", posts[0]["blocks"][1]["text"]["text"])
+        self.assertIn("verification errors", posts[0]["header"])
+        self.assertIn("0 still exist; 0 confirmed not found; 1 could not be verified", posts[0]["message"])
 
     def test_bad_input_and_download_failures_alert_without_azure_calls(self):
         scenarios = [
@@ -178,7 +191,7 @@ esac
                 self.assertEqual(result.returncode, 1)
                 self.assertEqual(calls, [])
                 self.assertEqual(len(posts), 1)
-                self.assertIn("verification errors", posts[0]["blocks"][0]["text"]["text"])
+                self.assertIn("verification errors", posts[0]["header"])
 
     def test_managed_aks_nsg_exclusions_are_preserved(self):
         message = (
@@ -190,10 +203,10 @@ esac
         self.assertEqual(posts, [])
         self.assertEqual(calls, [])
 
-    def test_slack_failure_is_not_silently_ignored(self):
-        result, _, _ = self.run_check(["present"], slack_fails=True)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("Slack post failed", result.stderr)
+    def test_check_does_not_attempt_slack_delivery(self):
+        result, reports, _ = self.run_check(["present"], slack_fails=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len(reports), 2)
 
 
 if __name__ == "__main__":

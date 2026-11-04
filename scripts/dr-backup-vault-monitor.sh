@@ -111,7 +111,7 @@ activeFailedJobs=$(echo "$allJobs" | jq '
 activeFailedCount=$(echo "$activeFailedJobs" | jq 'length')
 
 if [[ "$activeFailedCount" -gt 0 ]]; then
-    slackNotification "$slackBotToken" "$slackChannelName" \
+    recordNotification "$slackBotToken" "$slackChannelName" \
         ":red_circle: Azure Backup Vault Failed Jobs" \
         ":azure: Backup failures detected in <${vaultURL}|_*${backupVault}*_> with no subsequent successful run:"
 
@@ -121,7 +121,7 @@ if [[ "$activeFailedCount" -gt 0 ]]; then
         join("\\n")
     ')
 
-    slackThreadResponse "$slackBotToken" "$slackChannelName" \
+    recordThreadResponse "$slackBotToken" "$slackChannelName" \
         "$failureText" \
         "$TS"
 fi

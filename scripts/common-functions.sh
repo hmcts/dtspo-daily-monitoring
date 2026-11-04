@@ -10,6 +10,30 @@ elif [[ $platform == "Linux" ]]; then
     date_command=$(which date)
 fi
 
+recordNotification() {
+    local header=$3
+    local message=$4
+
+    mkdir -p monitoring-reports
+    TS=$(mktemp monitoring-reports/report-XXXXXXXX)
+    jq -n --arg header "$header" --arg message "$message" \
+        '{header: $header, message: $message, replies: []}' > "$TS"
+}
+
+recordThreadResponse() {
+    local message=$3
+    local report_file=$4
+    local temporary_file
+
+    temporary_file=$(mktemp "${report_file}.XXXXXXXX")
+    if jq --arg message "$message" '.replies += [$message]' "$report_file" > "$temporary_file"; then
+        mv "$temporary_file" "$report_file"
+    else
+        rm -f "$temporary_file"
+        return 1
+    fi
+}
+
 # Post a message to a Slack channel
 slackNotification() {
     local slack_token=$1

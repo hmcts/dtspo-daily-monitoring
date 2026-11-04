@@ -19,6 +19,16 @@ jobs:
     steps:
       - checkout: self
         persistCredentials: true
+      - task: Bash@3
+        displayName: 'Initialise daily monitoring reports'
+        inputs:
+          targetType: inline
+          script: |
+            set -euo pipefail
+            mkdir -p monitoring-reports
+            find monitoring-reports -maxdepth 1 -type f -name 'report-*' -delete
+            : > monitoring-reports/.ready
+            : > aks-cluster-status.txt
       - task: AzureKeyVault@2
         displayName: 'Get secrets from Keyvault'
         inputs:
@@ -34,7 +44,7 @@ jobs:
       - script: |
           echo "main_channel set to: $(main_channel)"
         displayName: 'Show main channel name'
-      # The following checks use the common-functions.sh slack notifications and threads functions and will only send if negative status is found
+      # Checks save report files for the final reporting job.
       - task: AzureCLI@2
         displayName: 'Orphaned Resource Status Check'
         continueOnError: true
@@ -167,17 +177,6 @@ jobs:
             scriptPath: scripts/aks-node-count.sh
             azureSubscription: ${{ cluster.subscription }}
             arguments: --resourceGroup ${{cluster.resourceGroup}} --aksClusterName ${{cluster.clusterName}}
-      - task: Bash@3
-        displayName: "Send AKS Cluster Status"
-        continueOnError: true
-        inputs:
-          targetType: filePath
-          filePath: scripts/send-slack-header-thread-each-loop.sh
-          arguments: >
-            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
-            --slackChannelName $(main_channel)
-            --inputFileName aks-cluster-status.txt
-            --messageHeader ":aks: AKS Cluster Status Checks"
       # Final summary task - always runs and reports on any failed tasks
       - task: Bash@3
         displayName: "Pipeline Summary - Report Failed Tasks"
@@ -191,3 +190,15 @@ jobs:
             --buildId $(Build.BuildId)
             --buildUrl "$(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"
             --jobStatus $(Agent.JobStatus)
+      - task: Bash@3
+        displayName: 'Stage AKS cluster results'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: cp aks-cluster-status.txt monitoring-reports/aks-cluster-status.txt
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish daily monitoring reports'
+        condition: always()
+        inputs:
+          targetPath: '$(System.DefaultWorkingDirectory)/monitoring-reports'
+          artifact: 'daily-monitoring-results'

@@ -29,7 +29,19 @@ If your pipeline name uses underscores, please replace these with spaces or dash
 
 ## Slack notifications
 
-Monitoring alerts are sent to the `#dtspo-daily-checks` channel for all pipeline runs (scheduled, main branch, and pull requests).
+Monitoring alerts are sent to `#dtspo-daily-checks` on `master` and to the mapped
+PR author's Slack user on pull requests. Recipient lookup failures stop the run
+rather than falling back to the channel.
+
+Check jobs run in parallel and save their results as pipeline artifacts. The
+final reporting job sends all Slack reports after every check job finishes,
+preserving each heading and its thread replies. Checks that previously sent
+directly now use `recordNotification` and `recordThreadResponse` from
+`scripts/common-functions.sh` to write files under `monitoring-reports/`.
+`scripts/send-monitoring-reports.sh` sends those saved reports in the final job.
+
+The Elasticsearch DLQ case-type count check is unchanged: it uses SendGrid to
+email its existing Slack channel address during the daily monitoring job.
 
 The orphan-resource check now verifies the saved historical failure IDs using
 read-only Azure lookups on every run. Slack lists only confirmed existing entries

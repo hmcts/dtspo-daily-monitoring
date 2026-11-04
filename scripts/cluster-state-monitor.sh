@@ -90,10 +90,10 @@ fi
 
 if [[ "$checkStatus" == ":red_circle:" ]]; then
     # Send initial header message
-    slackNotification $slackBotToken $slackChannelName "$checkStatus AKS Cluster State Checks" " "
+    recordNotification $slackBotToken $slackChannelName "$checkStatus AKS Cluster State Checks" " "
 
     # Loop through each failure
     for failure in "${failedState[@]}"; do
-        slackThreadResponse $slackBotToken $slackChannelName "$failure" $TS
+        recordThreadResponse "$slackBotToken" "$slackChannelName" "$failure" "$TS"
     done
 fi

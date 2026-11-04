@@ -23,6 +23,9 @@ parameters:
       - title: 'PostgreSQL Backup Checks'
         files:
           - postgres-backup-results/azurebackup-status.txt
+      - title: 'AKS Cluster Status Checks'
+        files:
+          - daily-monitoring-results/aks-cluster-status.txt
 
 jobs:
   - job: CombinedCheckReport
@@ -93,6 +96,33 @@ jobs:
         inputs:
           artifact: 'postgres-backup-results'
           path: '$(Pipeline.Workspace)/postgres-backup-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download daily monitoring reports'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'daily-monitoring-results'
+          path: '$(Pipeline.Workspace)/daily-monitoring-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download role-assignment reports'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'role-assignment-results'
+          path: '$(Pipeline.Workspace)/role-assignment-results'
+      - ${{ each source in split('daily-monitoring-results,role-assignment-results', ',') }}:
+        - task: Bash@3
+          displayName: 'Send saved reports: ${{ source }}'
+          condition: always()
+          inputs:
+            targetType: inline
+            script: |
+              set -euo pipefail
+              bash scripts/send-monitoring-reports.sh "$REPORT_DIRECTORY" "$SLACK_BOT_TOKEN" "$SLACK_RECIPIENT"
+          env:
+            REPORT_DIRECTORY: $(Pipeline.Workspace)/${{ source }}
+            SLACK_BOT_TOKEN: $(dtspo-daily-checks-slack-bot-token)
+            SLACK_RECIPIENT: $(main_channel)
       - ${{ each report in parameters.reports }}:
         - task: Bash@3
           displayName: 'Send ${{ report.title }} results'
