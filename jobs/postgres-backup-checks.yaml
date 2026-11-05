@@ -1,0 +1,54 @@
+parameters:
+  - name: postgres_subscriptions
+    type: object
+  - name: recovery_services_vaults
+    type: object
+
+jobs:
+  - job: PostgresBackupChecks
+    displayName: 'Check PostgreSQL and backups'
+    dependsOn: ResolveSlackRecipient
+    timeoutInMinutes: 60
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - checkout: self
+      - task: Bash@3
+        displayName: 'Initialize PostgreSQL and backup results'
+        inputs:
+          targetType: inline
+          script: |
+            : > postgres-status.txt
+            : > azurebackup-status.txt
+      - ${{ each postgres_sub in parameters.postgres_subscriptions }}:
+        - task: AzureCLI@2
+          displayName: 'Checking PostgreSQL Flexible Storage Status: ${{ postgres_sub.subscription }}'
+          continueOnError: true
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/postgres-flexible-storage.sh
+            azureSubscription: ${{ postgres_sub.subscription }}
+            arguments: --subscription ${{ postgres_sub.subscription }}
+      - ${{ each backup_vault in parameters.recovery_services_vaults }}:
+        - task: AzureCLI@2
+          displayName: 'Check Backup Status: ${{ backup_vault.vaultName }}'
+          continueOnError: true
+          inputs:
+            scriptType: bash
+            scriptPath: scripts/backup-monitor.sh
+            azureSubscription: ${{ backup_vault.subscription }}
+            arguments: --resourceGroup ${{ backup_vault.resourceGroup }} --backupVault ${{ backup_vault.vaultName }}
+      - task: Bash@3
+        displayName: 'Stage PostgreSQL and backup results'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: |
+            mkdir -p "$(Build.ArtifactStagingDirectory)/postgres-backup-results"
+            cp postgres-status.txt azurebackup-status.txt "$(Build.ArtifactStagingDirectory)/postgres-backup-results/"
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish PostgreSQL and backup results'
+        condition: always()
+        inputs:
+          targetPath: '$(Build.ArtifactStagingDirectory)/postgres-backup-results'
+          artifact: 'postgres-backup-results'

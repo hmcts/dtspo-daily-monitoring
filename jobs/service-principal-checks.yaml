@@ -1,0 +1,84 @@
+parameters:
+  - name: service_connection
+    type: string
+  - name: dev_service_connection
+    type: string
+  - name: SPSecretNumDays
+    type: number
+
+jobs:
+  - job: ServicePrincipalChecks
+    displayName: 'Check service principals'
+    dependsOn: ResolveSlackRecipient
+    variables:
+      main_channel: $[ dependencies.ResolveSlackRecipient.outputs['recipient.main_channel'] ]
+    timeoutInMinutes: 45
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - checkout: self
+      - task: Bash@3
+        displayName: 'Initialize service-principal results'
+        inputs:
+          targetType: inline
+          script: ': > service-principal-status.txt'
+      - task: AzureKeyVault@2
+        displayName: 'Get service-principal check secrets'
+        inputs:
+          azureSubscription: 'DTS-CFTPTL-INTSVC'
+          keyVaultName: 'cftptl-intsvc'
+          secretsFilter: 'dtspo-daily-checks-slack-bot-token,b2c-prod-serviceprincipal-id,b2c-prod-serviceprincipal-password,b2c-prod-tenant-id'
+      - task: AzureCLI@2
+        displayName: 'Service Principal Check - Dev Tenant'
+        continueOnError: true
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/service-principals.sh
+          azureSubscription: ${{ parameters.dev_service_connection }}
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --checkDays ${{ parameters.SPSecretNumDays }}
+            --outputFile service-principal-status.txt
+      - task: AzureCLI@2
+        displayName: 'Service Principal Check'
+        continueOnError: true
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/service-principals.sh
+          azureSubscription: ${{ parameters.service_connection }}
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --checkDays ${{ parameters.SPSecretNumDays }}
+            --outputFile service-principal-status.txt
+      - task: AzureCLI@2
+        displayName: 'Service Principal Check - B2C Sandbox Tenant'
+        continueOnError: true
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/service-principals-b2c-tenants.sh
+          azureSubscription: ${{ parameters.service_connection }}
+          arguments: >
+            --slackBotToken $(dtspo-daily-checks-slack-bot-token)
+            --slackChannelName $(main_channel)
+            --checkDays ${{ parameters.SPSecretNumDays }}
+            --outputFile service-principal-status.txt
+        env:
+          b2c_prod_serviceprincipal_id: $(b2c-prod-serviceprincipal-id)
+          b2c_prod_serviceprincipal_password: $(b2c-prod-serviceprincipal-password)
+          b2c_prod_tenant_id: $(b2c-prod-tenant-id)
+      - task: Bash@3
+        displayName: 'Stage service-principal results'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: |
+            mkdir -p "$(Build.ArtifactStagingDirectory)/service-principal-results"
+            cp service-principal-status.txt "$(Build.ArtifactStagingDirectory)/service-principal-results/results.txt"
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish service-principal results'
+        condition: always()
+        inputs:
+          targetPath: '$(Build.ArtifactStagingDirectory)/service-principal-results/results.txt'
+          artifact: 'service-principal-results'

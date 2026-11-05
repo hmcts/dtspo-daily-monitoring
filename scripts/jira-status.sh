@@ -182,20 +182,20 @@ else
 fi
 
 if [[ "$jiraStatus" == ":red_circle:" || "$jiraStatus" == ":yellow_circle:" ]]; then
-  slackNotification $slackBotToken $slackChannelName "$jiraStatus Jira Status" ":jira: <https://bit.ly/4iPQ6Nr|_*BAU Tickets Status*_>"
-  slackThreadResponse $slackBotToken $slackChannelName "${openIssues}\\n${unassignedIssues}\\n${patchingIssues}\\n${oatIssues}\\n${withdrawnIssues}" $TS
+  recordNotification $slackBotToken $slackChannelName "$jiraStatus Jira Status" ":jira: <https://bit.ly/4iPQ6Nr|_*BAU Tickets Status*_>"
+  recordThreadResponse "$slackBotToken" "$slackChannelName" "${openIssues}\\n${unassignedIssues}\\n${patchingIssues}\\n${oatIssues}\\n${withdrawnIssues}" "$TS"
 fi
 
 if [[ "$ticketStatus" == ":red_circle:" || "$ticketStatus" == ":yellow_circle:" ]]; then
 
   closedIssues=$(printf ":tada: *%s issues closed yesterday*" "$CLOSED_ISSUES_COUNT")
-  slackNotification $slackBotToken $slackChannelName "$ticketStatus Jira Ticket Status" "${closedIssues}"
+  recordNotification $slackBotToken $slackChannelName "$ticketStatus Jira Ticket Status" "${closedIssues}"
 
-  slackThreadResponse $slackBotToken $slackChannelName "${closedIssues}:" $TS
-  slackThreadResponse $slackBotToken $slackChannelName "$CLOSED_ISSUES_USER" $TS
+  recordThreadResponse "$slackBotToken" "$slackChannelName" "${closedIssues}:" "$TS"
+  recordThreadResponse "$slackBotToken" "$slackChannelName" "$CLOSED_ISSUES_USER" "$TS"
 
   currentlyAssigned=$(printf ":fire: *Current Assigned tickets:*")
-  slackThreadResponse $slackBotToken $slackChannelName "${currentlyAssigned}" $TS
-  slackThreadResponse $slackBotToken $slackChannelName "$ASSIGNED_ISSUES_RESULT" $TS
+  recordThreadResponse "$slackBotToken" "$slackChannelName" "${currentlyAssigned}" "$TS"
+  recordThreadResponse "$slackBotToken" "$slackChannelName" "$ASSIGNED_ISSUES_RESULT" "$TS"
 
 fi

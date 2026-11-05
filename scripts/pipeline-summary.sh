@@ -88,7 +88,7 @@ if [ "$jobStatus" == "SucceededWithIssues" ] || [ "$jobStatus" == "Failed" ]; th
     MESSAGE_DETAILS="<${buildUrl}|_*Daily Monitoring Pipeline*_> One or more monitoring checks failed but the pipeline continued.\\n\\nPlease review the pipeline logs to see which specific tasks encountered issues: <${buildUrl}|View Pipeline Details>"
 
     # Send Slack notification only if there are failures
-    slackNotification $slackBotToken $slackChannelName ":azure: $PIPELINE_STATUS Pipeline ${STATUS_TEXT}" "$MESSAGE_DETAILS"
+    recordNotification $slackBotToken $slackChannelName ":azure: $PIPELINE_STATUS Pipeline ${STATUS_TEXT}" "$MESSAGE_DETAILS"
 
     echo "##[warning]Please review the pipeline logs above for tasks marked with warnings or errors"
     echo "##[warning]Pipeline URL: $buildUrl"

@@ -1,0 +1,52 @@
+jobs:
+  - job: LicenseChecks
+    displayName: 'Check licenses'
+    dependsOn: ResolveSlackRecipient
+    timeoutInMinutes: 30
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - checkout: self
+      - task: Bash@3
+        displayName: 'Initialize license results'
+        inputs:
+          targetType: inline
+          script: ': > license-status.txt'
+      - task: AzureKeyVault@2
+        displayName: 'Get license API tokens'
+        inputs:
+          azureSubscription: 'DTS-CFTPTL-INTSVC'
+          keyVaultName: 'cftptl-intsvc'
+          secretsFilter: 'dtspo-daily-checks-github-classic-token,launchdarkly-access-token'
+      - task: Bash@3
+        displayName: 'Check GitHub licenses'
+        continueOnError: true
+        inputs:
+          targetType: filePath
+          filePath: scripts/github-licenses.sh
+          arguments: >
+            --token $(dtspo-daily-checks-github-classic-token)
+            --outputFile license-status.txt
+      - task: Bash@3
+        displayName: 'Check LaunchDarkly licenses'
+        continueOnError: true
+        inputs:
+          targetType: filePath
+          filePath: scripts/ld-license.sh
+          arguments: >
+            --token $(launchdarkly-access-token)
+            --outputFile license-status.txt
+      - task: Bash@3
+        displayName: 'Stage license results'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: |
+            mkdir -p "$(Build.ArtifactStagingDirectory)/license-results"
+            cp license-status.txt "$(Build.ArtifactStagingDirectory)/license-results/results.txt"
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish license results'
+        condition: always()
+        inputs:
+          targetPath: '$(Build.ArtifactStagingDirectory)/license-results/results.txt'
+          artifact: 'license-results'

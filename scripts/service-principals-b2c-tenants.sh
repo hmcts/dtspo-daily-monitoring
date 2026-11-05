@@ -9,6 +9,7 @@ source scripts/common-functions.sh
 slackBotToken=
 slackChannelName=
 checkDays=
+outputFile=
 
 usage(){
 >&2 cat << EOF
@@ -19,12 +20,13 @@ usage(){
         [ -t | --slackBotToken ]
         [ -c | --slackChannelName ]
         [ -d | --checkDays ]
+        [ --outputFile ]
         [ -h | --help ]
 EOF
 exit 1
 }
 
-args=$(getopt -a -o t:c:d: --long slackBotToken:,slackChannelName:,checkDays:,help -- "$@")
+args=$(getopt -a -o t:c:d: --long slackBotToken:,slackChannelName:,checkDays:,outputFile:,help -- "$@")
 if [[ $? -gt 0 ]]; then
     usage
 fi
@@ -37,6 +39,7 @@ do
         -t | --slackBotToken)     slackBotToken=$2         ; shift 2 ;;
         -c | --slackChannelName)  slackChannelName=$2      ; shift 2 ;;
         -d | --checkDays)         checkDays=$2             ; shift 2 ;;
+        --outputFile)             outputFile=$2            ; shift 2 ;;
         # -- means the end of the arguments; drop this, and break out of the while loop
         --) shift; break ;;
         *) >&2 echo Unsupported option: $1
@@ -94,7 +97,7 @@ elif [ "${#expiringAppsSoon[@]}" -gt 0 ]; then
     STATUS=":yellow_circle:"
 fi
 
-function slackThread(){
+function buildSlackThread(){
     local message=""
 
     if [ "${#expiredApps[@]}" -gt 0 ]; then
@@ -109,10 +112,15 @@ function slackThread(){
         message+=":yellow_circle: Service Principals expiring soon! \\n$(IFS=$'\n'; echo "${expiringAppsSoon[*]}")\\n\\n"
     fi
 
-    slackThreadResponse "$slackBotToken" "$slackChannelName" "$message" "$TS"
+    printf '%s' "$message"
 }
 
 if [[ "$STATUS" == ":red_circle:" || "$STATUS" == ":yellow_circle:" ]]; then
-        slackNotification $slackBotToken $slackChannelName ":azure-826: $STATUS Service Principal Checks - B2C Prod Tenant" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status - B2C Tenant*_>"
-    slackThread
+    if [[ -n "$outputFile" ]]; then
+        printf '%s Service Principal Checks - B2C Prod Tenant\\n<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status - B2C Tenant*_>\\n' "$STATUS" >> "$outputFile"
+        buildSlackThread >> "$outputFile"
+    else
+        slackNotification "$slackBotToken" "$slackChannelName" ":azure-826: $STATUS Service Principal Checks - B2C Prod Tenant" "<https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps|_*Service Principal Secrets Status - B2C Tenant*_>"
+        slackThreadResponse "$slackBotToken" "$slackChannelName" "$(buildSlackThread)" "$TS"
+    fi
 fi

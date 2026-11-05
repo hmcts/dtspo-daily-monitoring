@@ -1,0 +1,46 @@
+parameters:
+  - name: gh_workflows
+    type: object
+
+jobs:
+  - job: GithubWorkflowChecks
+    displayName: 'Check GitHub workflows'
+    dependsOn: ResolveSlackRecipient
+    timeoutInMinutes: 60
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - checkout: self
+      - task: Bash@3
+        displayName: 'Initialize GitHub workflow results'
+        inputs:
+          targetType: inline
+          script: ': > workflow-status.txt'
+      - task: AzureKeyVault@2
+        displayName: 'Get Slack and GitHub tokens'
+        inputs:
+          azureSubscription: 'DTS-CFTPTL-INTSVC'
+          keyVaultName: 'cftptl-intsvc'
+          secretsFilter: 'dtspo-daily-checks-slack-bot-token,dtspo-daily-checks-github-fine-grained-token'
+      - ${{ each gh_workflow in parameters.gh_workflows }}:
+        - task: Bash@3
+          displayName: 'Check GitHub workflow Runs: ${{ gh_workflow.repo }} / ${{ gh_workflow.run }}'
+          condition: always()
+          inputs:
+            targetType: filePath
+            filePath: scripts/github-scheduled-workflow-monitor.sh
+            arguments: --githubToken $(dtspo-daily-checks-github-fine-grained-token) --githubRepo ${{ gh_workflow.repo }} --branch ${{ gh_workflow.branch }} --run ${{ gh_workflow.run }}
+      - task: Bash@3
+        displayName: 'Stage GitHub workflow results'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: |
+            mkdir -p "$(Build.ArtifactStagingDirectory)/github-workflow-results"
+            cp workflow-status.txt "$(Build.ArtifactStagingDirectory)/github-workflow-results/results.txt"
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish GitHub workflow results'
+        condition: always()
+        inputs:
+          targetPath: '$(Build.ArtifactStagingDirectory)/github-workflow-results/results.txt'
+          artifact: 'github-workflow-results'

@@ -107,8 +107,8 @@ done
 # Send Slack notification only if CHECK_STATUS is red or yellow
 if [[ "$STATUS" == ":red_circle:" || "$STATUS" == ":yellow_circle:" ]]; then
   # Post initial header message
-  slackNotification $slackBotToken $slackChannelName ":jenkins: $STATUS  Jenkins Status" "$BUILD_QUEUE_STATUS _Build Queue :_ *$BUILD_QUEUE_COUNT* :sign-queue:"
+  recordNotification $slackBotToken $slackChannelName ":jenkins: $STATUS  Jenkins Status" "$BUILD_QUEUE_STATUS _Build Queue :_ *$BUILD_QUEUE_COUNT* :sign-queue:"
   #Dashboard Status
-  slackThreadResponse $slackBotToken $slackChannelName "_Dashboard Status:_\n$(printf "%s\n" "${BUILD_STATUS_RESULTS[@]}")" $TS
+  recordThreadResponse "$slackBotToken" "$slackChannelName" "_Dashboard Status:_\n$(printf "%s\n" "${BUILD_STATUS_RESULTS[@]}")" "$TS"
 fi
 

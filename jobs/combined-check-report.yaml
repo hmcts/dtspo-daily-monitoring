@@ -1,0 +1,196 @@
+parameters:
+  - name: reports
+    type: object
+    default:
+      - title: 'Certificate checks'
+        files:
+          - certificate-check-results/results.txt
+      - title: 'GitHub actions'
+        files:
+          - github-workflow-results/results.txt
+      - title: 'Azure DevOps pipelines'
+        files:
+          - ado-pipeline-results/results.txt
+      - title: 'PostgreSQL Flexible Server Storage Usage'
+        files:
+          - postgres-backup-results/postgres-status.txt
+      - title: 'Licence Checks'
+        files:
+          - license-results/results.txt
+      - title: 'Service Principal Checks'
+        files:
+          - service-principal-results/results.txt
+      - title: 'PostgreSQL Backup Checks'
+        files:
+          - postgres-backup-results/azurebackup-status.txt
+      - title: 'AKS Cluster Status Checks'
+        files:
+          - daily-monitoring-results/aks-cluster-status.txt
+
+jobs:
+  - job: CombinedCheckReport
+    displayName: 'Report check results by category'
+    dependsOn:
+      - ResolveSlackRecipient
+      - DailyMonitoring
+      - CertificateChecks
+      - GithubWorkflowChecks
+      - AdoPipelineChecks
+      - LicenseChecks
+      - ServicePrincipalChecks
+      - PostgresBackupChecks
+      - RoleAssignmentChecks
+    condition: and(always(), eq(dependencies.ResolveSlackRecipient.result, 'Succeeded'))
+    variables:
+      main_channel: $[ dependencies.ResolveSlackRecipient.outputs['recipient.main_channel'] ]
+    timeoutInMinutes: 10
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - checkout: self
+      - task: AzureKeyVault@2
+        displayName: 'Get Slack token'
+        inputs:
+          azureSubscription: 'DTS-CFTPTL-INTSVC'
+          keyVaultName: 'cftptl-intsvc'
+          secretsFilter: 'dtspo-daily-checks-slack-bot-token'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download certificate results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'certificate-check-results'
+          path: '$(Pipeline.Workspace)/certificate-check-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download GitHub workflow results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'github-workflow-results'
+          path: '$(Pipeline.Workspace)/github-workflow-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download Azure DevOps pipeline results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'ado-pipeline-results'
+          path: '$(Pipeline.Workspace)/ado-pipeline-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download license results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'license-results'
+          path: '$(Pipeline.Workspace)/license-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download service-principal results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'service-principal-results'
+          path: '$(Pipeline.Workspace)/service-principal-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download PostgreSQL and backup results'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'postgres-backup-results'
+          path: '$(Pipeline.Workspace)/postgres-backup-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download daily monitoring reports'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'daily-monitoring-results'
+          path: '$(Pipeline.Workspace)/daily-monitoring-results'
+      - task: DownloadPipelineArtifact@2
+        displayName: 'Download role-assignment reports'
+        condition: always()
+        continueOnError: true
+        inputs:
+          artifact: 'role-assignment-results'
+          path: '$(Pipeline.Workspace)/role-assignment-results'
+      - task: Bash@3
+        displayName: 'Initialise final reports'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: |
+            set -euo pipefail
+            mkdir -p monitoring-reports
+            find monitoring-reports -maxdepth 1 -type f -name 'report-*' -delete
+            : > monitoring-reports/.ready
+      - ${{ each source in split('daily-monitoring-results,role-assignment-results', ',') }}:
+        - task: Bash@3
+          displayName: 'Collect saved reports: ${{ source }}'
+          condition: always()
+          inputs:
+            targetType: inline
+            script: |
+              set -euo pipefail
+              source scripts/common-functions.sh
+              if [[ ! -f "$REPORT_DIRECTORY/.ready" ]]; then
+                recordNotification "$SLACK_BOT_TOKEN" "$SLACK_RECIPIENT" \
+                  ":red_circle: Monitoring reports unavailable" \
+                  "Reports could not be collected from $REPORT_SOURCE. Review the pipeline logs."
+                exit 1
+              fi
+              shopt -s nullglob
+              for reportFile in "$REPORT_DIRECTORY"/report-*; do
+                cp "$reportFile" "monitoring-reports/report-$REPORT_SOURCE-$(basename "$reportFile")"
+              done
+          env:
+            REPORT_DIRECTORY: $(Pipeline.Workspace)/${{ source }}
+            REPORT_SOURCE: ${{ source }}
+            SLACK_BOT_TOKEN: $(dtspo-daily-checks-slack-bot-token)
+            SLACK_RECIPIENT: $(main_channel)
+      - ${{ each report in parameters.reports }}:
+        - task: Bash@3
+          displayName: 'Prepare ${{ report.title }} results'
+          condition: always()
+          inputs:
+            targetType: inline
+            script: |
+              set -euo pipefail
+              reportResults="$(Agent.TempDirectory)/category-check-results.txt"
+              : > "$reportResults"
+              read -r -a resultFiles <<< "$REPORT_FILES"
+
+              for relativePath in "${resultFiles[@]}"; do
+                resultFile="$RESULTS_DIRECTORY/$relativePath"
+                if [[ -f "$resultFile" ]]; then
+                  cat "$resultFile" >> "$reportResults"
+                  printf '\n' >> "$reportResults"
+                else
+                  printf ':red_circle: Results could not be collected from %s.\n' "$relativePath" >> "$reportResults"
+                fi
+              done
+
+              source scripts/common-functions.sh
+              message=$(cat "$reportResults")
+              if [[ "$message" == *":red_circle:"* ]]; then
+                status=":red_circle:"
+              elif [[ "$message" == *":yellow_circle:"* ]]; then
+                status=":yellow_circle:"
+              else
+                exit 0
+              fi
+              recordNotification "$SLACK_BOT_TOKEN" "$SLACK_RECIPIENT" "$status $REPORT_TITLE" " "
+              recordThreadResponse "$SLACK_BOT_TOKEN" "$SLACK_RECIPIENT" "$message" "$TS"
+          env:
+            REPORT_TITLE: ${{ report.title }}
+            REPORT_FILES: ${{ join(' ', report.files) }}
+            RESULTS_DIRECTORY: $(Pipeline.Workspace)
+            SLACK_BOT_TOKEN: $(dtspo-daily-checks-slack-bot-token)
+            SLACK_RECIPIENT: $(main_channel)
+      - task: Bash@3
+        displayName: 'Send all reports alphabetically'
+        condition: always()
+        inputs:
+          targetType: inline
+          script: |
+            set -euo pipefail
+            bash scripts/send-monitoring-reports.sh monitoring-reports "$SLACK_BOT_TOKEN" "$SLACK_RECIPIENT"
+        env:
+          SLACK_BOT_TOKEN: $(dtspo-daily-checks-slack-bot-token)
+          SLACK_RECIPIENT: $(main_channel)

@@ -12,6 +12,7 @@ source scripts/common-functions.sh
 slackBotToken=
 slackChannelName=
 token=
+outputFile=
 
 usage(){
 >&2 cat << EOF
@@ -22,12 +23,13 @@ Usage: $0
     [ -t | --slackBotToken ]
     [ -c | --slackChannelName ]
     [ -n | --token ]
+    [ --outputFile ]
     [ -h | --help ]
 EOF
 exit 1
 }
 
-args=$(getopt -a -o t:c:n:h: --long slackBotToken:,slackChannelName:,token:,help -- "$@")
+args=$(getopt -a -o t:c:n:h: --long slackBotToken:,slackChannelName:,token:,outputFile:,help -- "$@")
 if [[ $? -gt 0 ]]; then
     usage
 fi
@@ -40,6 +42,7 @@ do
         -t | --slackBotToken)     slackBotToken=$2         ; shift 2 ;;
         -c | --slackChannelName)  slackChannelName=$2      ; shift 2 ;;
         -n | --token)             token=$2                 ; shift 2 ;;
+        --outputFile)             outputFile=$2            ; shift 2 ;;
         # -- means the end of the arguments; drop this, and break out of the while loop
         --) shift; break ;;
         *) >&2 echo Unsupported option: $1
@@ -47,7 +50,7 @@ do
     esac
 done
 
-if [[ -z "$slackBotToken" || -z "$slackChannelName" || -z "$token" ]]; then
+if [[ -z "$token" || ( -z "$outputFile" && ( -z "$slackBotToken" || -z "$slackChannelName" ) ) ]]; then
     {
         echo "------------------------"
         echo 'Please supply all of: '
@@ -75,5 +78,10 @@ elif ((  "$LICENSES_LEFT" >= 10 )); then
 fi
 
 if [[ "$LICENSE_STATUS" == ":red_circle:" || "$LICENSE_STATUS" == ":yellow_circle:" ]]; then
-  slackNotification $slackBotToken $slackChannelName ":github: $LICENSE_STATUS GitHub License Check"  "<https://github.com/orgs/hmcts/people|_*GitHub Licenses*_> _*$LICENSES_LEFT*_ out of *"$TOTAL_LICENSES"* licenses left"
+  message="$LICENSE_STATUS GitHub License Check: <https://github.com/orgs/hmcts/people|_*GitHub Licenses*_> _*$LICENSES_LEFT*_ out of *$TOTAL_LICENSES* licenses left"
+  if [[ -n "$outputFile" ]]; then
+    printf '%s\\n' "$message" >> "$outputFile"
+  else
+    slackNotification "$slackBotToken" "$slackChannelName" ":github: $LICENSE_STATUS GitHub License Check" "<https://github.com/orgs/hmcts/people|_*GitHub Licenses*_> _*$LICENSES_LEFT*_ out of *$TOTAL_LICENSES* licenses left"
+  fi
 fi

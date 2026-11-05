@@ -7,6 +7,12 @@ set -eu
 # Source central functions script
 source scripts/common-functions.sh
 
+timeout_command=$(command -v timeout || command -v gtimeout || true)
+if [[ -z "$timeout_command" ]]; then
+    echo "The timeout command is required (install GNU coreutils on macOS)." >&2
+    exit 1
+fi
+
 subscription=
 resourceGroup=
 frontdoorName=
@@ -81,9 +87,13 @@ checkCertExpirationDate() {
     local url=$1
 
     echo "Processing $url"
-    expiration_date=$(echo | openssl s_client -servername "${url}" -connect "${url}:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep "notAfter" | cut -d "=" -f 2)
+    local request_status=0
+    expiration_date=$("$timeout_command" 30s bash -o pipefail -c 'echo | openssl s_client -servername "$1" -connect "$1:443" 2>/dev/null | openssl x509 -noout -dates 2>/dev/null | grep "notAfter" | cut -d "=" -f 2' _ "$url") || request_status=$?
 
-    if [[ -n $expiration_date ]]; then
+    if [[ $request_status -ne 0 ]]; then
+        echo "Certificate request failed or timed out for $url" >&2
+        results+=("$(printf ":red_circle: Could not retrieve certificate expiry for *%s* within 30 seconds. \\n" "${url}")")
+    elif [[ -n $expiration_date ]]; then
         expiration_timestamp=$($date_command -d "${expiration_date}" +%s)
         current_timestamp=$($date_command +%s)
         seconds_left=$((expiration_timestamp - current_timestamp))
@@ -111,4 +121,4 @@ else
 fi
 
 # Save output to file
-echo $slackThread >> cert-status.txt
+printf '%s\n' "$slackThread" >> cert-status.txt

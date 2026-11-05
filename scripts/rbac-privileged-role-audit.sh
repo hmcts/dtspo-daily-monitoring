@@ -771,10 +771,10 @@ FINDING_COUNT=$(python3 -c "import json; d=json.load(open('$FINDINGS_JSON')); pr
 UNIQUE_USERS=$(python3 -c "import json; d=json.load(open('$FINDINGS_JSON')); print(len(set(e['upn'] for e in d)))")
 
 if [[ "$FINDING_COUNT" -eq 0 ]]; then
-    slackNotification "$slackBotToken" "$slackChannelName" \
+    recordNotification "$slackBotToken" "$slackChannelName" \
         ":green_circle: Production Privileged Role Audit — No violations found" \
         "Scope: CFT/Crime/Heritage/Platform/SDS/SPS Production MGs + HMCTS-SOC-PROD | All assignments are within approved exceptions."
-    echo "No findings — green notification sent."
+    echo "No findings — green report saved for final reporting."
     exit 0
 fi
 
@@ -782,7 +782,7 @@ STATUS=":red_circle:"
 HEADER="$STATUS Production Privileged Role Audit — $UNIQUE_USERS user(s) with privileged access found ($FINDING_COUNT finding(s))"
 SUBHEADING="Scope: CFT/Crime/Heritage/Platform/SDS/SPS Production MGs + HMCTS-SOC-PROD | Exceptions: scripts/prod_audit_exceptions.yaml"
 
-slackNotification "$slackBotToken" "$slackChannelName" "$HEADER" "$SUBHEADING"
+recordNotification "$slackBotToken" "$slackChannelName" "$HEADER" "$SUBHEADING"
 
 # Build the findings message, chunked into <=3900-char thread replies
 python3 - "$FINDINGS_JSON" << 'SLACK_MSG_PY'
@@ -838,7 +838,7 @@ SLACK_MSG_PY
 CHUNK_COUNT=$(cat "$WORK_DIR/chunk_count.txt")
 for i in $(seq 0 $((CHUNK_COUNT - 1))); do
     CHUNK_MSG=$(cat "$WORK_DIR/slack_chunk_${i}.txt")
-    slackThreadResponse "$slackBotToken" "$slackChannelName" "$CHUNK_MSG" "$TS"
+    recordThreadResponse "$slackBotToken" "$slackChannelName" "$CHUNK_MSG" "$TS"
 done
 
-echo "Slack notification sent. ($FINDING_COUNT findings across $UNIQUE_USERS users)"
+echo "Report saved for final reporting. ($FINDING_COUNT findings across $UNIQUE_USERS users)"

@@ -99,8 +99,8 @@ done
 # Send Slack notification only if CHECK_STATUS is red or yellow
 if [[ "$STATUS" == ":red_circle:" ]]; then
     # Post initial header message
-    slackNotification $slackBotToken $slackChannelName "$STATUS :clock1: Auto Shutdown Status" "You can visit the <https://github.com/hmcts/auto-shutdown/tree/master/status|_*Status Section*_> or <https://moj.enterprise.slack.com/archives/C07CL9KJHUN|_*Slack Channel*_> for more details"
+    recordNotification $slackBotToken $slackChannelName "$STATUS :clock1: Auto Shutdown Status" "You can visit the <https://github.com/hmcts/auto-shutdown/tree/master/status|_*Status Section*_> or <https://moj.enterprise.slack.com/archives/C07CL9KJHUN|_*Slack Channel*_> for more details"
 
     # Send slack Thread
-    slackThreadResponse "$slackBotToken" "$slackChannelName" "$slackThread" "$TS"
+    recordThreadResponse "$slackBotToken" "$slackChannelName" "$slackThread" "$TS"
 fi

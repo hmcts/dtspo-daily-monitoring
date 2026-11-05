@@ -69,7 +69,7 @@ fi
 # Function to fetch workflow runs
 fetch_workflow_runs() {
     local workflow_id=$1
-    curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${githubToken}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${githubRepo}/actions/workflows/${workflow_id}/runs?per_page=1&branch=${branch}" | jq -r '.workflow_runs[] | {status: .status, conclusion: .conclusion, URL: .html_url, StartTime: .run_started_at}'
+    curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${githubToken}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${githubRepo}/actions/workflows/${workflow_id}/runs?per_page=100&branch=${branch}"
 }
 
 # Initialize variables
@@ -80,13 +80,13 @@ missingWorkflows=()
 successfulWorkflows=()
 failedWorkflows=()
 pendingWorkflows=()
+staleWorkflows=()
 
-# Determine if run was a supplied value, if not then process all workflows in the repo
-# Output will be JSON formatted Id: Name: key/values.
+# Determine if run was a supplied value, if not then process all workflows in the repo.
 if [[ -z "${run}" ]]; then
     workflows_response=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${githubToken}" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/repos/${owner}/${githubRepo}/actions/workflows | jq -r '.workflows[] | {id: .id, name: .name}')
 else
-    workflows_response=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${githubToken}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${githubRepo}/actions/workflows" | jq -r --arg workflow "$run" '[.workflows[]]| map(select(.name==$workflow)) | {id: .[].id, name: .[].name}')
+    workflows_response=$(curl -s -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${githubToken}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${owner}/${githubRepo}/actions/workflows" | jq -c --arg workflow "$run" '.workflows[] | select(.name == $workflow) | {id: .id, name: .name}')
 fi
 
 # check if a response was made
@@ -95,8 +95,6 @@ if [ -z "$workflows_response" ]; then
     missingWorkflows+=("$(printf "No workflow found in repo: %s / %s \\n" "${githubRepo}" "${run}")")
 else
 
-    echo "WORKFLOW RESPONSE: ${workflows_response}"
-
     workflows=$(jq -c '.' <<< "$workflows_response")
 
     for workflow in $workflows; do
@@ -104,35 +102,39 @@ else
         name=$(echo "${workflow}" | jq -r '.name')
         workflow_status=$(fetch_workflow_runs "${id}")
 
-        echo "Workflow status for ${name}:"
-        echo "${workflow_status}"
-        statuses=$(jq -c '.' <<< "$workflow_status")
-        for status in $statuses; do
-            workflowStatus=$(echo "${status}" | jq -r '.status')
-            conclusion=$(echo "${status}" | jq -r '.conclusion')
-            workflowURL=$(echo "${status}" | jq -r '.URL')
-            workflowStartTime=$(echo "${status}" | jq -r '.StartTime')
+        latestRun=$(jq -c '.workflow_runs[0] // {}' <<< "$workflow_status")
+        latestSuccessfulRun=$(jq -c '[.workflow_runs[] | select(.conclusion == "success")][0] // {}' <<< "$workflow_status")
+        workflowStatus=$(jq -r '.status // empty' <<< "$latestRun")
+        conclusion=$(jq -r '.conclusion // empty' <<< "$latestRun")
+        workflowURL=$(jq -r '.html_url // empty' <<< "$latestRun")
+        workflowStartTime=$(jq -r '.run_started_at // empty' <<< "$latestRun")
+        lastSuccessTime=$(jq -r '.run_started_at // empty' <<< "$latestSuccessfulRun")
 
-            echo "Workflow Status: ${workflowStatus}"
-            echo "Conclusion: ${conclusion}"
-            echo "URL: ${workflowURL}"
-            echo "Workflow started at: ${workflowStartTime}"
+        printf 'Workflow Status: %s\n\nConclusion: %s\n\nURL: %s\n\nWorkflow started at: %s\n\nWorkflow %s %s\n\n' \
+            "${workflowStatus}" "${conclusion}" "${workflowURL}" "${workflowStartTime}" "${name}" "${conclusion}"
 
-            if [ -z "${workflowStatus}" ]; then
-                printf ":red_circle: *$repo:* <https://github.com/${owner}/${githubRepo}/actions/workflows/|_*${name}*_> Did not return a workflow status \n" >> slack-message.txt
-            else
-                if [ "${conclusion}" == "success" ]; then
-                    echo "Workflow $name $conclusion"
+        nowEpoch=$("${date_command}" -u +%s)
+        lastSuccessEpoch=""
+        if [[ -n "${lastSuccessTime}" ]]; then
+            lastSuccessEpoch=$("${date_command}" -u -d "${lastSuccessTime}" +%s 2>/dev/null || true)
+        fi
+        if [[ -z "${lastSuccessEpoch}" ]] || (( nowEpoch - lastSuccessEpoch > 86400 || lastSuccessEpoch > nowEpoch )); then
+            staleWorkflows+=("$(printf "<https://github.com/%s/%s/actions/workflows/%s|_*%s*_> has not succeeded in the last 24 hours (last success: %s)\\n" "${owner}" "${githubRepo}" "${id}" "${name}" "${lastSuccessTime:-never}")")
+        fi
+
+        if [ -z "${workflowStatus}" ]; then
+            printf ":red_circle: *$repo:* <https://github.com/${owner}/${githubRepo}/actions/workflows/|_*${name}*_> Did not return a workflow status \n" >> slack-message.txt
+        else
+            if [ "${conclusion}" == "success" ]; then
+                if [[ -n "${lastSuccessEpoch}" ]] && (( nowEpoch - lastSuccessEpoch <= 86400 && lastSuccessEpoch <= nowEpoch )); then
                     successfulWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s*\\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
-                elif [[ "${workflowStatus}" == "waiting" ]] || [[ "${workflowStatus}" == "pending" ]] || [[ "${workflowStatus}" == "in_progress" ]] || [[ "${workflowStatus}" == "queued" ]]; then
-                    echo "Workflow $name $conclusion"
-                    pendingWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s*\\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
-                else
-                    echo "Workflow $name $conclusion"
-                    failedWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s*\\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
                 fi
+            elif [[ "${workflowStatus}" == "waiting" ]] || [[ "${workflowStatus}" == "pending" ]] || [[ "${workflowStatus}" == "in_progress" ]] || [[ "${workflowStatus}" == "queued" ]]; then
+                pendingWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s*\\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
+            else
+                failedWorkflows+=("$(printf "<%s|_*%s*_> status is *%s* with conclusion *%s*\\n" "${workflowURL}" "${name}" "${workflowStatus}" "${conclusion}")")
             fi
-        done
+        fi
     done
 fi
 
@@ -147,6 +149,10 @@ fi
 
 if [ "${#pendingWorkflows[@]}" -gt 0 ]; then
     slackThread+=":yellow_circle: GitHub Workflows are still in pending state!: \\n$(IFS=$'\n'; echo "${pendingWorkflows[*]}")\\n\\n"
+fi
+
+if [ "${#staleWorkflows[@]}" -gt 0 ]; then
+    slackThread+=":red_circle: GitHub Workflows have not succeeded in the last 24 hours: \\n$(IFS=$'\n'; echo "${staleWorkflows[*]}")\\n\\n"
 fi
 
 if [ "${#successfulWorkflows[@]}" -gt 0 ]; then

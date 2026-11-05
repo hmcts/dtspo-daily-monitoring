@@ -1,0 +1,40 @@
+jobs:
+  - job: RoleAssignmentChecks
+    displayName: 'Check production role assignments'
+    dependsOn: ResolveSlackRecipient
+    variables:
+      main_channel: $[ dependencies.ResolveSlackRecipient.outputs['recipient.main_channel'] ]
+    timeoutInMinutes: 60
+    pool:
+      name: 'hmcts-cftptl-agent-pool'
+    steps:
+      - checkout: self
+      - task: Bash@3
+        displayName: 'Initialise role-assignment reports'
+        inputs:
+          targetType: inline
+          script: |
+            set -euo pipefail
+            mkdir -p monitoring-reports
+            find monitoring-reports -maxdepth 1 -type f -name 'report-*' -delete
+            : > monitoring-reports/.ready
+      - task: AzureKeyVault@2
+        displayName: 'Get Slack token'
+        inputs:
+          azureSubscription: 'DTS-CFTPTL-INTSVC'
+          keyVaultName: 'cftptl-intsvc'
+          secretsFilter: 'dtspo-daily-checks-slack-bot-token'
+      - task: AzureCLI@2
+        displayName: 'Production Privileged Role Audit'
+        continueOnError: true
+        inputs:
+          scriptType: bash
+          scriptPath: scripts/rbac-privileged-role-audit.sh
+          azureSubscription: 'GA-Prod-Tenant'
+          arguments: --slackBotToken $(dtspo-daily-checks-slack-bot-token) --slackChannelName "$(main_channel)"
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish role-assignment reports'
+        condition: always()
+        inputs:
+          targetPath: '$(System.DefaultWorkingDirectory)/monitoring-reports'
+          artifact: 'role-assignment-results'

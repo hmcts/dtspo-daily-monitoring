@@ -87,7 +87,7 @@ function findNullUrls() {
     if [ -n "$NULLFOUNDURLs" ]; then
         local URLS=$(printf "%s\n\n" "$NULLFOUNDURLs" | tr -d '"')
 
-        slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Pages found with no review date set! \\n$URLS" $TS
+        recordThreadResponse "$slackBotToken" "$slackChannelName" ":red_circle: Pages found with no review date set! \\n$URLS" "$TS"
     fi
 }
 
@@ -98,7 +98,7 @@ function findExpiredUrls() {
     if [ -n "$EXPIREDFOUNDURLs" ]; then
         local URLS=$(printf "%s\n\n" "$EXPIREDFOUNDURLs" | tr -d '"')
 
-        slackThreadResponse $slackBotToken $slackChannelName ":red_circle: Pages found which have an expired review date! \\n$URLS" $TS
+        recordThreadResponse "$slackBotToken" "$slackChannelName" ":red_circle: Pages found which have an expired review date! \\n$URLS" "$TS"
     fi
 }
 
@@ -109,7 +109,7 @@ function findExpiringUrls() {
     if [ -n "$EXPIRINGFOUNDURLs" ]; then
         local URLS=$(printf "%s\n\n" "$EXPIRINGFOUNDURLs" | tr -d '"')
 
-        slackThreadResponse $slackBotToken $slackChannelName ":yellow_circle: Pages found which require a review in the next 13 days! \\n$URLS" $TS
+        recordThreadResponse "$slackBotToken" "$slackChannelName" ":yellow_circle: Pages found which require a review in the next 13 days! \\n$URLS" "$TS"
     fi
 }
 
@@ -126,7 +126,7 @@ fi
 
 if [[ "$STATUS" == ":red_circle:" || "$STATUS" == ":yellow_circle:" ]]; then
     # Post initial header message
-    slackNotification $slackBotToken $slackChannelName "$STATUS Documentation Review" ":github: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> Status :document_it:"
+    recordNotification $slackBotToken $slackChannelName "$STATUS Documentation Review" ":github: <https://hmcts.github.io|*_HMCTS Way_*> and <https://hmcts.github.io/ops-runbooks|*_Ops Runbook_*> Status :document_it:"
 
     # Run checks on scraped pages to find the review dates and outcomes for each.
     findNullUrls

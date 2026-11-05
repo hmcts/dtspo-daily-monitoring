@@ -113,13 +113,13 @@ echo $failures_exist_plum
 if [[ $failures_exist_toffee == true || $failures_exist_plum == true ]]; then
     status=":red_circle:"
     # Send initial header message
-    slackNotification $slackBotToken $slackChannelName "$status Toffee/Plum Status Checks" " "
+    recordNotification $slackBotToken $slackChannelName "$status Toffee/Plum Status Checks" " "
 
     # Check Toffee failures and if exist, add to thread
     if [ ${#failure_msg_toffee[@]} -gt 0 ]; then
         # Loop through each failure
         for failure in "${failure_msg_toffee[@]}"; do
-            slackThreadResponse $slackBotToken $slackChannelName "$failure" $TS
+            recordThreadResponse "$slackBotToken" "$slackChannelName" "$failure" "$TS"
         done
     fi
 
@@ -127,7 +127,7 @@ if [[ $failures_exist_toffee == true || $failures_exist_plum == true ]]; then
     if [ ${#failure_msg_plum[@]} -gt 0 ]; then
         # Loop through each failure
         for failure in "${failure_msg_plum[@]}"; do
-            slackThreadResponse $slackBotToken $slackChannelName "$failure" $TS
+            recordThreadResponse "$slackBotToken" "$slackChannelName" "$failure" "$TS"
         done
     fi
 fi

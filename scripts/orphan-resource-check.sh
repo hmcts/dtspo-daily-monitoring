@@ -56,7 +56,7 @@ trap 'rm -f "$workDir/status.json" "$workDir/filtered.json" "$workDir/report.jso
 
 reportFailure() {
     echo "$1" >&2
-    slackNotification "$slackBotToken" "$slackChannelName" \
+    recordNotification "$slackBotToken" "$slackChannelName" \
         ":red_circle: Historical cleanup verification errors" "$1 No resources were deleted."
 }
 
@@ -92,7 +92,7 @@ checkedAt=$(jq -r '.checkedAt' "$workDir/report.json")
 summary="Verified at $checkedAt (UTC): $existingCount still exist; $notFoundCount confirmed not found; $unverifiedCount could not be verified. No resources were deleted."
 
 if [[ "$existingCount" -gt 0 ]]; then
-    slackNotification "$slackBotToken" "$slackChannelName" \
+    recordNotification "$slackBotToken" "$slackChannelName" \
         ":red_circle: Historical cleanup failures — still exists" \
         "$summary These are historical failures, not new deletion attempts or proof that the resources are orphaned."
     resourceList=$(jq -r '
@@ -102,17 +102,17 @@ if [[ "$existingCount" -gt 0 ]]; then
         | join("\n")
     ' "$workDir/report.json")
 
-    slackThreadResponse "$slackBotToken" "$slackChannelName" "$resourceList" "$TS"
+    recordThreadResponse "$slackBotToken" "$slackChannelName" "$resourceList" "$TS"
 fi
 
 if [[ "$unverifiedCount" -gt 0 ]]; then
-    slackNotification "$slackBotToken" "$slackChannelName" \
+    recordNotification "$slackBotToken" "$slackChannelName" \
         ":red_circle: Historical cleanup verification errors" \
         "$summary Unverified resources must not be treated as deleted."
     while IFS= read -r record; do
         # Slack shows only the first error line; the full Azure text remains in the pipeline log
         message=$(jq -r '.id + "\n" + (([.detail | split("\n")[] | select(startswith("ERROR:"))] + [.detail | split("\n")[0]])[0] | .[0:300])' <<< "$record")
-        slackThreadResponse "$slackBotToken" "$slackChannelName" "$message" "$TS"
+        recordThreadResponse "$slackBotToken" "$slackChannelName" "$message" "$TS"
     done < <(jq -c '.resources[] | select(.status == "unverified")' "$workDir/report.json")
 fi
 
