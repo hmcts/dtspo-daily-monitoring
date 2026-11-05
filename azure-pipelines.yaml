@@ -4,8 +4,8 @@ trigger: none
 pr:
   - master
 schedules:
-  - cron: '45 6,13 * * Mon-Fri'
-    displayName: Runs 8 AM & 3 PM Mon-Fri
+  - cron: '00 8,13 * * Mon-Fri'
+    displayName: Runs 9 AM & 2 PM Mon-Fri
     branches:
       include:
         - master
