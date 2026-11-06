@@ -71,6 +71,12 @@ get_issue_query_json(){
   jq -n --arg jql "$jql" --argjson startAt "$startAt" --argjson maxResults "$maxResults" --argjson fields "$fields" --argjson expand "$expand" -f scripts/jira-issues-query-template.jq -c
 }
 
+jira_issue_url(){
+  local encodedJql
+  encodedJql=$(jq -rn --arg jql "$1" '$jql | @uri')
+  printf 'https://hmcts.atlassian.net/issues/?jql=%s' "$encodedJql"
+}
+
 # The bot's scoped API token only works via the api.atlassian.com gateway, not hmcts.atlassian.net directly.
 jiraCloudId=$(curl -sSf https://hmcts.atlassian.net/_edge/tenant_info | jq -r .cloudId)
 jiraApiUrl="https://api.atlassian.com/ex/jira/${jiraCloudId}/rest/api/2"
@@ -119,6 +125,11 @@ OPEN_OAT_ISSUES_QUERY=$(get_issue_query_json 'project = DTSPO AND IssueType IN (
 OPEN_OAT_ISSUES_RESULT=$(jira_search "${OPEN_OAT_ISSUES_QUERY}")
 
 OPEN_OAT_ISSUES_COUNT=$(jq -r .total <<< "${OPEN_OAT_ISSUES_RESULT}")
+
+OPEN_ISSUES_URL=$(jira_issue_url "$(jq -r .jql <<< "${OPEN_ISSUES_QUERY}")")
+UNASSIGNED_ISSUES_URL=$(jira_issue_url "$(jq -r '.jql + " AND assignee IS EMPTY"' <<< "${OPEN_ISSUES_QUERY}")")
+OPEN_PATCHING_ISSUES_URL=$(jira_issue_url "$(jq -r .jql <<< "${OPEN_PATCHING_ISSUES_QUERY}")")
+OPEN_OAT_ISSUES_URL=$(jira_issue_url "$(jq -r .jql <<< "${OPEN_OAT_ISSUES_QUERY}")")
 
 AUTO_WITHDRAWN_ISSUES_QUERY=$(get_issue_query_json 'project = DTSPO AND IssueType IN ("Support") AND Labels IN (auto-withdrawn) AND status changed to (Withdrawn) ON -'${PREVIOUS_DAYS}'d')
 AUTO_WITHDRAWN_ISSUES_RESULT=$(jira_search "${AUTO_WITHDRAWN_ISSUES_QUERY}")
@@ -170,10 +181,10 @@ elif [[ "$CLOSED_ISSUES_COUNT" -lt 10 ]]; then
   ticketStatus=":yellow_circle:"
 fi
 
-openIssues=$(printf "%s *%s* <https://bit.ly/4iPQ6Nr|Open BAU issues>\n" "$OPEN_ISSUES_STATUS" "$OPEN_ISSUES_COUNT")
-unassignedIssues=$(printf "%s *%s* <https://bit.ly/4iD9AFk|Unassigned BAU issues>\n" "$UNASSIGNED_STATUS" "$UNASSIGNED_ISSUES_COUNT")
-patchingIssues=$(printf "%s *%s* <https://bit.ly/4bU9gzj|Open Patching issues>\n" "$OPEN_PATCHING_ISSUES_STATUS" "$OPEN_PATCHING_ISSUES_COUNT")
-oatIssues=$(printf "%s *%s* <https://bit.ly/4bUIEyf|Open OAT issues>\n" "$OPEN_OAT_ISSUES_STATUS" "$OPEN_OAT_ISSUES_COUNT")
+openIssues=$(printf "%s *%s* <%s|Open BAU issues>\n" "$OPEN_ISSUES_STATUS" "$OPEN_ISSUES_COUNT" "$OPEN_ISSUES_URL")
+unassignedIssues=$(printf "%s *%s* <%s|Unassigned BAU issues>\n" "$UNASSIGNED_STATUS" "$UNASSIGNED_ISSUES_COUNT" "$UNASSIGNED_ISSUES_URL")
+patchingIssues=$(printf "%s *%s* <%s|Open Patching issues>\n" "$OPEN_PATCHING_ISSUES_STATUS" "$OPEN_PATCHING_ISSUES_COUNT" "$OPEN_PATCHING_ISSUES_URL")
+oatIssues=$(printf "%s *%s* <%s|Open OAT issues>\n" "$OPEN_OAT_ISSUES_STATUS" "$OPEN_OAT_ISSUES_COUNT" "$OPEN_OAT_ISSUES_URL")
 
 if [ "$AUTO_WITHDRAWN_ISSUES_COUNT" != "0" ]; then
   withdrawnIssues=$(printf ":hourglass_flowing_sand: *%s issues automatically withdrawn yesterday:* <https://hmcts.atlassian.net/issues/?jql=project%%20%%3D%%20DTSPO%%20AND%%20IssueType%%20in%%20(%%22Support%%22)%%20AND%%20Labels%%20in%%20(auto-withdrawn)%%20AND%%20status%%20changed%%20to%%20(Withdrawn)%%20ON%%20-${PREVIOUS_DAYS}d|_*View withdrawn issues*_>" "${AUTO_WITHDRAWN_ISSUES_COUNT}")
@@ -182,7 +193,7 @@ else
 fi
 
 if [[ "$jiraStatus" == ":red_circle:" || "$jiraStatus" == ":yellow_circle:" ]]; then
-  recordNotification $slackBotToken $slackChannelName "$jiraStatus Jira Status" ":jira: <https://bit.ly/4iPQ6Nr|_*BAU Tickets Status*_>"
+  recordNotification $slackBotToken $slackChannelName "$jiraStatus Jira Status" ":jira: <${OPEN_ISSUES_URL}|_*BAU Tickets Status*_>"
   recordThreadResponse "$slackBotToken" "$slackChannelName" "${openIssues}\\n${unassignedIssues}\\n${patchingIssues}\\n${oatIssues}\\n${withdrawnIssues}" "$TS"
 fi
 
