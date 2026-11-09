@@ -51,6 +51,9 @@ parameters:
       - repo: 'sandbox-auto-cleardown'
         branch: 'master'
         run: 'sandbox-cleanup'
+      - repo: '.github'
+        branch: 'master'
+        run: 'auto-archive-inactive-repos'
   - name: ado_pipelines
     type: object
     default:
