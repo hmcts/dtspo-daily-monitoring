@@ -10,6 +10,12 @@ schedules:
       include:
         - master
     always: 'true'
+  - cron: '45 7 * * Sat'
+    displayName: Saturday morning daily checks and RBAC cleanup
+    branches:
+      include:
+        - master
+    always: 'true'
 
 parameters:
   - name: gh_workflows

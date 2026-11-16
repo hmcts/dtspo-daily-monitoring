@@ -21,6 +21,8 @@ source scripts/common-functions.sh
 
 slackBotToken=
 slackChannelName=
+removeDirectRequested=false
+removeDirect=false
 
 usage(){
 >&2 cat << EOF
@@ -30,12 +32,13 @@ usage(){
     Usage: $0
         [ -t | --slackBotToken ]
         [ -c | --slackChannelName ]
+        [ --remove-direct ]  Enable Saturday scheduled cleanup of direct user assignments
         [ -h | --help ]
 EOF
 exit 1
 }
 
-args=$(getopt -a -o t:c:h --long slackBotToken:,slackChannelName:,help -- "$@")
+args=$(getopt -a -o t:c:h --long slackBotToken:,slackChannelName:,remove-direct,help -- "$@")
 if [[ $? -gt 0 ]]; then
     usage
 fi
@@ -47,11 +50,22 @@ do
         -h | --help)              usage                    ; shift   ;;
         -t | --slackBotToken)     slackBotToken=$2         ; shift 2 ;;
         -c | --slackChannelName)  slackChannelName=$2      ; shift 2 ;;
+        --remove-direct)          removeDirectRequested=true ; shift ;;
         --) shift; break ;;
         *) >&2 echo Unsupported option: $1
             usage ;;
     esac
 done
+
+if [[ "$removeDirectRequested" == true ]]; then
+    if [[ "${BUILD_REASON:-}" == "Schedule" &&
+          "${BUILD_SOURCEBRANCH:-}" == "refs/heads/master" &&
+          "${BUILD_CRONSCHEDULE_DISPLAYNAME:-}" == "Saturday morning daily checks and RBAC cleanup" ]]; then
+        removeDirect=true
+    else
+        echo "Direct-role cleanup is disabled outside the Saturday morning schedule on master; running the audit only."
+    fi
+fi
 
 if [[ -z "$slackBotToken" || -z "$slackChannelName" ]]; then
     {
@@ -72,6 +86,8 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 RAW_ASSIGNMENTS_FILE="$WORK_DIR/raw_role_assignments.json"
 PRIVILEGED_ROLES_FILE="$WORK_DIR/privileged_roles.json"
 FINDINGS_JSON="$WORK_DIR/findings.json"
+CLEANUP_REMOVED_FILE="$WORK_DIR/cleanup_removed_count.txt"
+CLEANUP_FAILURES_FILE="$WORK_DIR/cleanup_failures.txt"
 
 echo "============================================================================="
 echo "Azure Production Privileged Role Audit"
@@ -82,12 +98,13 @@ echo "==========================================================================
 # =============================================================================
 echo "[Step 1/4] Fetching privileged role definitions from Azure..."
 
-python3 - "$PRIVILEGED_ROLES_FILE" << 'FETCH_ROLES_PY'
+python3 - "$PRIVILEGED_ROLES_FILE" "$removeDirect" << 'FETCH_ROLES_PY'
 import json
 import sys
 import subprocess
 
 output_file = sys.argv[1]
+remove_direct = sys.argv[2] == 'true'
 
 # Privileged action patterns — roles granting any of these are considered privileged
 PRIVILEGED_ACTION_PATTERNS = [
@@ -108,6 +125,7 @@ def is_privileged(actions):
     return False
 
 print("  Querying Azure role definitions...")
+role_lookup_complete = False
 try:
     result = subprocess.run(
         ['az', 'role', 'definition', 'list',
@@ -118,8 +136,11 @@ try:
     if result.returncode != 0:
         raise RuntimeError(result.stderr[:300])
     all_roles = json.loads(result.stdout)
+    role_lookup_complete = True
 except Exception as e:
     print(f"  ERROR fetching role definitions: {e}")
+    if remove_direct:
+        raise SystemExit("Direct-role cleanup aborted because role definitions could not be enumerated.")
     print("  Falling back to built-in privileged role list.")
     all_roles = []
 
@@ -148,7 +169,7 @@ for guid, info in FALLBACK_ROLES.items():
     privileged_roles.setdefault(guid, info)
 
 with open(output_file, 'w') as f:
-    json.dump({'roles': privileged_roles}, f, indent=2)
+    json.dump({'roles': privileged_roles, 'lookupComplete': role_lookup_complete}, f, indent=2)
 
 print(f"  Privileged roles identified: {len(privileged_roles)}")
 for guid, info in sorted(privileged_roles.items(), key=lambda x: x[1]['roleName']):
@@ -162,19 +183,31 @@ echo ""
 # =============================================================================
 echo "[Step 2/4] Resolving management groups and child subscriptions..."
 
-az rest --method GET \
+if ! az rest --method GET \
     --uri "https://management.azure.com/providers/Microsoft.Management/managementGroups?api-version=2020-05-01" \
-    -o json > "$WORK_DIR/all_management_groups_rest.json" 2>/dev/null || echo '{"value":[]}' > "$WORK_DIR/all_management_groups_rest.json"
+    -o json > "$WORK_DIR/all_management_groups_rest.json" 2>/dev/null; then
+    if [[ "$removeDirect" == true ]]; then
+        echo "ERROR: Direct-role cleanup aborted because management groups could not be enumerated." >&2
+        exit 1
+    fi
+    echo '{"value":[]}' > "$WORK_DIR/all_management_groups_rest.json"
+fi
+
+if [[ "$removeDirect" == true ]] && jq -e '.nextLink != null' "$WORK_DIR/all_management_groups_rest.json" >/dev/null; then
+    echo "ERROR: Direct-role cleanup aborted because management-group enumeration is paginated." >&2
+    exit 1
+fi
 
 jq '[.value[] | {name: .name, displayName: .properties.displayName}]' \
     "$WORK_DIR/all_management_groups_rest.json" > "$WORK_DIR/all_management_groups.json"
 
-python3 - "$WORK_DIR/all_management_groups.json" << 'RESOLVE_MG_PY'
+python3 - "$WORK_DIR/all_management_groups.json" "$removeDirect" << 'RESOLVE_MG_PY'
 import json
 import sys
 import subprocess
 
 mg_file = sys.argv[1]
+remove_direct = sys.argv[2] == 'true'
 
 TARGET_MG_DISPLAY_NAMES = [
     "CFT - Production",
@@ -203,6 +236,8 @@ for mg in all_mgs:
 for target in TARGET_MG_DISPLAY_NAMES:
     if target not in mg_map:
         print(f"  WARNING: Management group '{target}' not found!")
+        if remove_direct:
+            raise SystemExit(f"Direct-role cleanup aborted: management group '{target}' was not found.")
 
 all_subscription_ids = set()
 mg_subscriptions = {}
@@ -218,6 +253,8 @@ for display_name, mg_id in mg_map.items():
         )
         if result.returncode == 0:
             data = json.loads(result.stdout)
+            if remove_direct and data.get('nextLink'):
+                raise SystemExit(f"Direct-role cleanup aborted: child subscriptions for '{display_name}' require pagination.")
             descendants = data.get('value', [])
             sub_ids = [
                 d.get('name', '')
@@ -230,9 +267,13 @@ for display_name, mg_id in mg_map.items():
         else:
             mg_subscriptions[display_name] = []
             print(f"    WARNING: Could not get child subscriptions: {result.stderr[:200]}")
+            if remove_direct:
+                raise SystemExit(f"Direct-role cleanup aborted: child subscriptions for '{display_name}' could not be enumerated.")
     except Exception as e:
         mg_subscriptions[display_name] = []
         print(f"    ERROR: {e}")
+        if remove_direct:
+            raise SystemExit(f"Direct-role cleanup aborted: child subscriptions for '{display_name}' could not be enumerated.")
 
 print(f"\n  Resolving target subscriptions...")
 try:
@@ -247,8 +288,14 @@ try:
             sid_clean = sid.split('/')[-1] if '/' in sid else sid
             all_subscription_ids.add(sid_clean)
             print(f"  Found HMCTS-SOC-PROD: {sid_clean}")
+        if remove_direct and not target_sub_ids:
+            raise SystemExit("Direct-role cleanup aborted: HMCTS-SOC-PROD subscription was not found.")
+    elif remove_direct:
+        raise SystemExit(f"Direct-role cleanup aborted: target subscriptions could not be enumerated: {result.stderr[:300]}")
 except Exception as e:
     print(f"  ERROR resolving HMCTS-SOC-PROD: {e}")
+    if remove_direct:
+        raise SystemExit("Direct-role cleanup aborted: target subscriptions could not be enumerated.")
 
 output = {
     'management_groups': mg_map,
@@ -270,7 +317,7 @@ echo ""
 # =============================================================================
 echo "[Step 3/4] Querying role assignments across in-scope resources..."
 
-python3 - "$WORK_DIR/resolved_scope.json" "$RAW_ASSIGNMENTS_FILE" "$PRIVILEGED_ROLES_FILE" << 'QUERY_PY'
+python3 - "$WORK_DIR/resolved_scope.json" "$RAW_ASSIGNMENTS_FILE" "$PRIVILEGED_ROLES_FILE" "$removeDirect" << 'QUERY_PY'
 import json
 import sys
 import subprocess
@@ -278,6 +325,7 @@ import subprocess
 scope_file = sys.argv[1]
 output_file = sys.argv[2]
 privileged_roles_file = sys.argv[3]
+remove_direct = sys.argv[4] == 'true'
 
 with open(privileged_roles_file, 'r') as f:
     priv_data = json.load(f)
@@ -285,6 +333,8 @@ with open(privileged_roles_file, 'r') as f:
 PRIVILEGED_ROLE_GUIDS = {}
 for role_id, role_info in priv_data.get('roles', {}).items():
     PRIVILEGED_ROLE_GUIDS[role_id] = role_info.get('roleName', role_id)
+if remove_direct and not priv_data.get('lookupComplete'):
+    raise SystemExit("Direct-role cleanup aborted because privileged role definitions were not completely enumerated.")
 
 with open(scope_file, 'r') as f:
     scope_data = json.load(f)
@@ -301,7 +351,7 @@ for display_name, mg_id in mg_map.items():
         result = subprocess.run(
             ['az', 'role', 'assignment', 'list',
              '--scope', f"/providers/Microsoft.Management/managementGroups/{mg_id}",
-             '--query', "[?principalType=='User' || principalType=='Group'].{principalId:principalId,principalType:principalType,roleDefinitionName:roleDefinitionName,roleDefinitionId:roleDefinitionId,scope:scope}",
+             '--query', "[?principalType=='User' || principalType=='Group'].{assignmentId:id,principalId:principalId,principalType:principalType,roleDefinitionName:roleDefinitionName,roleDefinitionId:roleDefinitionId,scope:scope}",
              '-o', 'json'],
             capture_output=True, text=True, timeout=60
         )
@@ -323,8 +373,13 @@ for display_name, mg_id in mg_map.items():
                     a['resolvedRoleName'] = matched_role
                     a['sourceScope'] = display_name
                     all_assignments.append(a)
+        else:
+            if remove_direct:
+                raise SystemExit(f"Direct-role cleanup aborted: role assignments for management group '{display_name}' could not be enumerated: {result.stderr[:300]}")
     except Exception as e:
         print(f"      ERROR: {e}")
+        if remove_direct:
+            raise SystemExit(f"Direct-role cleanup aborted while querying management group '{display_name}'.")
 
 print(f"\n  Querying {len(all_sub_ids)} subscriptions...")
 for i, sub_id in enumerate(all_sub_ids):
@@ -335,7 +390,7 @@ for i, sub_id in enumerate(all_sub_ids):
             ['az', 'role', 'assignment', 'list',
              '--all',
              '--subscription', sub_id,
-             '--query', "[?principalType=='User' || principalType=='Group'].{principalId:principalId,principalType:principalType,roleDefinitionName:roleDefinitionName,roleDefinitionId:roleDefinitionId,scope:scope}",
+             '--query', "[?principalType=='User' || principalType=='Group'].{assignmentId:id,principalId:principalId,principalType:principalType,roleDefinitionName:roleDefinitionName,roleDefinitionId:roleDefinitionId,scope:scope}",
              '-o', 'json'],
             capture_output=True, text=True, timeout=120
         )
@@ -358,13 +413,17 @@ for i, sub_id in enumerate(all_sub_ids):
                     a['sourceScope'] = f"Subscription: {sub_id}"
                     all_assignments.append(a)
     except Exception as e:
-        pass
+        if remove_direct:
+            raise SystemExit(f"Direct-role cleanup aborted while querying subscription '{sub_id}': {e}")
+        continue
+    if result.returncode != 0 and remove_direct:
+        raise SystemExit(f"Direct-role cleanup aborted: role assignments for subscription '{sub_id}' could not be enumerated: {result.stderr[:300]}")
 
 # Deduplicate by (principalId, roleDefinitionId, scope)
 seen = set()
 unique_assignments = []
 for a in all_assignments:
-    key = (a.get('principalId', ''), a.get('roleDefinitionId', ''), a.get('scope', ''))
+    key = (a.get('assignmentId', ''), a.get('principalId', ''), a.get('roleDefinitionId', ''), a.get('scope', ''))
     if key not in seen:
         seen.add(key)
         unique_assignments.append(a)
@@ -382,11 +441,12 @@ echo ""
 # =============================================================================
 echo "[Step 4/4] Resolving identities, applying exceptions, building findings..."
 
-python3 - "$RAW_ASSIGNMENTS_FILE" "$FINDINGS_JSON" "$PRIVILEGED_ROLES_FILE" "$WORK_DIR/resolved_scope.json" "$EXCEPTIONS_FILE" << 'PROCESS_PY'
+python3 - "$RAW_ASSIGNMENTS_FILE" "$FINDINGS_JSON" "$PRIVILEGED_ROLES_FILE" "$WORK_DIR/resolved_scope.json" "$EXCEPTIONS_FILE" "$removeDirect" "$CLEANUP_REMOVED_FILE" "$CLEANUP_FAILURES_FILE" << 'PROCESS_PY'
 import json
 import sys
 import subprocess
 import re
+import os
 from collections import defaultdict
 
 raw_file = sys.argv[1]
@@ -394,6 +454,9 @@ findings_file = sys.argv[2]
 privileged_roles_file = sys.argv[3]
 scope_file = sys.argv[4]
 exceptions_file = sys.argv[5]
+remove_direct = sys.argv[6] == 'true'
+cleanup_removed_file = sys.argv[7]
+cleanup_failures_file = sys.argv[8]
 
 def get_scope_level(scope):
     if '/providers/Microsoft.Management/managementGroups/' in scope:
@@ -468,6 +531,8 @@ def parse_exceptions_yaml(path):
         with open(path, 'r') as f:
             lines = f.readlines()
     except FileNotFoundError:
+        if remove_direct:
+            raise SystemExit("Direct-role cleanup aborted because the exceptions file is missing.")
         return result
     current_section = None
     current_item = None
@@ -500,6 +565,11 @@ def parse_exceptions_yaml(path):
     return result
 
 exceptions = parse_exceptions_yaml(exceptions_file)
+if remove_direct and any(
+    not item.get('principal_name') or not item.get('role') or not item.get('scope')
+    for item in exceptions.get('allowed_assignments', [])
+):
+    raise SystemExit("Direct-role cleanup aborted because an allowed exception is incomplete.")
 print(f"  Exceptions: {len(exceptions.get('excluded_subscriptions', []))} excluded subscriptions, "
       f"{len(exceptions.get('allowed_assignments', []))} allowed assignments")
 
@@ -507,30 +577,40 @@ excluded_sub_names = set(s.lower() for s in exceptions.get('excluded_subscriptio
 
 sub_names = {}
 sub_ids_by_name = {}
+account_list_complete = False
 try:
     result = subprocess.run(
         ['az', 'account', 'list', '--query', "[].{id:id,name:name}", '-o', 'json'],
         capture_output=True, text=True, timeout=30
     )
     if result.returncode == 0:
+        account_list_complete = True
         for s in json.loads(result.stdout):
             sid = s['id'].split('/')[-1] if '/' in s['id'] else s['id']
             sub_names[sid] = s['name']
             sub_ids_by_name[s['name'].lower()] = sid
 except:
-    pass
+    if remove_direct:
+        raise SystemExit("Direct-role cleanup aborted because subscription names could not be resolved.")
 
 excluded_sub_ids = set()
 for name in excluded_sub_names:
     sid = sub_ids_by_name.get(name)
     if sid:
-        excluded_sub_ids.add(sid)
+        excluded_sub_ids.add(sid.lower())
     else:
-        excluded_sub_ids.add(name)
+        excluded_sub_ids.add(name.lower())
+if remove_direct:
+    unresolved_exclusions = excluded_sub_names - set(sub_ids_by_name)
+    if not account_list_complete or unresolved_exclusions:
+        raise SystemExit(
+            "Direct-role cleanup aborted because excluded subscriptions could not be resolved: "
+            + ", ".join(sorted(unresolved_exclusions))
+        )
 
 def is_excluded_scope(scope):
     m = re.search(r'/subscriptions/([^/]+)', scope, re.IGNORECASE)
-    return bool(m and m.group(1) in excluded_sub_ids)
+    return bool(m and m.group(1).lower() in excluded_sub_ids)
 
 def is_allowed_exception(upn, display_name, role, scope, group_name):
     for exc in exceptions.get('allowed_assignments', []):
@@ -566,11 +646,17 @@ for i, uid in enumerate(user_ids):
         )
         if result.returncode == 0:
             info = json.loads(result.stdout)
-            user_info[uid] = {'upn': info.get('upn', uid), 'displayName': info.get('displayName', '')}
+            user_info[uid] = {
+                'upn': info.get('upn', uid),
+                'displayName': info.get('displayName', ''),
+                'resolved': bool(info.get('upn')),
+            }
         else:
-            user_info[uid] = {'upn': uid, 'displayName': ''}
+            user_info[uid] = {'upn': uid, 'displayName': '', 'resolved': False}
     except:
-        user_info[uid] = {'upn': uid, 'displayName': ''}
+        user_info[uid] = {'upn': uid, 'displayName': '', 'resolved': False}
+if remove_direct and any(not user_info.get(uid, {}).get('resolved') for uid in user_ids):
+    raise SystemExit("Direct-role cleanup aborted because one or more user identities could not be resolved.")
 
 group_ids = list(set(a['principalId'] for a in group_assignments if a.get('principalId')))
 print(f"  Resolving {len(group_ids)} groups and their members...")
@@ -663,7 +749,8 @@ for a in user_assignments:
     findings.append({
         'upn': upn, 'displayName': display_name, 'principalId': pid,
         'role': role, 'scope': scope, 'scopeLevel': get_scope_level(scope),
-        'accessType': 'Direct', 'groupName': '',
+        'accessType': 'Direct', 'principalType': 'User', 'groupName': '',
+        'assignmentId': a.get('assignmentId', ''),
     })
 
 for a in group_assignments:
@@ -679,8 +766,40 @@ for a in group_assignments:
         findings.append({
             'upn': m['upn'], 'displayName': m['displayName'], 'principalId': m['id'],
             'role': role, 'scope': scope, 'scopeLevel': get_scope_level(scope),
-            'accessType': 'Via Group', 'groupName': gname,
+            'accessType': 'Via Group', 'principalType': 'Group', 'groupName': gname,
         })
+
+if remove_direct:
+    direct_candidates = [
+        {
+            'accessType': finding['accessType'],
+            'principalType': finding['principalType'],
+            'assignmentId': finding['assignmentId'],
+            'scope': finding['scope'],
+            'upn': finding['upn'],
+            'role': finding['role'],
+        }
+        for finding in findings
+        if finding.get('accessType') == 'Direct'
+    ]
+    sys.path.insert(0, os.path.abspath('scripts'))
+    from remove_direct_privileged_assignments import remove_direct_assignments
+
+    removed_ids, cleanup_failures = remove_direct_assignments(direct_candidates)
+    findings = [
+        finding for finding in findings
+        if finding.get('accessType') != 'Direct' or finding.get('assignmentId') not in removed_ids
+    ]
+    with open(cleanup_removed_file, 'w') as fh:
+        fh.write(str(len(removed_ids)))
+    with open(cleanup_failures_file, 'w') as fh:
+        for failure in cleanup_failures:
+            fh.write(failure + '\n')
+    print(f"  Direct privileged assignments removed: {len(removed_ids)}")
+    if cleanup_failures:
+        print(f"  ERROR: {len(cleanup_failures)} direct privileged assignment(s) could not be removed.")
+        for failure in cleanup_failures:
+            print(f"    {failure}")
 
 # De-duplication (exact -> scope hierarchy -> group consolidation)
 seen_exact = set()
@@ -769,18 +888,35 @@ echo "Building Slack notification..."
 
 FINDING_COUNT=$(python3 -c "import json; d=json.load(open('$FINDINGS_JSON')); print(len(d))")
 UNIQUE_USERS=$(python3 -c "import json; d=json.load(open('$FINDINGS_JSON')); print(len(set(e['upn'] for e in d)))")
+CLEANUP_REMOVED=0
+if [[ "$removeDirect" == true && -f "$CLEANUP_REMOVED_FILE" ]]; then
+    CLEANUP_REMOVED=$(cat "$CLEANUP_REMOVED_FILE")
+fi
 
 if [[ "$FINDING_COUNT" -eq 0 ]]; then
+    MESSAGE="Scope: CFT/Crime/Heritage/Platform/SDS/SPS Production MGs + HMCTS-SOC-PROD | All assignments are within approved exceptions."
+    NO_FINDING_HEADER=":green_circle: Production Privileged Role Audit — No violations found"
+    if [[ "$removeDirect" == true ]]; then
+        MESSAGE="Scope: CFT/Crime/Heritage/Platform/SDS/SPS Production MGs + HMCTS-SOC-PROD | Removed $CLEANUP_REMOVED unapproved direct user assignment(s); group assignments were not changed."
+        NO_FINDING_HEADER=":green_circle: Production Privileged Role Audit — No remaining violations found"
+    fi
     recordNotification "$slackBotToken" "$slackChannelName" \
-        ":green_circle: Production Privileged Role Audit — No violations found" \
-        "Scope: CFT/Crime/Heritage/Platform/SDS/SPS Production MGs + HMCTS-SOC-PROD | All assignments are within approved exceptions."
+        "$NO_FINDING_HEADER" \
+        "$MESSAGE"
     echo "No findings — green report saved for final reporting."
+    if [[ -s "$CLEANUP_FAILURES_FILE" ]]; then
+        echo "ERROR: Some direct privileged assignments could not be removed; see details above." >&2
+        exit 1
+    fi
     exit 0
 fi
 
 STATUS=":red_circle:"
 HEADER="$STATUS Production Privileged Role Audit — $UNIQUE_USERS user(s) with privileged access found ($FINDING_COUNT finding(s))"
 SUBHEADING="Scope: CFT/Crime/Heritage/Platform/SDS/SPS Production MGs + HMCTS-SOC-PROD | Exceptions: scripts/prod_audit_exceptions.yaml"
+if [[ "$removeDirect" == true ]]; then
+    SUBHEADING="$SUBHEADING | Removed $CLEANUP_REMOVED direct user assignment(s); group assignments were not changed."
+fi
 
 recordNotification "$slackBotToken" "$slackChannelName" "$HEADER" "$SUBHEADING"
 
@@ -842,3 +978,7 @@ for i in $(seq 0 $((CHUNK_COUNT - 1))); do
 done
 
 echo "Report saved for final reporting. ($FINDING_COUNT findings across $UNIQUE_USERS users)"
+if [[ -s "$CLEANUP_FAILURES_FILE" ]]; then
+    echo "ERROR: Some direct privileged assignments could not be removed; see details above." >&2
+    exit 1
+fi
