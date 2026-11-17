@@ -59,6 +59,27 @@ list; inaccessible resources remain unverified, never assumed deleted. It does
 not discover new orphans, delete anything, alter the saved status file, or enable
 the cleanup workflow.
 
+### Saturday privileged-role cleanup
+
+The daily checks run on weekdays at 07:45 and 14:45 UTC, and on Saturdays at
+07:45 UTC. The Saturday run includes direct-user privileged-role cleanup
+alongside the other daily checks. Azure Pipelines cron schedules use UTC, so
+the Saturday run is at 07:45 UK time in winter and 08:45 in summer.
+
+Direct-role cleanup is enabled only on `master` runs triggered by the
+`Saturday morning daily checks and RBAC cleanup` schedule, identified by
+`Build.CronSchedule.DisplayName`. Weekday, manual, PR, and runs without that
+schedule identity remain read-only, even with `--remove-direct`. Keep the
+schedule display name and the script's guard in sync.
+
+When enabled, it removes only unapproved privileged role assignments whose
+Azure principal type is `User`. It never removes group role assignments or
+group memberships (including **O365 Admin GA**). Service accounts and assignments
+in `scripts/prod_audit_exceptions.yaml` remain excluded. Cleanup requires the
+`GA-Prod-Tenant` service connection to have permission to delete the selected
+role assignments. The saved report shows remaining findings and how many
+direct assignments were removed, and is sent by the final reporting job.
+
 ### Read-only verification of historical orphan-resource failures
 
 The orphan-resource Slack check reads a saved failure list, which may be stale
