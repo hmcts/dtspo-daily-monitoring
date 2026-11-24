@@ -13,7 +13,7 @@ MEMBERSHIP = {
 
 
 class RemovePrivilegedGroupMembershipsTests(unittest.TestCase):
-    def test_removes_dts_owners_memberships_and_reports_failures(self):
+    def test_removes_memberships_and_reports_failures(self):
         calls = []
         failing = {**MEMBERSHIP, "groupName": "DTS Owners (sub:dts-cftptl-intsvc)",
                    "principalId": "ca000000-0000-0000-0000-000000000005", "upn": "Carol@HMCTS.NET"}
@@ -38,8 +38,7 @@ class RemovePrivilegedGroupMembershipsTests(unittest.TestCase):
 
     def test_refuses_all_removals_when_any_membership_is_out_of_scope(self):
         for invalid in (
-            {**MEMBERSHIP, "groupName": "DTS Contributors (mg:HMCTS)"},
-            {**MEMBERSHIP, "groupName": "O365 Admin GA"},
+            {**MEMBERSHIP, "groupName": ""},
             {**MEMBERSHIP, "principalId": "Bob.Smith@HMCTS.NET"},
             {**MEMBERSHIP, "groupId": ""},
         ):

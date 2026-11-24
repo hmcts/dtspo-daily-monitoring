@@ -26,6 +26,8 @@ IDS = {
     "OWNERS_GROUP": "0a000000-0000-0000-0000-00000000000a",
     "CONTRIBUTORS_GROUP": "0c000000-0000-0000-0000-00000000000c",
     "NESTED_GROUP": "0e000000-0000-0000-0000-00000000000e",
+    "APPROVED_GROUP": "0d000000-0000-0000-0000-00000000000d",
+    "DAN": "da000000-0000-0000-0000-000000000006",
 }
 
 FAKE_AZ = r'''
@@ -85,6 +87,7 @@ ASSIGNMENTS = {
         owner(f"/subscriptions/{CRIME_SUB}", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", JANE),
         owner(HMCTS, "dddddddd-dddd-dddd-dddd-dddddddddddd", OWNERS_GROUP, "Group"),
         owner(HMCTS, "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee", CONTRIBUTORS_GROUP, "Group"),
+        owner(HMCTS, "ffffffff-ffff-ffff-ffff-ffffffffffff", APPROVED_GROUP, "Group"),
     ],
     CFT_SUB: [owner(f"/subscriptions/{CFT_SUB}", "cccccccc-cccc-cccc-cccc-cccccccccccc", O365_ADMIN_GA)],
 }
@@ -95,6 +98,7 @@ USERS = {
 GROUPS = {
     OWNERS_GROUP: "DTS Owners (mg:HMCTS)",
     CONTRIBUTORS_GROUP: "DTS Contributors (mg:HMCTS)",
+    APPROVED_GROUP: "DTS Approved Team",
 }
 
 def user(object_id, upn):
@@ -110,6 +114,7 @@ MEMBERS = {
         {"@odata.type": "#microsoft.graph.group", "id": NESTED_GROUP, "displayName": "Nested"},
     ],
     CONTRIBUTORS_GROUP: [user(CAROL, "Carol.Jones@HMCTS.NET")],
+    APPROVED_GROUP: [user(DAN, "Dan.Brown@HMCTS.NET")],
 }
 
 if args[:3] == ["role", "definition", "list"]:
@@ -159,6 +164,10 @@ allowed_assignments:
     role: Owner
     scope: /providers/Microsoft.Management/managementGroups/Crime
     comment: O365 Admin GA
+  - principal_name: DTS Approved Team
+    role: Owner
+    scope: /providers/Microsoft.Management/managementGroups/HMCTS
+    comment: approved team group
   - principal_name: b2cadmin
     role: Owner
     scope: /providers/Microsoft.Management/managementGroups/HMCTS
@@ -231,7 +240,7 @@ class SaturdayCleanupTests(unittest.TestCase):
             report = report_file.read_text() if report_file.exists() else ""
             return result, deleted, removed, report
 
-    def test_saturday_cleanup_removes_direct_access_and_dts_owners_members(self):
+    def test_saturday_cleanup_removes_direct_access_and_reported_group_members(self):
         result, deleted, removed, report = self.run_audit()
 
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -239,17 +248,19 @@ class SaturdayCleanupTests(unittest.TestCase):
             "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",  # Unapproved user under Crime
             "cccccccc-cccc-cccc-cccc-cccccccccccc",  # O365 Admin GA outside its Crime exception
         })
-        # O365 Admin GA is exempt; allowed_assignments (b2cadmin) do not prevent removal;
-        # service accounts, nested groups, recent additions and non-Owners groups are kept.
+        # O365 Admin GA is exempt. Users reported through any group are removed, and
+        # allowed_assignments (b2cadmin) do not protect DTS Owners members. Service accounts,
+        # nested groups, recent additions and members of approved groups are kept.
         self.assertEqual(removed, {
             (IDS["OWNERS_GROUP"], IDS["BOB"]),
             (IDS["OWNERS_GROUP"], IDS["B2CADMIN"]),
+            (IDS["CONTRIBUTORS_GROUP"], IDS["CAROL"]),
         })
         self.assertIn(
-            "Removed 2 unapproved direct user assignment(s) and 2 DTS Owners group membership(s)",
+            "Removed 2 unapproved direct user assignment(s) and 3 group membership(s)",
             report,
         )
-        self.assertIn("Carol.Jones@HMCTS.NET", report)
+        self.assertNotIn("Carol.Jones@HMCTS.NET", report)
         self.assertNotIn("Bob.Smith@HMCTS.NET", report)
 
     def test_cleanup_aborts_before_changes_when_inputs_are_incomplete(self):

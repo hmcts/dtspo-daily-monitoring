@@ -18,19 +18,19 @@ def is_dts_owners_group(group_name):
 def validate_group_memberships(candidates):
     for candidate in candidates:
         if (
-            not is_dts_owners_group(candidate.get("groupName"))
+            not candidate.get("groupName")
             or not OBJECT_ID.match(candidate.get("groupId") or "")
             or not OBJECT_ID.match(candidate.get("principalId") or "")
         ):
             raise ValueError(
-                "Refusing cleanup because a group membership is not a valid DTS Owners "
+                "Refusing cleanup because a group membership is not a valid "
                 f"user membership: {candidate.get('upn', '<unknown user>')} in "
                 f"{candidate.get('groupName', '<unknown group>')}"
             )
 
 
 def remove_group_memberships(candidates, run=subprocess.run):
-    """Remove users from DTS Owners groups; returns ({(group ID, user ID)}, failures)."""
+    """Remove users from groups; returns ({(group ID, user ID)}, failures)."""
     validate_group_memberships(candidates)
 
     removed = set()

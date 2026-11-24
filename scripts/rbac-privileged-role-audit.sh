@@ -33,7 +33,7 @@ usage(){
         [ -t | --slackBotToken ]
         [ -c | --slackChannelName ]
         [ --remove-direct ]  Enable Saturday scheduled cleanup of direct user assignments
-                             and user memberships of DTS Owners groups
+                             and user memberships of groups that give privileged access
         [ -h | --help ]
 EOF
 exit 1
@@ -789,17 +789,19 @@ for a in group_assignments:
     for m in group_members.get(gid, []):
         if (gid.lower(), m['id'].lower()) in recently_added_to_group:
             continue
-        if (
+        cleanup_candidate = (
             remove_direct
-            and is_dts_owners_group(gname)
             and m['id'].lower() not in group_cleanup_exempt
             and m['upn'].lower() not in group_cleanup_exempt
-        ):
-            group_cleanup_candidates[(gid.lower(), m['id'].lower())] = {
-                'groupId': gid, 'groupName': gname, 'principalId': m['id'], 'upn': m['upn'],
-            }
+        )
+        candidate = {'groupId': gid, 'groupName': gname, 'principalId': m['id'], 'upn': m['upn']}
+        # DTS Owners members are removed even when an exception hides them from the report.
+        if cleanup_candidate and is_dts_owners_group(gname):
+            group_cleanup_candidates[(gid.lower(), m['id'].lower())] = candidate
         if is_allowed_exception(m['upn'], m['displayName'], role, scope, gname):
             continue
+        if cleanup_candidate:
+            group_cleanup_candidates[(gid.lower(), m['id'].lower())] = candidate
         findings.append({
             'upn': m['upn'], 'displayName': m['displayName'], 'principalId': m['id'],
             'role': role, 'scope': scope, 'scopeLevel': get_scope_level(scope),
@@ -843,7 +845,7 @@ if remove_direct:
         for failure in cleanup_failures:
             fh.write(failure + '\n')
     print(f"  Direct privileged assignments removed: {len(removed_ids)}")
-    print(f"  DTS Owners group memberships removed: {len(removed_memberships)}")
+    print(f"  Group memberships removed: {len(removed_memberships)}")
     if cleanup_failures:
         print(f"  ERROR: {len(cleanup_failures)} cleanup action(s) failed.")
         for failure in cleanup_failures:
@@ -944,7 +946,7 @@ fi
 if [[ "$removeDirect" == true && -f "$CLEANUP_GROUP_REMOVED_FILE" ]]; then
     CLEANUP_GROUP_REMOVED=$(cat "$CLEANUP_GROUP_REMOVED_FILE")
 fi
-CLEANUP_SUMMARY="Removed $CLEANUP_REMOVED unapproved direct user assignment(s) and $CLEANUP_GROUP_REMOVED DTS Owners group membership(s); other group access was not changed."
+CLEANUP_SUMMARY="Removed $CLEANUP_REMOVED unapproved direct user assignment(s) and $CLEANUP_GROUP_REMOVED group membership(s); group role assignments were not changed."
 
 if [[ "$FINDING_COUNT" -eq 0 ]]; then
     MESSAGE="Scope: CFT/Crime/Heritage/Platform/SDS/SPS Production MGs + HMCTS-SOC-PROD | All assignments are within approved exceptions."

@@ -81,17 +81,19 @@ When enabled, cleanup:
   subscriptions, and resources; for example, the **O365 Admin GA** exception on
   the `Crime` management group protects its direct Owner assignments on Crime
   subscriptions. Cleanup is aborted if those descendants cannot be enumerated.
-- removes users from `DTS Owners (mg:…)` and `DTS Owners (sub:…)` groups that
-  hold privileged roles in the audited scope. Only principals listed under
+- removes users from the groups that give them reported privileged access
+  (for example `DTS Owners (…)` and `DTS Contributors (…)`). Members of groups
+  covered by an approved exception in `allowed_assignments` are kept, except
+  for `DTS Owners` groups, where users are removed even if an exception hides
+  them from the report. Only principals listed under
   `group_cleanup_exempt_principals` (currently **O365 Admin GA** and
-  **b2cadmin GA**) are kept;
-  `allowed_assignments` do not prevent removal. Service and break-glass
-  accounts, nested groups, and users added in the last 25 hours (for example
-  one-day access-package grants) are also kept. Cleanup is aborted if recent
-  group additions cannot be read from the Entra audit log.
+  **b2cadmin GA**) are always kept. Service and break-glass accounts, nested
+  groups, and users added in the last 25 hours (for example one-day
+  access-package grants) are also kept. Cleanup is aborted if recent group
+  additions cannot be read from the Entra audit log.
 
-Group role assignments and other groups are never changed. Cleanup requires the
-`GA-Prod-Tenant` service connection to have permission to delete the selected
+Group role assignments are never changed, and groups that do not appear in the
+report are not touched. Cleanup requires the `GA-Prod-Tenant` service connection to have permission to delete the selected
 role assignments and group memberships. The saved report shows remaining
 findings and what was removed, and is sent by the final reporting job.
 
