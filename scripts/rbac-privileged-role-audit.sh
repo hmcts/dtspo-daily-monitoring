@@ -578,9 +578,7 @@ print(f"  Exceptions: {len(exceptions.get('excluded_subscriptions', []))} exclud
 
 sys.path.insert(0, os.path.abspath('scripts'))
 from rbac_exception_scopes import exception_scope_matches, load_management_group_descendants
-from remove_privileged_group_memberships import (
-    is_dts_owners_group, remove_group_memberships, validate_group_memberships,
-)
+from remove_privileged_group_memberships import remove_group_memberships, validate_group_memberships
 
 # Management-group exceptions also cover their descendant subscriptions and child management groups.
 try:
@@ -795,9 +793,6 @@ for a in group_assignments:
             and m['upn'].lower() not in group_cleanup_exempt
         )
         candidate = {'groupId': gid, 'groupName': gname, 'principalId': m['id'], 'upn': m['upn']}
-        # DTS Owners members are removed even when an exception hides them from the report.
-        if cleanup_candidate and is_dts_owners_group(gname):
-            group_cleanup_candidates[(gid.lower(), m['id'].lower())] = candidate
         if is_allowed_exception(m['upn'], m['displayName'], role, scope, gname):
             continue
         if cleanup_candidate:

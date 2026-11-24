@@ -248,16 +248,15 @@ class SaturdayCleanupTests(unittest.TestCase):
             "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",  # Unapproved user under Crime
             "cccccccc-cccc-cccc-cccc-cccccccccccc",  # O365 Admin GA outside its Crime exception
         })
-        # O365 Admin GA is exempt. Users reported through any group are removed, and
-        # allowed_assignments (b2cadmin) do not protect DTS Owners members. Service accounts,
-        # nested groups, recent additions and members of approved groups are kept.
+        # Only users reported through a group are removed. O365 Admin GA is exempt;
+        # approved exceptions (b2cadmin, the approved team group), service accounts,
+        # nested groups and recent additions are kept.
         self.assertEqual(removed, {
             (IDS["OWNERS_GROUP"], IDS["BOB"]),
-            (IDS["OWNERS_GROUP"], IDS["B2CADMIN"]),
             (IDS["CONTRIBUTORS_GROUP"], IDS["CAROL"]),
         })
         self.assertIn(
-            "Removed 2 unapproved direct user assignment(s) and 3 group membership(s)",
+            "Removed 2 unapproved direct user assignment(s) and 2 group membership(s)",
             report,
         )
         self.assertNotIn("Carol.Jones@HMCTS.NET", report)

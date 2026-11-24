@@ -4,15 +4,10 @@ import re
 import subprocess
 
 
-DTS_OWNERS_GROUP = re.compile(r"^DTS Owners \((mg|sub):", re.IGNORECASE)
 OBJECT_ID = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
     re.IGNORECASE,
 )
-
-
-def is_dts_owners_group(group_name):
-    return bool(DTS_OWNERS_GROUP.match(group_name or ""))
 
 
 def validate_group_memberships(candidates):

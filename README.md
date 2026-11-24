@@ -81,11 +81,10 @@ When enabled, cleanup:
   subscriptions, and resources; for example, the **O365 Admin GA** exception on
   the `Crime` management group protects its direct Owner assignments on Crime
   subscriptions. Cleanup is aborted if those descendants cannot be enumerated.
-- removes users from the groups that give them reported privileged access
-  (for example `DTS Owners (…)` and `DTS Contributors (…)`). Members of groups
-  covered by an approved exception in `allowed_assignments` are kept, except
-  for `DTS Owners` groups, where users are removed even if an exception hides
-  them from the report. Only principals listed under
+- removes users who appear on the report from the groups that give them
+  privileged access (for example `DTS Owners (…)` and `DTS Contributors (…)`).
+  Users covered by an approved exception in `allowed_assignments` do not appear
+  on the report and are kept. Only principals listed under
   `group_cleanup_exempt_principals` (currently **O365 Admin GA** and
   **b2cadmin GA**) are always kept. Service and break-glass accounts, nested
   groups, and users added in the last 25 hours (for example one-day
