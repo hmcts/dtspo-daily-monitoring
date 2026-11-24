@@ -15,12 +15,21 @@
 #     role            - exact role name, or * to match any role
 #     scope           - full Azure scope path; child scopes are also matched
 #     comment         - free-text reason for the exception
+#
+# group_cleanup_exempt_principals:
+#   User object IDs (or exact UPNs) that the Saturday cleanup must never remove
+#   from DTS Owners groups. allowed_assignments hide findings from the report
+#   but do not stop DTS Owners membership removal.
 # =============================================================================
 
 excluded_subscriptions:
   - DTS-CFTSBOX-INTSVC
   - DTS-SHAREDSERVICESPTL-SBOX
   - DTS-SHAREDSERVICES-STG
+
+group_cleanup_exempt_principals:
+  # O365 Admin GA (hmctsdcd_outlook.com#EXT#@CJSCommonPlatform.onmicrosoft.com)
+  - 6ca4394a-463d-4782-82ea-e811739c01ca
 
 allowed_assignments:
   - principal_name: cactus-group
