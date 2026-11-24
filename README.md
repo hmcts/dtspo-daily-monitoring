@@ -83,7 +83,8 @@ When enabled, cleanup:
   subscriptions. Cleanup is aborted if those descendants cannot be enumerated.
 - removes users from `DTS Owners (mg:…)` and `DTS Owners (sub:…)` groups that
   hold privileged roles in the audited scope. Only principals listed under
-  `group_cleanup_exempt_principals` (currently **O365 Admin GA**) are kept;
+  `group_cleanup_exempt_principals` (currently **O365 Admin GA** and
+  **b2cadmin GA**) are kept;
   `allowed_assignments` do not prevent removal. Service and break-glass
   accounts, nested groups, and users added in the last 25 hours (for example
   one-day access-package grants) are also kept. Cleanup is aborted if recent

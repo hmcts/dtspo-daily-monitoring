@@ -30,6 +30,8 @@ excluded_subscriptions:
 group_cleanup_exempt_principals:
   # O365 Admin GA (hmctsdcd_outlook.com#EXT#@CJSCommonPlatform.onmicrosoft.com)
   - 6ca4394a-463d-4782-82ea-e811739c01ca
+  # b2cadmin GA (b2cadmin@hmcts.net)
+  - 6f9a230d-746b-4749-96b1-eca7b1066ea7
 
 allowed_assignments:
   - principal_name: cactus-group
