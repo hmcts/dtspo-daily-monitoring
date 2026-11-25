@@ -18,8 +18,8 @@
 #
 # group_cleanup_exempt_principals:
 #   User object IDs (or exact UPNs) that the Saturday cleanup must never remove
-#   from DTS Owners groups. allowed_assignments hide findings from the report
-#   but do not stop DTS Owners membership removal.
+#   from audited groups. An allowed_assignments entry also protects the
+#   membership that grants the approved access.
 # =============================================================================
 
 excluded_subscriptions:

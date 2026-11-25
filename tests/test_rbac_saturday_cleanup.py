@@ -117,6 +117,19 @@ MEMBERS = {
     APPROVED_GROUP: [user(DAN, "Dan.Brown@HMCTS.NET")],
 }
 
+assignment_order = os.environ.get("MIXED_GROUP_ASSIGNMENT_ORDER")
+if assignment_order:
+    crime_scope = f"/subscriptions/{CRIME_SUB}"
+    grants = [
+        owner(f"{crime_scope}/resourceGroups/approved-rg", "ffffffff-ffff-ffff-ffff-ffffffffffff", APPROVED_GROUP, "Group"),
+        owner(crime_scope, "12121212-1212-1212-1212-121212121212", APPROVED_GROUP, "Group"),
+    ]
+    if assignment_order == "unapproved-first":
+        grants.reverse()
+    ASSIGNMENTS[CRIME_SUB][-1:] = grants
+    GROUPS[APPROVED_GROUP] = "DTS Mixed Grants"
+    MEMBERS[APPROVED_GROUP].append(user(BOB, "Bob.Smith@HMCTS.NET"))
+
 if args[:3] == ["role", "definition", "list"]:
     respond([{"id": OWNER, "roleName": "Owner", "roleType": "BuiltInRole", "actions": ["*"]}])
 if args[:1] == ["rest"]:
@@ -176,7 +189,7 @@ allowed_assignments:
 
 
 class SaturdayCleanupTests(unittest.TestCase):
-    def run_audit(self, schedule=SATURDAY_SCHEDULE, **failures):
+    def run_audit(self, schedule=SATURDAY_SCHEDULE, *, exceptions=EXCEPTIONS, assignment_order="", **failures):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             scripts = root / "scripts"
@@ -188,7 +201,7 @@ class SaturdayCleanupTests(unittest.TestCase):
                 "remove_privileged_group_memberships.py",
             ):
                 shutil.copyfile(REPOSITORY / "scripts" / name, scripts / name)
-            (scripts / "prod_audit_exceptions.yaml").write_text(EXCEPTIONS)
+            (scripts / "prod_audit_exceptions.yaml").write_text(exceptions)
             (scripts / "common-functions.sh").write_text(
                 'recordNotification() { printf "%s\\n%s\\n" "$3" "$4" >> report.txt; TS=report.txt; }\n'
                 'recordThreadResponse() { printf "%s\\n" "$3" >> "$4"; }\n'
@@ -220,6 +233,7 @@ class SaturdayCleanupTests(unittest.TestCase):
                     "FAIL_DESCENDANTS": failures.get("descendants", ""),
                     "FAIL_AUDIT": failures.get("audit", ""),
                     "FAKE_AZ_IDS": json.dumps(IDS),
+                    "MIXED_GROUP_ASSIGNMENT_ORDER": assignment_order,
                 },
                 capture_output=True,
                 text=True,
@@ -261,6 +275,26 @@ class SaturdayCleanupTests(unittest.TestCase):
         )
         self.assertNotIn("Carol.Jones@HMCTS.NET", report)
         self.assertNotIn("Bob.Smith@HMCTS.NET", report)
+
+    def test_approved_grant_protects_membership_with_an_unapproved_grant(self):
+        exceptions = EXCEPTIONS + f"""\
+  - principal_name: Dan.Brown
+    role: Owner
+    scope: /subscriptions/{IDS["CRIME_SUB"]}/resourceGroups/approved-rg
+"""
+        for assignment_order in ("approved-first", "unapproved-first"):
+            with self.subTest(assignment_order=assignment_order):
+                result, _, removed, report = self.run_audit(
+                    exceptions=exceptions, assignment_order=assignment_order
+                )
+
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertNotIn((IDS["APPROVED_GROUP"], IDS["DAN"]), removed)
+                self.assertIn((IDS["APPROVED_GROUP"], IDS["BOB"]), removed)
+                self.assertIn(
+                    "`Dan.Brown@HMCTS.NET` — Owner (Via Group via _DTS Mixed Grants_) on Subscription: _Crime Prod_",
+                    report,
+                )
 
     def test_cleanup_aborts_before_changes_when_inputs_are_incomplete(self):
         for failure in ({"descendants": "hmcts"}, {"audit": "1"}):
