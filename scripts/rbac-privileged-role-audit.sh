@@ -82,7 +82,22 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXCEPTIONS_FILE="$SCRIPT_DIR/prod_audit_exceptions.yaml"
 WORK_DIR=$(mktemp -d)
-trap 'rm -rf "$WORK_DIR"' EXIT
+auditReportSaved=false
+
+finishAudit() {
+    local status=$1
+    if [[ "$status" -ne 0 && "$removeDirect" == true && "$auditReportSaved" == false ]]; then
+        if ! recordNotification "$slackBotToken" "$slackChannelName" \
+            ":red_circle: Production Privileged Role Audit — Saturday cleanup did not complete" \
+            "Review the role-assignment job logs for the failure and any cleanup actions already recorded."; then
+            echo "ERROR: Could not save the Saturday cleanup failure report." >&2
+        fi
+    fi
+    rm -rf "$WORK_DIR"
+    exit "$status"
+}
+
+trap 'finishAudit "$?"' EXIT
 
 RAW_ASSIGNMENTS_FILE="$WORK_DIR/raw_role_assignments.json"
 PRIVILEGED_ROLES_FILE="$WORK_DIR/privileged_roles.json"
@@ -687,26 +702,46 @@ for gid in group_ids:
              '--query', '{displayName:displayName}', '-o', 'json'],
             capture_output=True, text=True, timeout=15
         )
-        group_info[gid] = json.loads(result.stdout).get('displayName', gid) if result.returncode == 0 else gid
-    except:
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip()[:300])
+        display_name = json.loads(result.stdout).get('displayName')
+        if not isinstance(display_name, str) or not display_name.strip():
+            raise ValueError('missing group display name')
+        group_info[gid] = display_name
+    except Exception as e:
+        message = f"could not resolve the display name of group '{gid}': {e}"
+        if remove_direct:
+            raise SystemExit(f"Cleanup aborted because it {message}")
+        print(f"  WARNING: {message}")
         group_info[gid] = gid
     try:
         result = subprocess.run(
             ['az', 'ad', 'group', 'member', 'list', '--group', gid, '-o', 'json'],
             capture_output=True, text=True, timeout=60
         )
-        if result.returncode == 0:
-            members = json.loads(result.stdout)
-            group_members[gid] = [
-                {'id': m.get('id', ''), 'upn': m.get('userPrincipalName', ''), 'displayName': m.get('displayName', '')}
-                for m in members
-                if m.get('@odata.type') != '#microsoft.graph.user' or
-                not is_service_account(m.get('userPrincipalName', ''), m.get('displayName', ''))
-                if m.get('@odata.type', '') in ['#microsoft.graph.user', '']
-            ]
-        else:
-            group_members[gid] = []
-    except:
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip()[:300])
+        members = json.loads(result.stdout)
+        if not isinstance(members, list):
+            raise ValueError('expected a group member list')
+        group_members[gid] = [
+            {'id': m.get('id', ''), 'upn': m.get('userPrincipalName', ''), 'displayName': m.get('displayName', '')}
+            for m in members
+            if m.get('@odata.type') != '#microsoft.graph.user' or
+            not is_service_account(m.get('userPrincipalName', ''), m.get('displayName', ''))
+            if m.get('@odata.type', '') in ['#microsoft.graph.user', '']
+        ]
+        if remove_direct and any(
+            not isinstance(member[field], str) or not member[field].strip()
+            for member in group_members[gid]
+            for field in ('id', 'upn', 'displayName')
+        ):
+            raise ValueError('a user member is missing its ID, UPN or display name')
+    except Exception as e:
+        message = f"could not enumerate members of group '{gid}': {e}"
+        if remove_direct:
+            raise SystemExit(f"Cleanup aborted because it {message}")
+        print(f"  WARNING: {message}")
         group_members[gid] = []
 
 # Check audit logs for recently-added group members (skip members added < 24h ago)
@@ -959,6 +994,7 @@ if [[ "$FINDING_COUNT" -eq 0 ]]; then
     recordNotification "$slackBotToken" "$slackChannelName" \
         "$NO_FINDING_HEADER" \
         "$MESSAGE"
+    auditReportSaved=true
     echo "No findings — green report saved for final reporting."
     if [[ -s "$CLEANUP_FAILURES_FILE" ]]; then
         echo "ERROR: Some privileged access could not be removed; see details above." >&2
@@ -1033,6 +1069,7 @@ for i in $(seq 0 $((CHUNK_COUNT - 1))); do
     recordThreadResponse "$slackBotToken" "$slackChannelName" "$CHUNK_MSG" "$TS"
 done
 
+auditReportSaved=true
 echo "Report saved for final reporting. ($FINDING_COUNT findings across $UNIQUE_USERS users)"
 if [[ -s "$CLEANUP_FAILURES_FILE" ]]; then
     echo "ERROR: Some privileged access could not be removed; see details above." >&2

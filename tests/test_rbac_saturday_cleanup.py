@@ -158,8 +158,18 @@ if args[:3] == ["role", "assignment", "list"]:
 if args[:3] == ["ad", "user", "show"]:
     respond(USERS[arg("--id")])
 if args[:3] == ["ad", "group", "show"]:
+    if arg("--group") == APPROVED_GROUP:
+        if os.environ.get("FAIL_GROUP_LOOKUP") == "name":
+            fail()
+        if os.environ.get("FAIL_GROUP_LOOKUP") == "missing-name":
+            respond({"displayName": None})
     respond({"displayName": GROUPS[arg("--group")]})
 if args[:4] == ["ad", "group", "member", "list"]:
+    if arg("--group") == APPROVED_GROUP:
+        if os.environ.get("FAIL_GROUP_LOOKUP") == "members":
+            fail()
+        if os.environ.get("FAIL_GROUP_LOOKUP") == "partial-members":
+            respond([{"@odata.type": "#microsoft.graph.user", "id": DAN}])
     respond(MEMBERS[arg("--group")])
 if args[:3] == ["role", "assignment", "delete"] or args[:4] == ["ad", "group", "member", "remove"]:
     respond()
@@ -195,6 +205,7 @@ class SaturdayCleanupTests(unittest.TestCase):
             scripts = root / "scripts"
             scripts.mkdir()
             for name in (
+                "common-functions.sh",
                 "rbac-privileged-role-audit.sh",
                 "rbac_exception_scopes.py",
                 "remove_direct_privileged_assignments.py",
@@ -202,10 +213,6 @@ class SaturdayCleanupTests(unittest.TestCase):
             ):
                 shutil.copyfile(REPOSITORY / "scripts" / name, scripts / name)
             (scripts / "prod_audit_exceptions.yaml").write_text(exceptions)
-            (scripts / "common-functions.sh").write_text(
-                'recordNotification() { printf "%s\\n%s\\n" "$3" "$4" >> report.txt; TS=report.txt; }\n'
-                'recordThreadResponse() { printf "%s\\n" "$3" >> "$4"; }\n'
-            )
             az = root / "az"
             az.write_text(f"#!{sys.executable}\n{FAKE_AZ}")
             getopt = root / "getopt"
@@ -214,7 +221,9 @@ class SaturdayCleanupTests(unittest.TestCase):
                 "import shlex, sys\n"
                 'print(shlex.join(sys.argv[sys.argv.index("--") + 1:] + ["--"]))\n'
             )
-            for executable in (az, getopt):
+            uname = root / "uname"
+            uname.write_text("#!/bin/sh\nprintf 'Linux\\n'\n")
+            for executable in (az, getopt, uname):
                 executable.chmod(0o755)
             result = subprocess.run(
                 [
@@ -232,6 +241,7 @@ class SaturdayCleanupTests(unittest.TestCase):
                     "BUILD_CRONSCHEDULE_DISPLAYNAME": schedule,
                     "FAIL_DESCENDANTS": failures.get("descendants", ""),
                     "FAIL_AUDIT": failures.get("audit", ""),
+                    "FAIL_GROUP_LOOKUP": failures.get("group_lookup", ""),
                     "FAKE_AZ_IDS": json.dumps(IDS),
                     "MIXED_GROUP_ASSIGNMENT_ORDER": assignment_order,
                 },
@@ -250,9 +260,11 @@ class SaturdayCleanupTests(unittest.TestCase):
                 for call in calls
                 if call[:4] == ["ad", "group", "member", "remove"]
             }
-            report_file = root / "report.txt"
-            report = report_file.read_text() if report_file.exists() else ""
-            return result, deleted, removed, report
+            report_lines = []
+            for report_file in (root / "monitoring-reports").glob("report-*"):
+                report = json.loads(report_file.read_text())
+                report_lines.extend((report["header"], report["message"], *report["replies"]))
+            return result, deleted, removed, "\n".join(report_lines)
 
     def test_saturday_cleanup_removes_direct_access_and_reported_group_members(self):
         result, deleted, removed, report = self.run_audit()
@@ -297,13 +309,22 @@ class SaturdayCleanupTests(unittest.TestCase):
                 )
 
     def test_cleanup_aborts_before_changes_when_inputs_are_incomplete(self):
-        for failure in ({"descendants": "hmcts"}, {"audit": "1"}):
+        for failure, error in (
+            ({"descendants": "crime"}, "child subscriptions for 'Crime' could not be enumerated"),
+            ({"descendants": "hmcts"}, "exception scopes could not be resolved"),
+            ({"audit": "1"}, "recent group additions could not be read"),
+            ({"group_lookup": "name"}, "could not resolve the display name of group"),
+            ({"group_lookup": "missing-name"}, "missing group display name"),
+            ({"group_lookup": "members"}, "could not enumerate members of group"),
+            ({"group_lookup": "partial-members"}, "a user member is missing its ID, UPN or display name"),
+        ):
             with self.subTest(**failure):
-                result, deleted, removed, _ = self.run_audit(**failure)
+                result, deleted, removed, report = self.run_audit(**failure)
 
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn("aborted", result.stdout + result.stderr)
+                self.assertIn(error, result.stdout + result.stderr)
                 self.assertEqual((deleted, removed), (set(), set()))
+                self.assertIn(":red_circle: Production Privileged Role Audit — Saturday cleanup did not complete", report)
 
     def test_audit_only_run_changes_nothing_and_tolerates_lookup_failures(self):
         result, deleted, removed, report = self.run_audit(
@@ -314,6 +335,19 @@ class SaturdayCleanupTests(unittest.TestCase):
         self.assertIn("WARNING: Could not resolve management-group exception scopes", result.stdout)
         self.assertEqual((deleted, removed), (set(), set()))
         self.assertIn("Bob.Smith@HMCTS.NET", report)
+
+    def test_audit_only_run_continues_if_a_group_lookup_fails(self):
+        for failure in ("name", "members"):
+            with self.subTest(failure=failure):
+                result, deleted, removed, report = self.run_audit(
+                    schedule="Runs 8 AM & 3 PM Mon-Fri", group_lookup=failure
+                )
+
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn("WARNING: could not", result.stdout)
+                self.assertEqual((deleted, removed), (set(), set()))
+                self.assertIn("Bob.Smith@HMCTS.NET", report)
+                self.assertNotIn("Saturday cleanup did not complete", report)
 
 
 if __name__ == "__main__":
