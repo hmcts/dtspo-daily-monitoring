@@ -25,7 +25,7 @@ jobs:
           keyVaultName: 'cftptl-intsvc'
           secretsFilter: 'dtspo-daily-checks-slack-bot-token'
       - task: AzureCLI@2
-        displayName: 'Production Privileged Role Audit and Direct User Cleanup'
+        displayName: 'Production Privileged Role Audit and User Access Cleanup'
         continueOnError: true
         inputs:
           scriptType: bash

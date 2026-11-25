@@ -15,12 +15,23 @@
 #     role            - exact role name, or * to match any role
 #     scope           - full Azure scope path; child scopes are also matched
 #     comment         - free-text reason for the exception
+#
+# group_cleanup_exempt_principals:
+#   User object IDs (or exact UPNs) that the Saturday cleanup must never remove
+#   from audited groups. An allowed_assignments entry also protects the
+#   membership that grants the approved access.
 # =============================================================================
 
 excluded_subscriptions:
   - DTS-CFTSBOX-INTSVC
   - DTS-SHAREDSERVICESPTL-SBOX
   - DTS-SHAREDSERVICES-STG
+
+group_cleanup_exempt_principals:
+  # O365 Admin GA (hmctsdcd_outlook.com#EXT#@CJSCommonPlatform.onmicrosoft.com)
+  - 6ca4394a-463d-4782-82ea-e811739c01ca
+  # b2cadmin GA (b2cadmin@hmcts.net)
+  - 6f9a230d-746b-4749-96b1-eca7b1066ea7
 
 allowed_assignments:
   - principal_name: cactus-group

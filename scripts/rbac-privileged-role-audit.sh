@@ -33,6 +33,7 @@ usage(){
         [ -t | --slackBotToken ]
         [ -c | --slackChannelName ]
         [ --remove-direct ]  Enable Saturday scheduled cleanup of direct user assignments
+                             and user memberships of groups that give privileged access
         [ -h | --help ]
 EOF
 exit 1
@@ -81,13 +82,29 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXCEPTIONS_FILE="$SCRIPT_DIR/prod_audit_exceptions.yaml"
 WORK_DIR=$(mktemp -d)
-trap 'rm -rf "$WORK_DIR"' EXIT
+auditReportSaved=false
+
+finishAudit() {
+    local status=$1
+    if [[ "$status" -ne 0 && "$removeDirect" == true && "$auditReportSaved" == false ]]; then
+        if ! recordNotification "$slackBotToken" "$slackChannelName" \
+            ":red_circle: Production Privileged Role Audit — Saturday cleanup did not complete" \
+            "Review the role-assignment job logs for the failure and any cleanup actions already recorded."; then
+            echo "ERROR: Could not save the Saturday cleanup failure report." >&2
+        fi
+    fi
+    rm -rf "$WORK_DIR"
+    exit "$status"
+}
+
+trap 'finishAudit "$?"' EXIT
 
 RAW_ASSIGNMENTS_FILE="$WORK_DIR/raw_role_assignments.json"
 PRIVILEGED_ROLES_FILE="$WORK_DIR/privileged_roles.json"
 FINDINGS_JSON="$WORK_DIR/findings.json"
 CLEANUP_REMOVED_FILE="$WORK_DIR/cleanup_removed_count.txt"
 CLEANUP_FAILURES_FILE="$WORK_DIR/cleanup_failures.txt"
+CLEANUP_GROUP_REMOVED_FILE="$WORK_DIR/cleanup_group_removed_count.txt"
 
 echo "============================================================================="
 echo "Azure Production Privileged Role Audit"
@@ -441,7 +458,7 @@ echo ""
 # =============================================================================
 echo "[Step 4/4] Resolving identities, applying exceptions, building findings..."
 
-python3 - "$RAW_ASSIGNMENTS_FILE" "$FINDINGS_JSON" "$PRIVILEGED_ROLES_FILE" "$WORK_DIR/resolved_scope.json" "$EXCEPTIONS_FILE" "$removeDirect" "$CLEANUP_REMOVED_FILE" "$CLEANUP_FAILURES_FILE" << 'PROCESS_PY'
+python3 - "$RAW_ASSIGNMENTS_FILE" "$FINDINGS_JSON" "$PRIVILEGED_ROLES_FILE" "$WORK_DIR/resolved_scope.json" "$EXCEPTIONS_FILE" "$removeDirect" "$CLEANUP_REMOVED_FILE" "$CLEANUP_FAILURES_FILE" "$CLEANUP_GROUP_REMOVED_FILE" << 'PROCESS_PY'
 import json
 import sys
 import subprocess
@@ -457,6 +474,7 @@ exceptions_file = sys.argv[5]
 remove_direct = sys.argv[6] == 'true'
 cleanup_removed_file = sys.argv[7]
 cleanup_failures_file = sys.argv[8]
+cleanup_group_removed_file = sys.argv[9]
 
 def get_scope_level(scope):
     if '/providers/Microsoft.Management/managementGroups/' in scope:
@@ -526,7 +544,7 @@ with open(raw_file, 'r') as f:
     assignments = json.load(f)
 
 def parse_exceptions_yaml(path):
-    result = {'excluded_subscriptions': [], 'allowed_assignments': []}
+    result = {'excluded_subscriptions': [], 'allowed_assignments': [], 'group_cleanup_exempt_principals': []}
     try:
         with open(path, 'r') as f:
             lines = f.readlines()
@@ -548,8 +566,8 @@ def parse_exceptions_yaml(path):
             continue
         if indent == 2 and stripped.startswith('- '):
             value = stripped[2:].strip()
-            if current_section == 'excluded_subscriptions':
-                result['excluded_subscriptions'].append(value)
+            if current_section in ('excluded_subscriptions', 'group_cleanup_exempt_principals'):
+                result[current_section].append(value)
                 current_item = None
             elif current_section == 'allowed_assignments':
                 current_item = {}
@@ -572,6 +590,21 @@ if remove_direct and any(
     raise SystemExit("Direct-role cleanup aborted because an allowed exception is incomplete.")
 print(f"  Exceptions: {len(exceptions.get('excluded_subscriptions', []))} excluded subscriptions, "
       f"{len(exceptions.get('allowed_assignments', []))} allowed assignments")
+
+sys.path.insert(0, os.path.abspath('scripts'))
+from rbac_exception_scopes import exception_scope_matches, load_management_group_descendants
+from remove_privileged_group_memberships import remove_group_memberships, validate_group_memberships
+
+# Management-group exceptions also cover their descendant subscriptions and child management groups.
+try:
+    exception_descendants = load_management_group_descendants(
+        exc.get('scope', '') for exc in exceptions.get('allowed_assignments', [])
+    )
+except Exception as e:
+    if remove_direct:
+        raise SystemExit(f"Cleanup aborted because exception scopes could not be resolved: {e}")
+    print(f"  WARNING: Could not resolve management-group exception scopes: {e}")
+    exception_descendants = {}
 
 excluded_sub_names = set(s.lower() for s in exceptions.get('excluded_subscriptions', []))
 
@@ -623,7 +656,7 @@ def is_allowed_exception(upn, display_name, role, scope, group_name):
             principal in group_name.lower()
         )
         role_match = exc_role == '*' or exc_role.lower() == role.lower()
-        scope_match = scope.lower().rstrip('/').startswith(exc_scope.lower())
+        scope_match = exception_scope_matches(exc_scope, scope, exception_descendants)
         if principal_match and role_match and scope_match:
             return True
     return False
@@ -669,26 +702,46 @@ for gid in group_ids:
              '--query', '{displayName:displayName}', '-o', 'json'],
             capture_output=True, text=True, timeout=15
         )
-        group_info[gid] = json.loads(result.stdout).get('displayName', gid) if result.returncode == 0 else gid
-    except:
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip()[:300])
+        display_name = json.loads(result.stdout).get('displayName')
+        if not isinstance(display_name, str) or not display_name.strip():
+            raise ValueError('missing group display name')
+        group_info[gid] = display_name
+    except Exception as e:
+        message = f"could not resolve the display name of group '{gid}': {e}"
+        if remove_direct:
+            raise SystemExit(f"Cleanup aborted because it {message}")
+        print(f"  WARNING: {message}")
         group_info[gid] = gid
     try:
         result = subprocess.run(
             ['az', 'ad', 'group', 'member', 'list', '--group', gid, '-o', 'json'],
             capture_output=True, text=True, timeout=60
         )
-        if result.returncode == 0:
-            members = json.loads(result.stdout)
-            group_members[gid] = [
-                {'id': m.get('id', ''), 'upn': m.get('userPrincipalName', ''), 'displayName': m.get('displayName', '')}
-                for m in members
-                if m.get('@odata.type') != '#microsoft.graph.user' or
-                not is_service_account(m.get('userPrincipalName', ''), m.get('displayName', ''))
-                if m.get('@odata.type', '') in ['#microsoft.graph.user', '']
-            ]
-        else:
-            group_members[gid] = []
-    except:
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip()[:300])
+        members = json.loads(result.stdout)
+        if not isinstance(members, list):
+            raise ValueError('expected a group member list')
+        group_members[gid] = [
+            {'id': m.get('id', ''), 'upn': m.get('userPrincipalName', ''), 'displayName': m.get('displayName', '')}
+            for m in members
+            if m.get('@odata.type') != '#microsoft.graph.user' or
+            not is_service_account(m.get('userPrincipalName', ''), m.get('displayName', ''))
+            if m.get('@odata.type', '') in ['#microsoft.graph.user', '']
+        ]
+        if remove_direct and any(
+            not isinstance(member[field], str) or not member[field].strip()
+            for member in group_members[gid]
+            for field in ('id', 'upn', 'displayName')
+        ):
+            raise ValueError('a user member is missing its ID, UPN or display name')
+    except Exception as e:
+        message = f"could not enumerate members of group '{gid}': {e}"
+        if remove_direct:
+            raise SystemExit(f"Cleanup aborted because it {message}")
+        print(f"  WARNING: {message}")
         group_members[gid] = []
 
 # Check audit logs for recently-added group members (skip members added < 24h ago)
@@ -704,32 +757,37 @@ try:
         f"?$filter=activityDisplayName eq 'Add member to group'"
         f" and activityDateTime ge {since}&$top=500"
     )
-    result = subprocess.run(
-        ['az', 'rest', '--method', 'GET', '--url', url],
-        capture_output=True, text=True, timeout=120
-    )
-    if result.returncode == 0:
+    entries = []
+    while url:
+        result = subprocess.run(
+            ['az', 'rest', '--method', 'GET', '--url', url],
+            capture_output=True, text=True, timeout=120
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"exit {result.returncode}: {result.stderr[:300]}")
         audit_data = json.loads(result.stdout)
-        group_ids_set = set(g.lower() for g in group_ids)
-        entries = audit_data.get('value', [])
-        print(f"  Audit log: {len(entries)} 'Add member to group' events in last 25h")
-        for entry in entries:
-            target_resources = entry.get('targetResources', [])
-            matched_group_id = None
-            added_user_id = None
-            for tr in target_resources:
-                tr_type = (tr.get('type') or '').lower()
-                tr_id = (tr.get('id') or '').lower()
-                if tr_type == 'group' and tr_id in group_ids_set:
-                    matched_group_id = tr_id
-                elif tr_type == 'user' and tr.get('id'):
-                    added_user_id = tr.get('id', '').lower()
-            if matched_group_id and added_user_id:
-                recently_added_to_group.add((matched_group_id, added_user_id))
-        print(f"  Members added to in-scope groups in last 25h: {len(recently_added_to_group)}")
-    else:
-        print(f"  WARNING: Audit log query failed (exit {result.returncode}): {result.stderr[:300]}")
+        entries.extend(audit_data.get('value', []))
+        url = audit_data.get('@odata.nextLink')
+    group_ids_set = set(g.lower() for g in group_ids)
+    print(f"  Audit log: {len(entries)} 'Add member to group' events in last 25h")
+    for entry in entries:
+        target_resources = entry.get('targetResources', [])
+        matched_group_id = None
+        added_user_id = None
+        for tr in target_resources:
+            tr_type = (tr.get('type') or '').lower()
+            tr_id = (tr.get('id') or '').lower()
+            if tr_type == 'group' and tr_id in group_ids_set:
+                matched_group_id = tr_id
+            elif tr_type == 'user' and tr.get('id'):
+                added_user_id = tr.get('id', '').lower()
+        if matched_group_id and added_user_id:
+            recently_added_to_group.add((matched_group_id, added_user_id))
+    print(f"  Members added to in-scope groups in last 25h: {len(recently_added_to_group)}")
 except Exception as e:
+    # Recent additions include just-in-time access-package grants, which must not be removed.
+    if remove_direct:
+        raise SystemExit(f"Cleanup aborted because recent group additions could not be read: {e}")
     print(f"  WARNING: Could not query audit logs: {e}")
 
 # Build findings
@@ -753,20 +811,35 @@ for a in user_assignments:
         'assignmentId': a.get('assignmentId', ''),
     })
 
+group_cleanup_exempt = set(p.lower() for p in exceptions.get('group_cleanup_exempt_principals', []))
+group_cleanup_candidates = {}
+protected_group_memberships = set()
+
 for a in group_assignments:
     gid = a.get('principalId', '')
     gname = group_info.get(gid, gid)
     role = a.get('resolvedRoleName', a.get('roleDefinitionName', ''))
     scope = a.get('scope', '')
     for m in group_members.get(gid, []):
-        if (gid.lower(), m['id'].lower()) in recently_added_to_group:
+        membership = (gid.lower(), m['id'].lower())
+        if membership in recently_added_to_group:
             continue
         if is_allowed_exception(m['upn'], m['displayName'], role, scope, gname):
+            protected_group_memberships.add(membership)
             continue
+        if (
+            remove_direct
+            and membership[1] not in group_cleanup_exempt
+            and m['upn'].lower() not in group_cleanup_exempt
+        ):
+            group_cleanup_candidates[membership] = {
+                'groupId': gid, 'groupName': gname, 'principalId': m['id'], 'upn': m['upn'],
+            }
         findings.append({
             'upn': m['upn'], 'displayName': m['displayName'], 'principalId': m['id'],
             'role': role, 'scope': scope, 'scopeLevel': get_scope_level(scope),
             'accessType': 'Via Group', 'principalType': 'Group', 'groupName': gname,
+            'groupId': gid,
         })
 
 if remove_direct:
@@ -782,22 +855,35 @@ if remove_direct:
         for finding in findings
         if finding.get('accessType') == 'Direct'
     ]
-    sys.path.insert(0, os.path.abspath('scripts'))
     from remove_direct_privileged_assignments import remove_direct_assignments
 
+    group_candidates = [
+        candidate for membership, candidate in group_cleanup_candidates.items()
+        if membership not in protected_group_memberships
+    ]
+    validate_group_memberships(group_candidates)
     removed_ids, cleanup_failures = remove_direct_assignments(direct_candidates)
+    removed_memberships, group_failures = remove_group_memberships(group_candidates)
+    cleanup_failures += group_failures
     findings = [
         finding for finding in findings
-        if finding.get('accessType') != 'Direct' or finding.get('assignmentId') not in removed_ids
+        if not (finding.get('accessType') == 'Direct' and finding.get('assignmentId') in removed_ids)
+        and not (
+            finding.get('accessType') == 'Via Group'
+            and (finding.get('groupId', '').lower(), finding.get('principalId', '').lower()) in removed_memberships
+        )
     ]
     with open(cleanup_removed_file, 'w') as fh:
         fh.write(str(len(removed_ids)))
+    with open(cleanup_group_removed_file, 'w') as fh:
+        fh.write(str(len(removed_memberships)))
     with open(cleanup_failures_file, 'w') as fh:
         for failure in cleanup_failures:
             fh.write(failure + '\n')
     print(f"  Direct privileged assignments removed: {len(removed_ids)}")
+    print(f"  Group memberships removed: {len(removed_memberships)}")
     if cleanup_failures:
-        print(f"  ERROR: {len(cleanup_failures)} direct privileged assignment(s) could not be removed.")
+        print(f"  ERROR: {len(cleanup_failures)} cleanup action(s) failed.")
         for failure in cleanup_failures:
             print(f"    {failure}")
 
@@ -889,23 +975,29 @@ echo "Building Slack notification..."
 FINDING_COUNT=$(python3 -c "import json; d=json.load(open('$FINDINGS_JSON')); print(len(d))")
 UNIQUE_USERS=$(python3 -c "import json; d=json.load(open('$FINDINGS_JSON')); print(len(set(e['upn'] for e in d)))")
 CLEANUP_REMOVED=0
+CLEANUP_GROUP_REMOVED=0
 if [[ "$removeDirect" == true && -f "$CLEANUP_REMOVED_FILE" ]]; then
     CLEANUP_REMOVED=$(cat "$CLEANUP_REMOVED_FILE")
 fi
+if [[ "$removeDirect" == true && -f "$CLEANUP_GROUP_REMOVED_FILE" ]]; then
+    CLEANUP_GROUP_REMOVED=$(cat "$CLEANUP_GROUP_REMOVED_FILE")
+fi
+CLEANUP_SUMMARY="Removed $CLEANUP_REMOVED unapproved direct user assignment(s) and $CLEANUP_GROUP_REMOVED group membership(s); group role assignments were not changed."
 
 if [[ "$FINDING_COUNT" -eq 0 ]]; then
     MESSAGE="Scope: CFT/Crime/Heritage/Platform/SDS/SPS Production MGs + HMCTS-SOC-PROD | All assignments are within approved exceptions."
     NO_FINDING_HEADER=":green_circle: Production Privileged Role Audit — No violations found"
     if [[ "$removeDirect" == true ]]; then
-        MESSAGE="Scope: CFT/Crime/Heritage/Platform/SDS/SPS Production MGs + HMCTS-SOC-PROD | Removed $CLEANUP_REMOVED unapproved direct user assignment(s); group assignments were not changed."
+        MESSAGE="Scope: CFT/Crime/Heritage/Platform/SDS/SPS Production MGs + HMCTS-SOC-PROD | $CLEANUP_SUMMARY"
         NO_FINDING_HEADER=":green_circle: Production Privileged Role Audit — No remaining violations found"
     fi
     recordNotification "$slackBotToken" "$slackChannelName" \
         "$NO_FINDING_HEADER" \
         "$MESSAGE"
+    auditReportSaved=true
     echo "No findings — green report saved for final reporting."
     if [[ -s "$CLEANUP_FAILURES_FILE" ]]; then
-        echo "ERROR: Some direct privileged assignments could not be removed; see details above." >&2
+        echo "ERROR: Some privileged access could not be removed; see details above." >&2
         exit 1
     fi
     exit 0
@@ -915,7 +1007,7 @@ STATUS=":red_circle:"
 HEADER="$STATUS Production Privileged Role Audit — $UNIQUE_USERS user(s) with privileged access found ($FINDING_COUNT finding(s))"
 SUBHEADING="Scope: CFT/Crime/Heritage/Platform/SDS/SPS Production MGs + HMCTS-SOC-PROD | Exceptions: scripts/prod_audit_exceptions.yaml"
 if [[ "$removeDirect" == true ]]; then
-    SUBHEADING="$SUBHEADING | Removed $CLEANUP_REMOVED direct user assignment(s); group assignments were not changed."
+    SUBHEADING="$SUBHEADING | $CLEANUP_SUMMARY"
 fi
 
 recordNotification "$slackBotToken" "$slackChannelName" "$HEADER" "$SUBHEADING"
@@ -977,8 +1069,9 @@ for i in $(seq 0 $((CHUNK_COUNT - 1))); do
     recordThreadResponse "$slackBotToken" "$slackChannelName" "$CHUNK_MSG" "$TS"
 done
 
+auditReportSaved=true
 echo "Report saved for final reporting. ($FINDING_COUNT findings across $UNIQUE_USERS users)"
 if [[ -s "$CLEANUP_FAILURES_FILE" ]]; then
-    echo "ERROR: Some direct privileged assignments could not be removed; see details above." >&2
+    echo "ERROR: Some privileged access could not be removed; see details above." >&2
     exit 1
 fi

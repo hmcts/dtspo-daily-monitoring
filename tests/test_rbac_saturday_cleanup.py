@@ -1,0 +1,354 @@
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+
+
+REPOSITORY = Path(__file__).resolve().parents[1]
+SATURDAY_SCHEDULE = "Saturday morning daily checks and RBAC cleanup"
+
+IDS = {
+    "CRIME_SUB": "11111111-1111-1111-1111-111111111111",
+    "CFT_SUB": "22222222-2222-2222-2222-222222222222",
+    "SOC_SUB": "33333333-3333-3333-3333-333333333333",
+    "OWNER": "8e3af657-a8ff-443c-a75c-2fe8c4bcb635",
+    "O365_ADMIN_GA": "6ca4394a-463d-4782-82ea-e811739c01ca",
+    "JANE": "7988d135-3f76-42a6-bc85-a2ef09ce593f",
+    "BOB": "b0b00000-0000-0000-0000-000000000001",
+    "B2CADMIN": "b2c00000-0000-0000-0000-000000000002",
+    "SERVICE": "5e000000-0000-0000-0000-000000000003",
+    "RECENT": "7e000000-0000-0000-0000-000000000004",
+    "CAROL": "ca000000-0000-0000-0000-000000000005",
+    "OWNERS_GROUP": "0a000000-0000-0000-0000-00000000000a",
+    "CONTRIBUTORS_GROUP": "0c000000-0000-0000-0000-00000000000c",
+    "NESTED_GROUP": "0e000000-0000-0000-0000-00000000000e",
+    "APPROVED_GROUP": "0d000000-0000-0000-0000-00000000000d",
+    "DAN": "da000000-0000-0000-0000-000000000006",
+}
+
+FAKE_AZ = r'''
+import json
+import os
+import sys
+
+args = sys.argv[1:]
+root = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(root, "az_calls.log"), "a") as log:
+    log.write(json.dumps(args) + "\n")
+globals().update(json.loads(os.environ["FAKE_AZ_IDS"]))
+
+def arg(name):
+    return args[args.index(name) + 1] if name in args else ""
+
+def respond(value=None):
+    if value is not None:
+        print(json.dumps(value))
+    sys.exit(0)
+
+def fail():
+    print("Forbidden", file=sys.stderr)
+    sys.exit(1)
+
+MANAGEMENT_GROUPS = {
+    "CFT-Prod": "CFT - Production", "Crime": "Crime", "Heritage-Prod": "Heritage - Production",
+    "Platform-Prod": "Platform - Production", "SDS-Prod": "SDS - Production",
+    "SPS-Prod": "SPS - Production", "HMCTS": "HMCTS",
+}
+subscription = "Microsoft.Management/managementGroups/subscriptions"
+DESCENDANTS = {
+    "crime": [
+        {"name": "Crime-Child", "type": "Microsoft.Management/managementGroups"},
+        {"name": CRIME_SUB, "type": subscription},
+    ],
+    "cft-prod": [{"name": CFT_SUB, "type": subscription}],
+    "hmcts": [
+        {"name": "Crime", "type": "Microsoft.Management/managementGroups"},
+        {"name": CRIME_SUB, "type": subscription},
+        {"name": CFT_SUB, "type": subscription},
+    ],
+}
+
+def owner(scope, assignment, principal, principal_type="User"):
+    return {
+        "assignmentId": f"{scope}/providers/Microsoft.Authorization/roleAssignments/{assignment}",
+        "principalId": principal, "principalType": principal_type, "roleDefinitionName": "Owner",
+        "roleDefinitionId": f"{scope}/providers/Microsoft.Authorization/roleDefinitions/{OWNER}",
+        "scope": scope,
+    }
+
+HMCTS = "/providers/Microsoft.Management/managementGroups/HMCTS"
+ASSIGNMENTS = {
+    CRIME_SUB: [
+        owner(f"/subscriptions/{CRIME_SUB}", "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", O365_ADMIN_GA),
+        owner(f"/subscriptions/{CRIME_SUB}", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", JANE),
+        owner(HMCTS, "dddddddd-dddd-dddd-dddd-dddddddddddd", OWNERS_GROUP, "Group"),
+        owner(HMCTS, "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee", CONTRIBUTORS_GROUP, "Group"),
+        owner(HMCTS, "ffffffff-ffff-ffff-ffff-ffffffffffff", APPROVED_GROUP, "Group"),
+    ],
+    CFT_SUB: [owner(f"/subscriptions/{CFT_SUB}", "cccccccc-cccc-cccc-cccc-cccccccccccc", O365_ADMIN_GA)],
+}
+USERS = {
+    O365_ADMIN_GA: {"upn": "hmctsdcd_outlook.com#EXT#@CJSCommonPlatform.onmicrosoft.com", "displayName": "O365 Admin GA"},
+    JANE: {"upn": "Jane.Doe@HMCTS.NET", "displayName": "Jane Doe"},
+}
+GROUPS = {
+    OWNERS_GROUP: "DTS Owners (mg:HMCTS)",
+    CONTRIBUTORS_GROUP: "DTS Contributors (mg:HMCTS)",
+    APPROVED_GROUP: "DTS Approved Team",
+}
+
+def user(object_id, upn):
+    return {"@odata.type": "#microsoft.graph.user", "id": object_id, "userPrincipalName": upn, "displayName": upn}
+
+MEMBERS = {
+    OWNERS_GROUP: [
+        user(BOB, "Bob.Smith@HMCTS.NET"),
+        user(B2CADMIN, "b2cadmin@hmcts.net"),
+        user(O365_ADMIN_GA, "hmctsdcd_outlook.com#EXT#@CJSCommonPlatform.onmicrosoft.com"),
+        user(SERVICE, "dts-automation@HMCTS.NET"),
+        user(RECENT, "Recent.User@HMCTS.NET"),
+        {"@odata.type": "#microsoft.graph.group", "id": NESTED_GROUP, "displayName": "Nested"},
+    ],
+    CONTRIBUTORS_GROUP: [user(CAROL, "Carol.Jones@HMCTS.NET")],
+    APPROVED_GROUP: [user(DAN, "Dan.Brown@HMCTS.NET")],
+}
+
+assignment_order = os.environ.get("MIXED_GROUP_ASSIGNMENT_ORDER")
+if assignment_order:
+    crime_scope = f"/subscriptions/{CRIME_SUB}"
+    grants = [
+        owner(f"{crime_scope}/resourceGroups/approved-rg", "ffffffff-ffff-ffff-ffff-ffffffffffff", APPROVED_GROUP, "Group"),
+        owner(crime_scope, "12121212-1212-1212-1212-121212121212", APPROVED_GROUP, "Group"),
+    ]
+    if assignment_order == "unapproved-first":
+        grants.reverse()
+    ASSIGNMENTS[CRIME_SUB][-1:] = grants
+    GROUPS[APPROVED_GROUP] = "DTS Mixed Grants"
+    MEMBERS[APPROVED_GROUP].append(user(BOB, "Bob.Smith@HMCTS.NET"))
+
+if args[:3] == ["role", "definition", "list"]:
+    respond([{"id": OWNER, "roleName": "Owner", "roleType": "BuiltInRole", "actions": ["*"]}])
+if args[:1] == ["rest"]:
+    uri = arg("--uri") or arg("--url")
+    if "/managementGroups?" in uri:
+        respond({"value": [{"name": k, "properties": {"displayName": v}} for k, v in MANAGEMENT_GROUPS.items()]})
+    if "/descendants?" in uri:
+        mg = uri.split("/managementGroups/")[1].split("/")[0].lower()
+        if mg in os.environ.get("FAIL_DESCENDANTS", "").split(","):
+            fail()
+        respond({"value": DESCENDANTS.get(mg, [])})
+    if "directoryAudits" in uri:
+        if os.environ.get("FAIL_AUDIT"):
+            fail()
+        if uri.endswith("audit-page-2"):
+            respond({"value": [{"targetResources": [
+                {"type": "Group", "id": OWNERS_GROUP}, {"type": "User", "id": RECENT},
+            ]}]})
+        respond({"value": [], "@odata.nextLink": "https://graph.microsoft.com/directoryAudits/audit-page-2"})
+if args[:2] == ["account", "list"]:
+    if "HMCTS-SOC-PROD" in arg("--query"):
+        respond([SOC_SUB])
+    respond([{"id": s, "name": n} for s, n in ((CRIME_SUB, "Crime Prod"), (CFT_SUB, "CFT Prod"), (SOC_SUB, "HMCTS-SOC-PROD"))])
+if args[:3] == ["role", "assignment", "list"]:
+    respond([] if "--scope" in args else ASSIGNMENTS.get(arg("--subscription"), []))
+if args[:3] == ["ad", "user", "show"]:
+    respond(USERS[arg("--id")])
+if args[:3] == ["ad", "group", "show"]:
+    if arg("--group") == APPROVED_GROUP:
+        if os.environ.get("FAIL_GROUP_LOOKUP") == "name":
+            fail()
+        if os.environ.get("FAIL_GROUP_LOOKUP") == "missing-name":
+            respond({"displayName": None})
+    respond({"displayName": GROUPS[arg("--group")]})
+if args[:4] == ["ad", "group", "member", "list"]:
+    if arg("--group") == APPROVED_GROUP:
+        if os.environ.get("FAIL_GROUP_LOOKUP") == "members":
+            fail()
+        if os.environ.get("FAIL_GROUP_LOOKUP") == "partial-members":
+            respond([{"@odata.type": "#microsoft.graph.user", "id": DAN}])
+    respond(MEMBERS[arg("--group")])
+if args[:3] == ["role", "assignment", "delete"] or args[:4] == ["ad", "group", "member", "remove"]:
+    respond()
+print(f"Unexpected az call: {args}", file=sys.stderr)
+sys.exit(2)
+'''
+
+EXCEPTIONS = f"""excluded_subscriptions:
+
+group_cleanup_exempt_principals:
+  - {IDS["O365_ADMIN_GA"]}
+
+allowed_assignments:
+  - principal_name: hmctsdcd_outlook.com#EXT#
+    role: Owner
+    scope: /providers/Microsoft.Management/managementGroups/Crime
+    comment: O365 Admin GA
+  - principal_name: DTS Approved Team
+    role: Owner
+    scope: /providers/Microsoft.Management/managementGroups/HMCTS
+    comment: approved team group
+  - principal_name: b2cadmin
+    role: Owner
+    scope: /providers/Microsoft.Management/managementGroups/HMCTS
+    comment: GA account
+"""
+
+
+class SaturdayCleanupTests(unittest.TestCase):
+    def run_audit(self, schedule=SATURDAY_SCHEDULE, *, exceptions=EXCEPTIONS, assignment_order="", **failures):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            scripts = root / "scripts"
+            scripts.mkdir()
+            for name in (
+                "common-functions.sh",
+                "rbac-privileged-role-audit.sh",
+                "rbac_exception_scopes.py",
+                "remove_direct_privileged_assignments.py",
+                "remove_privileged_group_memberships.py",
+            ):
+                shutil.copyfile(REPOSITORY / "scripts" / name, scripts / name)
+            (scripts / "prod_audit_exceptions.yaml").write_text(exceptions)
+            az = root / "az"
+            az.write_text(f"#!{sys.executable}\n{FAKE_AZ}")
+            getopt = root / "getopt"
+            getopt.write_text(
+                f"#!{sys.executable}\n"
+                "import shlex, sys\n"
+                'print(shlex.join(sys.argv[sys.argv.index("--") + 1:] + ["--"]))\n'
+            )
+            uname = root / "uname"
+            uname.write_text("#!/bin/sh\nprintf 'Linux\\n'\n")
+            for executable in (az, getopt, uname):
+                executable.chmod(0o755)
+            result = subprocess.run(
+                [
+                    "bash", "scripts/rbac-privileged-role-audit.sh",
+                    "--slackBotToken", "test-token",
+                    "--slackChannelName", "test-channel",
+                    "--remove-direct",
+                ],
+                cwd=root,
+                env={
+                    **os.environ,
+                    "PATH": f"{root}:{os.environ['PATH']}",
+                    "BUILD_REASON": "Schedule",
+                    "BUILD_SOURCEBRANCH": "refs/heads/master",
+                    "BUILD_CRONSCHEDULE_DISPLAYNAME": schedule,
+                    "FAIL_DESCENDANTS": failures.get("descendants", ""),
+                    "FAIL_AUDIT": failures.get("audit", ""),
+                    "FAIL_GROUP_LOOKUP": failures.get("group_lookup", ""),
+                    "FAKE_AZ_IDS": json.dumps(IDS),
+                    "MIXED_GROUP_ASSIGNMENT_ORDER": assignment_order,
+                },
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            calls = [json.loads(line) for line in (root / "az_calls.log").read_text().splitlines()]
+            deleted = {
+                call[call.index("--ids") + 1].rsplit("/", 1)[1]
+                for call in calls
+                if call[:3] == ["role", "assignment", "delete"]
+            }
+            removed = {
+                (call[call.index("--group") + 1], call[call.index("--member-id") + 1])
+                for call in calls
+                if call[:4] == ["ad", "group", "member", "remove"]
+            }
+            report_lines = []
+            for report_file in (root / "monitoring-reports").glob("report-*"):
+                report = json.loads(report_file.read_text())
+                report_lines.extend((report["header"], report["message"], *report["replies"]))
+            return result, deleted, removed, "\n".join(report_lines)
+
+    def test_saturday_cleanup_removes_direct_access_and_reported_group_members(self):
+        result, deleted, removed, report = self.run_audit()
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(deleted, {
+            "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",  # Unapproved user under Crime
+            "cccccccc-cccc-cccc-cccc-cccccccccccc",  # O365 Admin GA outside its Crime exception
+        })
+        # Only users reported through a group are removed. O365 Admin GA is exempt;
+        # approved exceptions (b2cadmin, the approved team group), service accounts,
+        # nested groups and recent additions are kept.
+        self.assertEqual(removed, {
+            (IDS["OWNERS_GROUP"], IDS["BOB"]),
+            (IDS["CONTRIBUTORS_GROUP"], IDS["CAROL"]),
+        })
+        self.assertIn(
+            "Removed 2 unapproved direct user assignment(s) and 2 group membership(s)",
+            report,
+        )
+        self.assertNotIn("Carol.Jones@HMCTS.NET", report)
+        self.assertNotIn("Bob.Smith@HMCTS.NET", report)
+
+    def test_approved_grant_protects_membership_with_an_unapproved_grant(self):
+        exceptions = EXCEPTIONS + f"""\
+  - principal_name: Dan.Brown
+    role: Owner
+    scope: /subscriptions/{IDS["CRIME_SUB"]}/resourceGroups/approved-rg
+"""
+        for assignment_order in ("approved-first", "unapproved-first"):
+            with self.subTest(assignment_order=assignment_order):
+                result, _, removed, report = self.run_audit(
+                    exceptions=exceptions, assignment_order=assignment_order
+                )
+
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertNotIn((IDS["APPROVED_GROUP"], IDS["DAN"]), removed)
+                self.assertIn((IDS["APPROVED_GROUP"], IDS["BOB"]), removed)
+                self.assertIn(
+                    "`Dan.Brown@HMCTS.NET` — Owner (Via Group via _DTS Mixed Grants_) on Subscription: _Crime Prod_",
+                    report,
+                )
+
+    def test_cleanup_aborts_before_changes_when_inputs_are_incomplete(self):
+        for failure, error in (
+            ({"descendants": "crime"}, "child subscriptions for 'Crime' could not be enumerated"),
+            ({"descendants": "hmcts"}, "exception scopes could not be resolved"),
+            ({"audit": "1"}, "recent group additions could not be read"),
+            ({"group_lookup": "name"}, "could not resolve the display name of group"),
+            ({"group_lookup": "missing-name"}, "missing group display name"),
+            ({"group_lookup": "members"}, "could not enumerate members of group"),
+            ({"group_lookup": "partial-members"}, "a user member is missing its ID, UPN or display name"),
+        ):
+            with self.subTest(**failure):
+                result, deleted, removed, report = self.run_audit(**failure)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(error, result.stdout + result.stderr)
+                self.assertEqual((deleted, removed), (set(), set()))
+                self.assertIn(":red_circle: Production Privileged Role Audit — Saturday cleanup did not complete", report)
+
+    def test_audit_only_run_changes_nothing_and_tolerates_lookup_failures(self):
+        result, deleted, removed, report = self.run_audit(
+            schedule="Runs 8 AM & 3 PM Mon-Fri", descendants="hmcts", audit="1"
+        )
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("WARNING: Could not resolve management-group exception scopes", result.stdout)
+        self.assertEqual((deleted, removed), (set(), set()))
+        self.assertIn("Bob.Smith@HMCTS.NET", report)
+
+    def test_audit_only_run_continues_if_a_group_lookup_fails(self):
+        for failure in ("name", "members"):
+            with self.subTest(failure=failure):
+                result, deleted, removed, report = self.run_audit(
+                    schedule="Runs 8 AM & 3 PM Mon-Fri", group_lookup=failure
+                )
+
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn("WARNING: could not", result.stdout)
+                self.assertEqual((deleted, removed), (set(), set()))
+                self.assertIn("Bob.Smith@HMCTS.NET", report)
+                self.assertNotIn("Saturday cleanup did not complete", report)
+
+
+if __name__ == "__main__":
+    unittest.main()
