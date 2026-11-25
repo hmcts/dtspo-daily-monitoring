@@ -778,6 +778,7 @@ for a in user_assignments:
 
 group_cleanup_exempt = set(p.lower() for p in exceptions.get('group_cleanup_exempt_principals', []))
 group_cleanup_candidates = {}
+protected_group_memberships = set()
 
 for a in group_assignments:
     gid = a.get('principalId', '')
@@ -785,18 +786,20 @@ for a in group_assignments:
     role = a.get('resolvedRoleName', a.get('roleDefinitionName', ''))
     scope = a.get('scope', '')
     for m in group_members.get(gid, []):
-        if (gid.lower(), m['id'].lower()) in recently_added_to_group:
+        membership = (gid.lower(), m['id'].lower())
+        if membership in recently_added_to_group:
             continue
-        cleanup_candidate = (
-            remove_direct
-            and m['id'].lower() not in group_cleanup_exempt
-            and m['upn'].lower() not in group_cleanup_exempt
-        )
-        candidate = {'groupId': gid, 'groupName': gname, 'principalId': m['id'], 'upn': m['upn']}
         if is_allowed_exception(m['upn'], m['displayName'], role, scope, gname):
+            protected_group_memberships.add(membership)
             continue
-        if cleanup_candidate:
-            group_cleanup_candidates[(gid.lower(), m['id'].lower())] = candidate
+        if (
+            remove_direct
+            and membership[1] not in group_cleanup_exempt
+            and m['upn'].lower() not in group_cleanup_exempt
+        ):
+            group_cleanup_candidates[membership] = {
+                'groupId': gid, 'groupName': gname, 'principalId': m['id'], 'upn': m['upn'],
+            }
         findings.append({
             'upn': m['upn'], 'displayName': m['displayName'], 'principalId': m['id'],
             'role': role, 'scope': scope, 'scopeLevel': get_scope_level(scope),
@@ -819,7 +822,10 @@ if remove_direct:
     ]
     from remove_direct_privileged_assignments import remove_direct_assignments
 
-    group_candidates = list(group_cleanup_candidates.values())
+    group_candidates = [
+        candidate for membership, candidate in group_cleanup_candidates.items()
+        if membership not in protected_group_memberships
+    ]
     validate_group_memberships(group_candidates)
     removed_ids, cleanup_failures = remove_direct_assignments(direct_candidates)
     removed_memberships, group_failures = remove_group_memberships(group_candidates)
