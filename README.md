@@ -83,9 +83,10 @@ When enabled, cleanup:
   subscriptions. Cleanup is aborted if those descendants cannot be enumerated.
 - removes users who appear on the report from the groups that give them
   privileged access (for example `DTS Owners (…)` and `DTS Contributors (…)`).
-  Users covered by an approved exception in `allowed_assignments` do not appear
-  on the report and are kept. Only principals listed under
-  `group_cleanup_exempt_principals` (currently **O365 Admin GA** and
+  An approved exception in `allowed_assignments` protects the membership
+  that grants it. Any unapproved access through that membership stays in the
+  report. Principals listed under `group_cleanup_exempt_principals`
+  (currently **O365 Admin GA** and
   **b2cadmin GA**) are always kept. Service and break-glass accounts, nested
   groups, and users added in the last 25 hours (for example one-day
   access-package grants) are also kept. Cleanup is aborted if recent group
